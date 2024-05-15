@@ -1,7 +1,7 @@
 import os
 import importlib.util
 import inspect
-from schemas import ExpressionRef, ExpressionsOverview
+from polars_expr_transformer.schemas import ExpressionRef, ExpressionsOverview
 from typing import List, Optional
 
 

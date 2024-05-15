@@ -9,13 +9,13 @@ def equals(s: Any, t: Any) -> pl.Expr:
     Check if two expressions or values are equal.
 
     Parameters:
-    - s (Any): The first expression or value to compare. Can be a FlowFile expression or any other value.
-    - t (Any): The second expression or value to compare. Can be a FlowFile expression or any other value.
+    - s (Any): The first expression or value to compare. Can be a pl expression or any other value.
+    - t (Any): The second expression or value to compare. Can be a pl expression or any other value.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the equality of `s` and `t`.
+    - pl.Expr: A pl expression representing the equality of `s` and `t`.
 
-    Note: If `s` or `t` is not a FlowFile expression, it will be converted into one.
+    Note: If `s` or `t` is not a pl expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     t = t if is_polars_expr(t) else create_fix_col(t)
@@ -27,12 +27,12 @@ def is_empty(s: pl.Expr) -> pl.Expr:
     Check if a given expression is empty.
 
     Parameters:
-    - s (pl.Expr): The expression to check. Must be a FlowFile expression.
+    - s (pl.Expr): The expression to check. Must be a pl expression.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing whether `s` is empty.
+    - pl.Expr: A pl expression representing whether `s` is empty.
 
-    Note: If `s` is not a FlowFile expression, a ValueError will be raised.
+    Note: If `s` is not a pl expression, a ValueError will be raised.
     """
     return s.is_null()
 
@@ -42,12 +42,12 @@ def is_not_empty(s: pl.Expr) -> pl.Expr:
     Check if a given expression is empty.
 
     Parameters:
-    - s (pl.Expr): The expression to check. Must be a FlowFile expression.
+    - s (pl.Expr): The expression to check. Must be a pl expression.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing whether `s` is empty.
+    - pl.Expr: A pl expression representing whether `s` is empty.
 
-    Note: If `s` is not a FlowFile expression, a ValueError will be raised.
+    Note: If `s` is not a pl expression, a ValueError will be raised.
     """
     return s.is_not_null()
 
@@ -63,12 +63,12 @@ def _not(s: Any) -> pl.Expr:
     Negate a given expression.
 
     Parameters:
-    - s (pl.Expr): The expression to negate. Must be a FlowFile expression.
+    - s (pl.Expr): The expression to negate. Must be a pl expression.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the negation of `s`.
+    - pl.Expr: A pl expression representing the negation of `s`.
 
-    Note: If `s` is not a FlowFile expression, a ValueError will be raised.
+    Note: If `s` is not a pl expression, a ValueError will be raised.
     """
     if not is_polars_expr(s):
         s = pl.lit(s)
@@ -80,12 +80,12 @@ def is_string(val: Any) -> pl.Expr:
     Check if a given expression or value is a string.
 
     Parameters:
-    - val (Any): The expression or value to check. Can be a FlowFile expression or any other value.
+    - val (Any): The expression or value to check. Can be a pl expression or any other value.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing whether `val` is a string.
+    - pl.Expr: A pl expression representing whether `val` is a string.
 
-    Note: If `val` is a FlowFile expression, its dtype will be checked. Otherwise, Python's isinstance will be used.
+    Note: If `val` is a pl expression, its dtype will be checked. Otherwise, Python's isinstance will be used.
     """
     if is_polars_expr(val):
         dtype = pl.select(val).dtypes[0]

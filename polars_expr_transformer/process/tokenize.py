@@ -10,7 +10,6 @@ def tokenize(formula: str):
     i = 0
     string_indicator = None
     while i < len(r):
-
         current_val = r[i]
         # print(i, v[::-1])
         if current_val == string_indicator:
@@ -49,10 +48,10 @@ def tokenize(formula: str):
 
                     other_split = next((f for f in all_functions.keys() if temp_v[::-1] == f))
                     next_value = r[temp_i] if temp_i<len(r) else None
-                    if next_value in (None, ' ', '(', '$') and other_split is not None:
+                    if next_value in [None, ' '] + list(set(v[0] for v in all_split_vals if len(v)>0)) and other_split is not None:
                         output.append(temp_v)
-                        v = next_value
-                        i = temp_i + 1
+                        v = ''
+                        i = temp_i
                         continue
             for toks in (v+current_val).split(splitter):
                 if len(toks) > 0:

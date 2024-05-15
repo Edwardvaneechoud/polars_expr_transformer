@@ -19,8 +19,8 @@ def finalize_hierarchy(hierarchical_formula: Union[Func | TempFunc | IfFunc]):
 
 
 def build_func(func_str: str = 'concat("1", "2")') -> Func:
-    func_str_processed = preprocess(func_str)
-    tokens = tokenize(func_str_processed)
+    formula = preprocess(func_str)
+    tokens = tokenize(formula)
     standardized_tokens = standardize_tokens(tokens)
     hierarchical_formula = build_hierarchy(standardized_tokens)
     parse_inline_functions(hierarchical_formula)

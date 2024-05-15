@@ -9,17 +9,20 @@ def test_simple_constant_expression():
     expected = pl.DataFrame({'literal': ['hallo world']})
     assert result.equals(expected)
 
+
 def test_combining_columns_expression():
     df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
     result = df.select(simple_function_to_expr('[a] + " loves " + [b]').alias('literal'))
     expected = pl.DataFrame({'literal': ['edward loves courtney', 'courtney loves edward']})
     assert result.equals(expected)
 
+
 def test_condition_expression():
     df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
     result = df.select(simple_function_to_expr('"a" in [a]').alias('literal'))
     expected = pl.DataFrame({'literal': [True, False]})
     assert result.equals(expected)
+
 
 def test_complex_conditional_expression():
     df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
@@ -214,6 +217,131 @@ def test_complex_logic():
                        'subnames': ['bread', 'spam', 'breakfast']})
     result = df.select(simple_function_to_expr('if contains([names], "a") then "found" else "not found" endif'))
     expected = pl.DataFrame({'literal': ['found', 'found', 'not found']})
+    assert result.equals(expected)
+
+
+def test_to_string_concat():
+    df = pl.DataFrame({'numbers': [1, 2, 3], 'more_numbers': [4, 5, 6]})
+    result = df.select(simple_function_to_expr('to_string([numbers]) + to_string([more_numbers])'))
+    expected = pl.DataFrame({'numbers': ['14', '25', '36']})
+    assert result.equals(expected)
+
+
+def test_date_func_concat():
+    df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
+    df_with_dates = df.select(pl.col('date').str.to_date())
+    func_str = 'to_date(to_string(year([date])) + "-"+ to_string(month([date])) + "-" + to_string(day([date])))'
+    result = df_with_dates.select(simple_function_to_expr(func_str))
+    expected = df_with_dates
+    assert result.equals(expected)
+
+
+def test_ceil():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('ceil([numbers])'))
+    expected = pl.DataFrame({'numbers': [2, 3, 4]})
+    assert result.equals(expected)
+
+
+def test_floor():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('floor([numbers])'))
+    expected = pl.DataFrame({'numbers': [1, 2, 3]})
+    assert result.equals(expected)
+
+
+def test_tanh():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('tanh([numbers])'))
+    expected = df.select(pl.col('numbers').tanh())
+    assert result.equals(expected)
+
+
+def test_sqrt():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('sqrt([numbers])'))
+    expected = df.select(pl.col('numbers').sqrt())
+    assert result.equals(expected)
+
+
+def test_abs():
+    df = pl.DataFrame({'numbers': [1.1, -2.2, 3.3]})
+    result = df.select(simple_function_to_expr('abs([numbers])'))
+    expected = df.select(pl.col('numbers').abs())
+    assert result.equals(expected)
+
+
+def test_sin():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('sin([numbers])'))
+    expected = df.select(pl.col('numbers').sin())
+    assert result.equals(expected)
+
+
+def test_cos():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('cos([numbers])'))
+    expected = df.select(pl.col('numbers').cos())
+    assert result.equals(expected)
+
+
+def test_tan():
+    df = pl.DataFrame({'numbers': [1.1, 2.2, 3.3]})
+    result = df.select(simple_function_to_expr('tan([numbers])'))
+    expected = df.select(pl.col('numbers').tan())
+    assert result.equals(expected)
+
+
+def test_pad_left():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('pad_left([names], 10, " ")'))
+    expected = pl.DataFrame({'names': ['       ham', 'sandwich with spam', '      eggs']})
+    assert result.equals(expected)
+
+
+def test_trim():
+    df = pl.DataFrame({'names': ['   ham', 'sandwich with spam   ', 'eggs   ']})
+    result = df.select(simple_function_to_expr('trim([names])'))
+    expected = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    assert result.equals(expected)
+
+
+def test_pad_right():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('pad_right([names], 10, " ")'))
+    expected = pl.DataFrame({'names': ['ham       ', 'sandwich with spam', 'eggs      ']})
+    assert result.equals(expected)
+
+def test_multiply_if_else():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('if contains([names], "a") then 10 else 20 endif') * 2)
+    expected = pl.DataFrame({'literal': [20, 20, 40]})
+    assert result.equals(expected)
+
+
+def test_if_elseif_else_multiply():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('if contains([names], "an") then 10 elseif contains([names], "s") then 20 else 30 endif') * 2)
+    expected = pl.DataFrame({'literal': [60, 20, 40]})
+    assert result.equals(expected)
+
+
+def test_combination_add():
+    sf1 = 'if contains([names], "an") then 10 elseif contains([names], "s") then 20 else 30 endif'
+    sf2 = 'if contains([names], "a") then 10 else 20 endif'
+    combined = f'({sf1}) + ({sf2})'
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr(combined))
+    expected = pl.DataFrame({'literal': [40, 20, 40]})
+    assert result.equals(expected)
+
+
+def test_build_on_combination():
+    sf1 = 'if contains([names], "anw") then 10 elseif contains([names], "s") then 20 else 30 endif'
+    combined = 'concat("result: ", ' + sf1 + ')'
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr(combined))
+    expected = pl.DataFrame({'literal': ['result: 30', 'result: 20', 'result: 20']})
     assert result.equals(expected)
 
 

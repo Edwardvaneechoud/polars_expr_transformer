@@ -259,3 +259,47 @@ def date_diff_days(s1: Any, s2: Any) -> pl.Expr:
     s1 = s1 if is_polars_expr(s1) else create_fix_date_col(s1)
     s2 = s2 if is_polars_expr(s2) else create_fix_date_col(s2)
     return (s1 - s2).dt.total_days()
+
+
+def date_trim(s1: Any, part: str):
+    """
+    Trim a date to a specified part. So for example 2023-01-12 12:34:56.123 with part 'day' will return 2023-01-12 00:00:00.000
+
+    Parameters:
+    - s1 (Any): The date to trim. Can be a FlowFile expression or any other value.
+    - part (str): The part of the date to trim to. Can be 'year', 'month', 'day', 'hour', 'minute', or 'second'.
+
+    Returns:
+    - pl.Expr: A FlowFile expression representing the date trimmed to the specified part.
+
+    Note: If `s1` is not a FlowFile expression, it will be converted into one.
+    """
+    s1 = s1 if isinstance(s1, pl.Expr) else pl.col(s1)
+    if part == 'year':
+        return s1.dt.truncate('1y')
+    elif part == 'month':
+        return s1.dt.truncate('1mo')
+    elif part == 'day':
+        return s1.dt.truncate('1d')
+    elif part == 'hour':
+        return s1.dt.truncate('1h')
+    elif part == 'minute':
+        return s1.dt.truncate('1min')
+    elif part == 'second':
+        return s1.dt.truncate('1s')
+    else:
+        raise ValueError(f"Invalid part '{part}' specified. Must be 'year', 'month', 'day', 'hour', 'minute', or 'second'.")
+
+
+def date_truncate(s1: Any, truncate_by: str):
+    """
+    Truncate a date to a specified part. So for example 2023-01-12 12:34:56.123 with part '1day' will return 2023-01-12 00:00:00.000
+    Parameters:
+    - s1 (Any): The date to truncate. Can be a FlowFile expression or any other value.
+    - truncate_by (str): The part of the date to truncate to. Can be 'Nyear', 'Nmonth', 'Nday', 'Nhour', 'Nminute', or 'Nsecond'.
+    Returns:
+    - pl.Expr: A FlowFile expression representing the date truncated to the specified part.
+    """
+
+    s1 = s1 if isinstance(s1, pl.Expr) else pl.col(s1)
+    return s1.dt.truncate(truncate_by)

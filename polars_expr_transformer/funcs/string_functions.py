@@ -102,6 +102,7 @@ def __left(row: Dict):
         return v[:l]
     return None
 
+
 def left(column: PlStringType, length: pl.Expr | int) -> pl.Expr:
     """
     Extracts a substring from a column or string, starting from the beginning.
@@ -191,13 +192,13 @@ def to_date(s: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     Convert a string to a date.
 
     Parameters:
-    - s (Any): The string to convert to a date. Can be a FlowFile expression or any other value.
+    - s (Any): The string to convert to a date. Can be a pl expression or any other value.
     - format (str): The format of the date string. Default is "%Y-%m-%d".
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the converted date.
+    - pl.Expr: A pl expression representing the converted date.
 
-    Note: If `s` is not a FlowFile expression, it will be converted into one.
+    Note: If `s` is not a pl expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     return s.str.to_date(date_format, strict=False)
@@ -208,13 +209,13 @@ def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.E
     Convert a string to a datetime.
 
     Parameters:
-    - s (Any): The string to convert to a datetime. Can be a FlowFile expression or any other value.
+    - s (Any): The string to convert to a datetime. Can be a pl expression or any other value.
     - format (str): The format of the datetime string. Default is "%Y-%m-%d %H:%M:%S".
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the converted datetime.
+    - pl.Expr: A pl expression representing the converted datetime.
 
-    Note: If `s` is not a FlowFile expression, it will be converted into one.
+    Note: If `s` is not a pl expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     return s.str.to_datetime(date_format, strict=False)
@@ -225,14 +226,98 @@ def find_position(s: PlStringType, sub: PlStringType) -> pl.Expr:
     Find the position of a substring within a string.
 
     Parameters:
-    - s (Any): The string in which to find the position of the substring. Can be a FlowFile expression or any other value.
-    - sub (Any): The substring to find the position of. Can be a FlowFile expression or any other value.
+    - s (Any): The string in which to find the position of the substring. Can be a pl expression or any other value.
+    - sub (Any): The substring to find the position of. Can be a pl expression or any other value.
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the position of the substring within the string.
+    - pl.Expr: A pl expression representing the position of the substring within the string.
 
-    Note: If `s` or `sub` is not a FlowFile expression, it will be converted into one.
+    Note: If `s` or `sub` is not a pl expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     sub = sub if is_polars_expr(sub) else create_fix_col(sub)
     return s.str(sub)
+
+
+def pad_left(s: PlStringType, _length: int, pad: str = " ") -> pl.Expr:
+    """
+    Pad a string on the left side with a specified character to reach a certain length.
+
+    Parameters:
+    - s (Any): The string to pad. Can be a pl expression or any other value.
+    - length (int): The desired length of the padded string.
+    - pad (str): The character to use for padding. Default is " ".
+
+    Returns:
+    - pl.Expr: A pl expression representing the padded string.
+
+    Note: If `s` is not a pl expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    return s.str.pad_start(_length, pad)
+
+
+def pad_right(s: PlStringType, _length: int, pad: str = " ") -> pl.Expr:
+    """
+    Pad a string on the right side with a specified character to reach a certain length.
+
+    Parameters:
+    - s (Any): The string to pad. Can be a pl expression or any other value.
+    - length (int): The desired length of the padded string.
+    - pad (str): The character to use for padding. Default is " ".
+
+    Returns:
+    - pl.Expr: A pl expression representing the padded string.
+
+    Note: If `s` is not a pl expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    return s.str.pad_end(_length, pad)
+
+
+def trim(s: PlStringType) -> pl.Expr:
+    """
+    Remove leading and trailing whitespace from a string.
+
+    Parameters:
+    - s (Any): The string to trim. Can be a pl expression or any other value.
+
+    Returns:
+    - pl.Expr: A pl expression representing the trimmed string.
+
+    Note: If `s` is not a pl expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    return s.str.strip_chars_end().str.strip_chars_start()
+
+
+def left_trim(s: PlStringType) -> pl.Expr:
+    """
+    Remove leading whitespace from a string.
+
+    Parameters:
+    - s (Any): The string to trim. Can be a pl expression or any other value.
+
+    Returns:
+    - pl.Expr: A pl expression representing the trimmed string.
+
+    Note: If `s` is not a pl expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    return s.str.strip_chars_start()
+
+
+def right_trim(s: PlStringType) -> pl.Expr:
+    """
+    Remove trailing whitespace from a string.
+
+    Parameters:
+    - s (Any): The string to trim. Can be a pl expression or any other value.
+
+    Returns:
+    - pl.Expr: A pl expression representing the trimmed string.
+
+    Note: If `s` is not a pl expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    return s.str.strip_chars_end()

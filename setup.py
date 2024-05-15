@@ -14,7 +14,7 @@ def parse_requirements(filename):
 
 setup(
     name='polars_expr_transformer',  # Package name
-    version='0.1.3.1',  # Package version
+    version='0.1.3.6',  # Package version
     description='Transform string-based expressions into Polars DataFrame operations',  # Short description
     long_description=long_description,
     long_description_content_type='text/markdown',  # Use markdown format for long description
