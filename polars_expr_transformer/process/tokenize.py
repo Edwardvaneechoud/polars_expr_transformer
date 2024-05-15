@@ -12,7 +12,7 @@ def tokenize(formula: str):
     while i < len(r):
 
         current_val = r[i]
-        print(i, v[::-1])
+        # print(i, v[::-1])
         if current_val == string_indicator:
             output.append(v+current_val)
             v = ''
