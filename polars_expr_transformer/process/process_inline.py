@@ -94,19 +94,24 @@ def resolve_inline_formula(inline_formula_tokens: List[Classifier]):
 
 
 def parse_inline_functions(_hierarchical_formula: Func):
-    if any([a.val_type == 'operator' for a in _hierarchical_formula.args if isinstance(a, Classifier)]):
-        prefixed_formula = inline_to_prefix_formula(_hierarchical_formula.args)
-        parsed_prefixed_formula = parse_formula(prefixed_formula)
-        evaluated_prefix_formula = evaluate_prefix_formula(parsed_prefixed_formula)
-        flattened_prefix_formula = flatten_inline_formula(evaluated_prefix_formula)
-        _hierarchical_formula.args = [build_hierarchy(flattened_prefix_formula)]
-    else:
-        for arg in _hierarchical_formula.args:
-            if isinstance(arg, Func):
-                parse_inline_functions(arg)
-            elif isinstance(arg, IfFunc):
-                for condition in arg.conditions:
-                    parse_inline_functions(condition.condition)
-                    parse_inline_functions(condition.val)
-                parse_inline_functions(arg.else_val)
-
+    run = [True]
+    def parse_inline_function_worker(_hierarchical_formula: Func):
+        if any([a.val_type == 'operator' for a in _hierarchical_formula.args if isinstance(a, Classifier)]):
+            prefixed_formula = inline_to_prefix_formula(_hierarchical_formula.args)
+            parsed_prefixed_formula = parse_formula(prefixed_formula)
+            evaluated_prefix_formula = evaluate_prefix_formula(parsed_prefixed_formula)
+            flattened_prefix_formula = flatten_inline_formula(evaluated_prefix_formula)
+            _hierarchical_formula.args = [build_hierarchy(flattened_prefix_formula)]
+            run[0] = True
+        else:
+            for arg in _hierarchical_formula.args:
+                if isinstance(arg, Func):
+                    parse_inline_function_worker(arg)
+                elif isinstance(arg, IfFunc):
+                    for condition in arg.conditions:
+                        parse_inline_function_worker(condition.condition)
+                        parse_inline_function_worker(condition.val)
+                    parse_inline_function_worker(arg.else_val)
+    while run[0]:
+        run[0] = False
+        parse_inline_function_worker(_hierarchical_formula)

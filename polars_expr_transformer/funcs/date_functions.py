@@ -2,8 +2,7 @@ import polars as pl
 from typing import Any
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, create_fix_date_col
 from datetime import datetime
-
-string_type = pl.Expr | str
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 
 
 def now() -> pl.Expr:
@@ -58,7 +57,7 @@ def month(s: Any) -> pl.Expr:
     return s.dt.month()
 
 
-def day(s: Any) -> pl.Expr:
+def day(s: PlStringType) -> pl.Expr:
     """
     Extract the day from a date or timestamp.
 
@@ -74,7 +73,7 @@ def day(s: Any) -> pl.Expr:
     return s.dt.day()
 
 
-def hour(s: Any) -> pl.Expr:
+def hour(s: PlStringType) -> pl.Expr:
     """
     Extract the hour from a timestamp.
 
@@ -90,7 +89,7 @@ def hour(s: Any) -> pl.Expr:
     return s.dt.hour()
 
 
-def minute(s: Any) -> pl.Expr:
+def minute(s: PlStringType) -> pl.Expr:
     """
     Extract the minute from a timestamp.
 
@@ -106,7 +105,7 @@ def minute(s: Any) -> pl.Expr:
     return s.dt.minute()
 
 
-def second(s: Any) -> pl.Expr:
+def second(s: PlStringType) -> pl.Expr:
     """
     Extract the second from a timestamp.
 
@@ -122,7 +121,7 @@ def second(s: Any) -> pl.Expr:
     return s.dt.second()
 
 
-def add_days(s: Any, days: Any) -> pl.Expr:
+def add_days(s: PlStringType, days: PlIntType) -> pl.Expr:
     """
     Add a specified number of days to a date or timestamp.
 
@@ -136,11 +135,29 @@ def add_days(s: Any, days: Any) -> pl.Expr:
     Note: If `s` is not a FlowFile expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_date_col(s)
-    days = days if is_polars_expr(days) else create_fix_date_col(days)
+    days = days if is_polars_expr(days) else create_fix_col(days)
     return s + pl.duration(days=days)
 
 
-def add_hours(s: Any, hours: any) -> pl.Expr:
+def add_years(s: PlStringType, years: PlIntType) -> pl.Expr:
+    """
+    Add a specified number of days to a date or timestamp.
+
+    Parameters:
+    - s (Any): The date or timestamp to add days to. Can be a FlowFile expression or any other value.
+    - days (int): The number of days to add.
+
+    Returns:
+    - pl.Expr: A FlowFile expression representing the result of adding `days` to `s`.
+
+    Note: If `s` is not a FlowFile expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_date_col(s)
+    years = years if is_polars_expr(years) else create_fix_col(years)
+    return s + pl.duration(days=years*365)
+
+
+def add_hours(s: PlStringType, hours: PlIntType) -> pl.Expr:
     """
     Add a specified number of hours to a timestamp.
 
@@ -158,7 +175,7 @@ def add_hours(s: Any, hours: any) -> pl.Expr:
     return s + pl.duration(hours=hours)
 
 
-def add_minutes(s: Any, minutes: Any) -> pl.Expr:
+def add_minutes(s: PlStringType, minutes: PlIntType) -> pl.Expr:
     """
     Add a specified number of minutes to a timestamp.
 
@@ -176,7 +193,7 @@ def add_minutes(s: Any, minutes: Any) -> pl.Expr:
     return s + pl.duration(minutes=minutes)
 
 
-def add_seconds(s: Any, seconds: Any) -> pl.Expr:
+def add_seconds(s: PlStringType, seconds: PlIntType) -> pl.Expr:
     """
     Add a specified number of seconds to a timestamp.
 
@@ -194,7 +211,7 @@ def add_seconds(s: Any, seconds: Any) -> pl.Expr:
     return s + pl.duration(seconds=seconds)
 
 
-def datetime_diff_seconds(s1: Any, s2: Any) -> pl.Expr:
+def datetime_diff_seconds(s1: PlStringType, s2: PlStringType) -> pl.Expr:
     """
     Calculate the difference in seconds between two timestamps.
 
@@ -212,7 +229,7 @@ def datetime_diff_seconds(s1: Any, s2: Any) -> pl.Expr:
     return (s1 - s2).dt.total_seconds()
 
 
-def datetime_diff_nanoseconds(s1: Any, s2: Any):
+def datetime_diff_nanoseconds(s1: PlStringType, s2: PlStringType):
     """ Calculate the difference in days between two dates.
     Parameters:
     - s1 (Any): The first date. Can be a FlowFile expression or any other value.

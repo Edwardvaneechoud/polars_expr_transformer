@@ -6,12 +6,13 @@ from copy import deepcopy
 def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func:
     if previous_val and previous_val.val_type == 'function':
         pass
-    elif isinstance(current_func, IfFunc) and previous_val.val == '$if$':
+    elif isinstance(current_func, IfFunc) and previous_val.val in ('$if$', '$elseif$'):
         condition = Func(Classifier('pl.lit'))
         val = Func(Classifier('pl.lit'))
         condition_val = ConditionVal(condition=condition, val=val)
-        else_val = Func(Classifier('pl.lit'))
-        current_func.add_else_val(else_val)
+        if previous_val.val == '$if$':
+            else_val = Func(Classifier('pl.lit'))
+            current_func.add_else_val(else_val)
         current_func.add_condition(condition_val)
         current_func = condition
     else:
@@ -40,16 +41,14 @@ def handle_else(current_func: Func, next_val: Optional[Classifier], pos: int) ->
         current_func = current_func.else_val
         if next_val and next_val.val == '(':
             pos += 1
+    else:
+        raise Exception('Expected if')
     return current_func, pos
 
 def handle_elseif(current_func: Func) -> Func:
     current_func = current_func.parent
-    if isinstance(current_func, IfFunc):
-        condition = Func(Classifier('pl.lit'))
-        val = Func(Classifier('pl.lit'))
-        condition_val = ConditionVal(condition=condition, val=val)
-        current_func.add_condition(condition_val)
-        current_func = condition
+    if not isinstance(current_func, IfFunc):
+        raise Exception('Expected if')
     return current_func
 
 def handle_endif(current_func: Func) -> Func:
@@ -109,6 +108,7 @@ def build_hierarchy(tokens: List[Classifier]):
                 current_func = handle_endif(current_func)
             elif current_val.val == ')':
                 if next_val is None:
+                    pass
                     break
                 current_func, main_func = handle_closing_bracket(current_func, main_func)
             elif current_val.val_type == 'function':

@@ -1,8 +1,24 @@
 from polars_expr_transformer.configs.settings import PRECEDENCE
-from typing import TypeAlias, Literal, List, Union, Optional, Any
+from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 from polars_expr_transformer.configs.settings import operators, funcs
+from polars_expr_transformer.configs import logging
 from dataclasses import dataclass, field
 import polars as pl
+from types import NotImplementedType
+import inspect
+
+
+def get_types_from_func(func: Callable):
+    return [param.annotation for param in inspect.signature(func).parameters.values()]
+
+
+def allow_expressions(_type):
+    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty]
+
+
+def allow_non_pl_expressions(_type):
+    return _type in [str, int, float, bool, PlIntType, PlStringType, Any, inspect._empty]
 
 
 value_type: TypeAlias = Literal['string', 'number', 'boolean', 'operator', 'function', 'column', 'empty', 'case_when',
@@ -68,12 +84,18 @@ class Classifier:
     def __hash__(self):
         return hash(self.val)
 
+    def get_readable_pl_function(self):
+        return self.val
+
 
 @dataclass
 class Func:
     func_ref: Union[Classifier, "IfFunc"]
     args: List[Union["Func", Classifier, "IfFunc"]] = field(default_factory=list)
     parent: Optional["Func"] = field(repr=False, default=None)
+
+    def get_readable_pl_function(self):
+        return f'{self.func_ref.val}({", ".join([arg.get_readable_pl_function() for arg in self.args])})'
 
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):
         self.args.append(arg)
@@ -87,16 +109,31 @@ class Func:
                 return self.args[0].get_pl_func()
             return funcs[self.func_ref.val](self.args[0].get_pl_func())
         args = [arg.get_pl_func() for arg in self.args]
+        func = funcs[self.func_ref.val]
         if any(isinstance(arg, pl.Expr) for arg in args) and any(not isinstance(arg, pl.Expr) for arg in args):
+            func_types = get_types_from_func(func)
             standardized_args = []
-            for arg in args:
-                if not isinstance(arg, pl.Expr):
-                    standardized_args.append(pl.lit(arg))
-                else:
-                    standardized_args.append(arg)
+            if len(func_types) == len(args):
+                for func_type, arg in zip(func_types, args):
+                    if not isinstance(arg, pl.Expr) and allow_expressions(func_type):
+                        standardized_args.append(pl.lit(arg))
+                    else:
+                        standardized_args.append(arg)
+            else:
+                standardized_args = [pl.lit(arg) if not isinstance(arg, pl.Expr) else arg for arg in args]
+
         else:
             standardized_args = args
-        return funcs[self.func_ref.val](*standardized_args)
+        r = func(*standardized_args)
+
+        if isinstance(r, NotImplementedType):
+            try:
+                readable_pl_function = self.get_readable_pl_function()
+                logging.warning(f'Not implemented type: {self.get_readable_pl_function()}')
+            except:
+                logging.warning('Not implemented type')
+            return False
+        return r
 
 
 @dataclass

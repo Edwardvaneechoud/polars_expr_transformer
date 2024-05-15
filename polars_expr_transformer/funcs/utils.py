@@ -3,6 +3,10 @@ from typing import Any
 import os
 
 
+PlStringType = pl.Expr | str
+PlIntType = pl.Expr | int
+
+
 def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
 

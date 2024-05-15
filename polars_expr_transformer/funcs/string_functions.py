@@ -1,9 +1,7 @@
 import polars as pl
 from typing import List, Tuple, Callable, Dict, Any
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
-
-
-string_type = pl.Expr | str
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 
 
 def concat(*columns) -> pl.Expr:
@@ -20,7 +18,7 @@ def concat(*columns) -> pl.Expr:
     return pl.concat_str(columns)
 
 
-def count_match(column: pl.Expr | str, value: str) -> pl.Expr:
+def count_match(column: PlStringType, value: str) -> pl.Expr:
 
     """
     Count the number of occurrences of a given value in a column.
@@ -33,11 +31,11 @@ def count_match(column: pl.Expr | str, value: str) -> pl.Expr:
     - An expression representing the number of occurrences.
     """
     if isinstance(column, pl.Expr):
-        return column.str.count_match(value)
-    return pl.lit(column).str.count_match(value)
+        return column.str.count_matches(value)
+    return pl.lit(column).str.count_matches(value)
 
 
-def length(column: pl.Expr | str) -> pl.Expr:
+def length(column: PlStringType) -> pl.Expr:
     """
     Calculate the length of a given column or string.
 
@@ -49,10 +47,11 @@ def length(column: pl.Expr | str) -> pl.Expr:
     """
     if isinstance(column, str):
         return pl.lit(len(column))
-    return column.str.lengths()
+    column: pl.Expr
+    return column.str.len_chars()
 
 
-def uppercase(_v: pl.Expr | str) -> pl.Expr:
+def uppercase(_v: PlStringType) -> pl.Expr:
     """
     Convert the characters in a given column or string to uppercase.
 
@@ -67,7 +66,7 @@ def uppercase(_v: pl.Expr | str) -> pl.Expr:
     return pl.lit(_v.__str__().upper())
 
 
-def to_string(_v: pl.Expr | str) -> pl.Expr:
+def to_string(_v: PlStringType) -> pl.Expr:
     """
     Convert a given column or value to its string representation.
 
@@ -82,7 +81,7 @@ def to_string(_v: pl.Expr | str) -> pl.Expr:
     return pl.lit(_v.__str__())
 
 
-def lowercase(_v: pl.Expr | str) -> pl.Expr:
+def lowercase(_v: PlStringType) -> pl.Expr:
     """
     Convert the characters in a given column or string to lowercase.
 
@@ -103,7 +102,7 @@ def __left(row: Dict):
         return v[:l]
     return None
 
-def left(column: string_type, length: pl.Expr | int) -> pl.Expr:
+def left(column: PlStringType, length: pl.Expr | int) -> pl.Expr:
     """
     Extracts a substring from a column or string, starting from the beginning.
 
@@ -117,13 +116,13 @@ def left(column: string_type, length: pl.Expr | int) -> pl.Expr:
     if is_polars_expr(column):
         if is_polars_expr(length):
             print(' pl.struct([column, length]).apply(lambda r: __left(r))')
-            return pl.struct([column, length]).apply(lambda r: __left(r))
+            return pl.struct([column, length]).map_elements(lambda r: __left(r), return_dtype=pl.String)
         else:
             print('column.str.slice(0, length)')
             return column.str.slice(0, length)
     elif is_polars_expr(length):
         print('pl.struct([length]).apply(lambda r: column[:list(r.values)[0]])')
-        return pl.struct([length]).apply(lambda r: column[:list(r.values)[0]])
+        return pl.struct([length]).map_elements(lambda r: column[:list(r.values)[0]], return_dtype=pl.String)
     else:
         print('pl.lit(column[:length])')
         return pl.lit(column[:length])
@@ -135,7 +134,7 @@ def __right(row: Dict):
         return v[-l:]
 
 
-def right(column: string_type, length: pl.Expr | int) -> pl.Expr:
+def right(column: PlStringType, length: PlIntType) -> pl.Expr:
     """
     Extracts a substring from a column or string, starting from the end.
 
@@ -149,11 +148,11 @@ def right(column: string_type, length: pl.Expr | int) -> pl.Expr:
 
     if is_polars_expr(column):
         if is_polars_expr(length):
-            return pl.struct([column, length]).apply(__right)
+            return pl.struct([column, length]).map_elements(__right, return_dtype=pl.String)
         else:
             return column.str.slice(-length)
     elif is_polars_expr(length):
-        return pl.struct([length]).apply(lambda r: column[-next(iter(r.values())):])
+        return pl.struct([length]).map_elements(lambda r: column[-next(iter(r.values())):], return_dtype=pl.String)
     else:
         return pl.lit(column[-length:])
 
@@ -166,7 +165,7 @@ def __apply_replace(row, replace_by=None):
     return main_str.replace(other_str, replace_str)
 
 
-def replace(main: string_type, other: string_type, replace_by: string_type) -> pl.Expr:
+def replace(main: PlStringType, other: PlStringType, replace_by: PlStringType) -> pl.Expr:
     """
        Replaces occurrences of a substring within a main string with another string.
 
@@ -187,7 +186,7 @@ def replace(main: string_type, other: string_type, replace_by: string_type) -> p
     return main.str.replace_all(other, replace_by, literal=True).cast(pl.Utf8)
 
 
-def to_date(s: Any, date_format: str = "%Y-%m-%d") -> pl.Expr:
+def to_date(s: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     """
     Convert a string to a date.
 
@@ -201,10 +200,10 @@ def to_date(s: Any, date_format: str = "%Y-%m-%d") -> pl.Expr:
     Note: If `s` is not a FlowFile expression, it will be converted into one.
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
-    return s.str.to_date(date_format, strict=True)
+    return s.str.to_date(date_format, strict=False)
 
 
-def to_datetime(s: Any, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
+def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
     """
     Convert a string to a datetime.
 
@@ -219,3 +218,21 @@ def to_datetime(s: Any, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     return s.str.to_datetime(date_format, strict=False)
+
+
+def find_position(s: PlStringType, sub: PlStringType) -> pl.Expr:
+    """
+    Find the position of a substring within a string.
+
+    Parameters:
+    - s (Any): The string in which to find the position of the substring. Can be a FlowFile expression or any other value.
+    - sub (Any): The substring to find the position of. Can be a FlowFile expression or any other value.
+
+    Returns:
+    - pl.Expr: A FlowFile expression representing the position of the substring within the string.
+
+    Note: If `s` or `sub` is not a FlowFile expression, it will be converted into one.
+    """
+    s = s if is_polars_expr(s) else create_fix_col(s)
+    sub = sub if is_polars_expr(sub) else create_fix_col(sub)
+    return s.str(sub)

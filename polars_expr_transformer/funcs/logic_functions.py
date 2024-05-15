@@ -1,6 +1,7 @@
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
 from typing import Any, Dict
 import polars as pl
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 
 
 def equals(s: Any, t: Any) -> pl.Expr:
@@ -92,7 +93,7 @@ def is_string(val: Any) -> pl.Expr:
     return pl.lit(isinstance(val, str))
 
 
-def contains(base: pl.Expr | str, pattern: pl.Expr | str) -> pl.Expr:
+def contains(base: PlStringType, pattern: Any) -> pl.Expr:
     """
     Check if a pattern is contained within a base string or expression.
 
@@ -114,15 +115,15 @@ def contains(base: pl.Expr | str, pattern: pl.Expr | str) -> pl.Expr:
 
     if isinstance(base, pl.Expr):
         if isinstance(pattern, pl.Expr):
-            return pl.struct([base, pattern]).apply(lambda r: _contain(r), return_dtype=pl.Boolean)
+            return pl.struct([base, pattern]).map_elements(lambda r: _contain(r), return_dtype=pl.Boolean)
         else:
             return base.str.contains(pattern)
     else:
         if isinstance(pattern, pl.Expr):
-            return pl.struct([pattern]).apply(lambda x: next(iter(x.values())) in base)
+            return pl.struct([pattern]).map_elements(lambda x: next(iter(x.values())) in base)
         else:
             return pl.lit(pattern in base)
 
 
-def _in(pattern: pl.Expr | str, base: pl.Expr | str) -> pl.Expr:
+def _in(pattern: Any, base: PlStringType) -> pl.Expr:
     return contains(base, pattern)

@@ -10,7 +10,9 @@ def tokenize(formula: str):
     i = 0
     string_indicator = None
     while i < len(r):
+
         current_val = r[i]
+        print(i, v[::-1])
         if current_val == string_indicator:
             output.append(v+current_val)
             v = ''
@@ -29,7 +31,6 @@ def tokenize(formula: str):
                 if two_character_inline:
                     current_val += r[i + 1]
                     i += 1
-
         if not in_string and not in_brackets and current_val[::-1] in all_split_vals:
             if i > 0:
                 output.append(v)
@@ -42,12 +43,13 @@ def tokenize(formula: str):
                 longer_options = [f for f in all_functions.keys() if (v+current_val)[::-1] in f]
                 if len(longer_options)>0:
                     temp_i, temp_v = i, v
-                    while len([f for f in all_functions.keys() if temp_v[::-1] in f])>0 and temp_i<len(r):
+                    while temp_i<len(r) and len([f for f in all_functions.keys() if (temp_v+r[temp_i])[::-1] in f])>0:
                         temp_v += r[temp_i]
                         temp_i += 1
-                    other_split = next((f for f in all_functions.keys() if temp_v[::-1] == f), None)
-                    next_value = r[temp_i+1] if temp_i<len(r) else None
-                    if next_value in (None, ' ', '(') and other_split is not None:
+
+                    other_split = next((f for f in all_functions.keys() if temp_v[::-1] == f))
+                    next_value = r[temp_i] if temp_i<len(r) else None
+                    if next_value in (None, ' ', '(', '$') and other_split is not None:
                         output.append(temp_v)
                         v = next_value
                         i = temp_i + 1
