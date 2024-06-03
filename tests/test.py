@@ -345,5 +345,24 @@ def test_build_on_combination():
     assert result.equals(expected)
 
 
+def divide_test():
+    func_string = '1+(2/2)'
+    result = pl.select(simple_function_to_expr(func_string))
+    expected = pl.DataFrame({'literal': [2]})
+    assert result.equals(expected)
+
+
+def divide_test_simple():
+    func_string = '2/2'
+    result = pl.select(simple_function_to_expr(func_string))
+    expected = pl.DataFrame({'literal': [1]})
+    assert result.equals(expected)
+
+
+def detect_date_format():
+    ...
+
+
 if __name__ == '__main__':
     pytest.main()
+

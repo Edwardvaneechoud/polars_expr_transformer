@@ -197,4 +197,3 @@ def tanh(v: pl.NUMERIC_DTYPES) -> pl.Expr:
 
 def negative() -> int:
     return -1
-

@@ -66,6 +66,21 @@ def uppercase(_v: PlStringType) -> pl.Expr:
     return pl.lit(_v.__str__().upper())
 
 
+def titlecase(_v: PlStringType) -> pl.Expr:
+    """
+    Convert the characters in a given column or string to title case.
+
+    Parameters:
+    - _v: The column or string to convert.
+
+    Returns:
+    - An expression representing the title case conversion.
+    """
+    if isinstance(_v, pl.Expr):
+        return _v.str.to_titlecase()
+    return pl.lit(_v.__str__().title())
+
+
 def to_string(_v: PlStringType) -> pl.Expr:
     """
     Convert a given column or value to its string representation.

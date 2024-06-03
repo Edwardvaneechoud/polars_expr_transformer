@@ -13,6 +13,20 @@ def get_types_from_func(func: Callable):
     return [param.annotation for param in inspect.signature(func).parameters.values()]
 
 
+def ensure_all_numeric_types_align(numbers: List[Union[int, float]]):
+    if not all_numeric_types(numbers):
+        raise Exception('Expected all numbers to be of type int')
+    if all(isinstance(number, int) for number in numbers):
+        return numbers
+    if all(isinstance(number, float) for number in numbers):
+        return numbers
+    return [float(number) for number in numbers]
+
+
+def all_numeric_types(numbers: List[any]):
+    return all(isinstance(number, (float, int, bool)) for number in numbers)
+
+
 def allow_expressions(_type):
     return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty]
 
@@ -109,6 +123,8 @@ class Func:
                 return self.args[0].get_pl_func()
             return funcs[self.func_ref.val](self.args[0].get_pl_func())
         args = [arg.get_pl_func() for arg in self.args]
+        if all_numeric_types(args):
+            args = ensure_all_numeric_types_align(args)
         func = funcs[self.func_ref.val]
         if any(isinstance(arg, pl.Expr) for arg in args) and any(not isinstance(arg, pl.Expr) for arg in args):
             func_types = get_types_from_func(func)
