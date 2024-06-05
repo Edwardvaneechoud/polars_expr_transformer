@@ -3,7 +3,7 @@ from polars_expr_transformer.process.polars_expr_transformer import preprocess, 
 import polars as pl
 
 
-print('doing tests')
+print('doing testsd')
 
 def test_simple_constant_expression():
     df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
