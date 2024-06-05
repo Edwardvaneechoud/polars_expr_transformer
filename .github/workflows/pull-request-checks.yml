@@ -1,15 +1,12 @@
-name: Deploy to PyPI
+name: Pull Request Checks
 
 on:
   pull_request:
     branches:
-      - main
-    types:
-      - closed
+      - acceptance
 
 jobs:
-  deploy:
-    if: github.event.pull_request.merged == true
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,13 +28,5 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
-    - name: Configure Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-    - name: Publish to PyPI
-      env:
-        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-      run: |
-        poetry publish --build --username __token__ --password $PYPI_TOKEN
+    - name: Run tests
+      run: poetry run pytest tests/test.py
