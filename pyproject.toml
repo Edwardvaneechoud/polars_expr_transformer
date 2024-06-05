@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "polars_expr_transformer"
+version = "0.1.3.7"
+description = "Transform string-based expressions into Polars DataFrame operations"
+authors = ["Edward van Eehoud <evaneechoudl@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/edwardvaneechoud/polars_expr_transformer"
+packages = [
+    { include = "polars_expr_transformer" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9"
+pydantic = "~1.10.6"
+polars = "~0.20.4"
+
+[tool.poetry.dev-dependencies]
+pytest = "~7.4.0"
+check-manifest = "^0.46"
+flake8 = "^3.9.2"
+coverage = "^6.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
