@@ -28,6 +28,11 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
+    - name: Configure Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
     - name: Merge main into develop and bump version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
