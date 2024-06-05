@@ -1,12 +1,12 @@
-name: Pull Request Tests
+name: Pull Request Checks
 
 on:
   pull_request:
     branches:
-      - develop
+      - acceptance
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
 
     steps:
