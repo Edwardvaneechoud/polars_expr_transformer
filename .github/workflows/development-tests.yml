@@ -3,7 +3,7 @@ name: Development Branch Tests
 on:
   push:
     branches:
-      - development
+      - develop
 
 jobs:
   test:

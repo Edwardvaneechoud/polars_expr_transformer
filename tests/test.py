@@ -107,6 +107,7 @@ def test_count_match():
 
 
 def test_count_match_two_cols():
+    print('yes')
     df = pl.DataFrame({'names': ['hama', 'spam', 'eggs'],
                        'subnames': ['bread', 'sandwich', 'breakfast']})
     result = df.select(simple_function_to_expr('count_match(concat([names], [subnames]), "a")'))
