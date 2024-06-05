@@ -26,6 +26,40 @@ jobs:
     - name: Install dependencies
       run: poetry install
 
+    - name: Create pull request from develop to main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        git checkout develop
+        git pull origin develop
+        
+        # Check if there are any changes to merge
+        git fetch origin main
+        if git diff --quiet HEAD origin/main; then
+          echo "No changes to merge from develop to main."
+          exit 0
+        fi
+
+        # Create a pull request
+        gh pr create --base main --head develop --title "Merge develop into main for deployment" --body "Auto-generated PR for deployment."
+
+    - name: Check source branch
+      run: |
+        pr_number=$(gh pr view --json number --jq '.number')
+        base_branch=$(gh pr view $pr_number --json baseRefName --jq '.baseRefName')
+        head_branch=$(gh pr view $pr_number --json headRefName --jq '.headRefName')
+        if [[ "$base_branch" == "main" && "$head_branch" != "develop" ]]; then
+          echo "Pull requests to main must come from the develop branch."
+          exit 1
+        fi
+
+    - name: Merge the pull request
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pr_number=$(gh pr view --json number --jq '.number')
+        gh pr merge $pr_number --squash --admin --repo ${{ github.repository }}
+
     - name: Bump version and deploy to PyPI
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
@@ -36,11 +70,8 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
         # Checkout the main branch and pull the latest changes
-        git checkout main || git checkout -b main origin/main
+        git checkout main
         git pull origin main
-
-        # Merge development into main
-        git merge origin/develop
 
         # Bump the version
         poetry version patch
