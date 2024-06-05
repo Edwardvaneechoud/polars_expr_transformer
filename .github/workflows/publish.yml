@@ -29,19 +29,30 @@ jobs:
     - name: Run tests
       run: poetry run pytest tests/test.py
 
-    - name: Bump version and publish
+    - name: Publish package
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         GH_PAT: ${{ secrets.GH_PAT }}
       run: |
-        # Bump the version (patch, minor, major)
-        poetry version patch
+        CURRENT_VERSION=$(poetry version -s)
+        PUBLISHED=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json | jq -r '.info.version')
+        if [ "$PUBLISHED" == "$CURRENT_VERSION" ]; then
+          echo "Version $CURRENT_VERSION already exists on PyPI. Bumping patch version..."
+          poetry version patch
+          NEW_VERSION=$(poetry version -s)
+          echo "New version is $NEW_VERSION"
+        else
+          echo "Version $CURRENT_VERSION does not exist on PyPI. Using current version..."
+          NEW_VERSION=$CURRENT_VERSION
+        fi
         # Publish to PyPI
         poetry publish --build --username __token__ --password $PYPI_TOKEN
-        # Push the new version to the repository
+        # Configure Git for pushing changes
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
+        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+        # Push the new version to the repository
         git add pyproject.toml
-        git commit -m "Bump version to $(poetry version -s)"
-        git tag $(poetry version -s)
+        git commit -m "Bump version to $NEW_VERSION"
+        git tag $NEW_VERSION
         git push --follow-tags
