@@ -6,7 +6,7 @@ on:
       - acceptance
 
 jobs:
-  check:
+  check-develop:
     runs-on: ubuntu-latest
 
     steps:
