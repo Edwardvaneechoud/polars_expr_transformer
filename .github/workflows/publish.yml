@@ -35,12 +35,19 @@ jobs:
         GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         CURRENT_VERSION=$(poetry version -s)
+        echo "Current version is $CURRENT_VERSION"
         PUBLISHED=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json | jq -r '.info.version')
         if [ "$PUBLISHED" == "$CURRENT_VERSION" ]; then
           echo "Version $CURRENT_VERSION already exists on PyPI. Bumping patch version..."
           poetry version patch
           NEW_VERSION=$(poetry version -s)
           echo "New version is $NEW_VERSION"
+          # Update version until a non-existing version is found
+          while [ "$(curl -s https://pypi.org/pypi/polars_expr_transformer/$NEW_VERSION/json | jq -r '.info.version')" == "$NEW_VERSION" ]; do
+            poetry version patch
+            NEW_VERSION=$(poetry version -s)
+            echo "Trying new version $NEW_VERSION"
+          done
         else
           echo "Version $CURRENT_VERSION does not exist on PyPI. Using current version..."
           NEW_VERSION=$CURRENT_VERSION
@@ -51,8 +58,8 @@ jobs:
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
-        # Push the new version to the repository
-        git add pyproject.toml
+        # Add and commit changes
+        git add pyproject.toml poetry.lock
         git commit -m "Bump version to $NEW_VERSION"
         git tag $NEW_VERSION
         git push --follow-tags
