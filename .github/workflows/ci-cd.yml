@@ -1,14 +1,19 @@
 name: CI/CD
 
 on:
+  push:
+    branches:
+      - develop
+      - main
   pull_request:
     branches:
       - develop
+      - main
 
 jobs:
-  merge_develop_into_feature:
+  ensure_up_to_date:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     steps:
       - name: Checkout repository
@@ -38,7 +43,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: merge_develop_into_feature
+    needs: ensure_up_to_date
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout repository
@@ -51,19 +57,19 @@ jobs:
 
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python -
+          curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: poetry install
 
       - name: Run tests
-        run: poetry run pytest
+        run: poetry run pytest tests/test.py
 
   bump_version:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
 
     steps:
       - name: Checkout repository
@@ -78,7 +84,7 @@ jobs:
 
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python -
+          curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
@@ -106,13 +112,13 @@ jobs:
           git add pyproject.toml poetry.lock
           git commit -m "Bump version to $NEW_VERSION"
 
-          # Push changes to develop
+          # Push changes to main
           git push --follow-tags
 
   publish:
     needs: bump_version
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
 
     steps:
       - name: Checkout repository
@@ -127,7 +133,7 @@ jobs:
 
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python -
+          curl -sSL https://install.python-poetry.org | python3 -
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
