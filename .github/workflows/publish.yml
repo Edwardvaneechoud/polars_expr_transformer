@@ -32,6 +32,7 @@ jobs:
     - name: Bump version and publish
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         # Bump the version (patch, minor, major)
         poetry version patch
