@@ -1,0 +1,62 @@
+name: Deploy to PyPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: poetry install
+
+    - name: Bump version and deploy to PyPI
+      env:
+        PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Configure Git
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Checkout the main branch and pull the latest changes
+        git checkout main || git checkout -b main origin/main
+        git pull origin main
+
+        # Merge development into main
+        git merge development
+
+        # Bump the version
+        poetry version patch
+        NEW_VERSION=$(poetry version -s)
+
+        # Commit the version bump
+        git add pyproject.toml poetry.lock
+        git commit -m "Bump version to $NEW_VERSION"
+
+        # Push the changes to the main branch
+        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+        git push origin main
+
+        # Create a new tag
+        git tag $NEW_VERSION
+        git push origin $NEW_VERSION
+
+        # Publish to PyPI
+        poetry publish --build --username __token__ --password $PYPI_TOKEN
