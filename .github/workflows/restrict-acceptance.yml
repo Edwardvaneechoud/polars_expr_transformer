@@ -3,7 +3,7 @@ name: Restrict Merging to Main
 on:
   pull_request:
     branches:
-      - main
+      - acceptance
 
 jobs:
   check:
@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Check source branch
       run: |
-        if [[ ${{ github.head_ref }} != "acceptance" ]]; then
+        if [[ ${{ github.head_ref }} != "develop" ]]; then
           echo "Pull requests to main must come from the develop branch."
           exit 1
         fi

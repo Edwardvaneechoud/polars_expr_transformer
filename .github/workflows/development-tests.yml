@@ -1,6 +1,9 @@
-name: Development Branch Tests
+name: Develop Branch Tests
 
 on:
+  pull_request:
+    branches:
+      - develop
   push:
     branches:
       - develop
