@@ -40,7 +40,7 @@ jobs:
         git pull origin main
 
         # Merge development into main
-        git merge develop
+        git merge origin/develop
 
         # Bump the version
         poetry version patch
