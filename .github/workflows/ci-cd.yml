@@ -1,14 +1,7 @@
-name: CI/CD
+name: CI/CD Test
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-  pull_request:
-    branches:
-      - develop
-      - main
+  workflow_dispatch: # This allows you to manually trigger the workflow
 
 jobs:
   ensure_up_to_date:
@@ -100,21 +93,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "Checking current version with Poetry..."
           CURRENT_VERSION=$(poetry version -s)
-          RESPONSE=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json)
+          echo "Current version: $CURRENT_VERSION"
+          
+          echo "Checking if version $CURRENT_VERSION exists on PyPI..."
+          RESPONSE=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json || echo "Not Found")
+          echo "PyPI response: $RESPONSE"
+          
           if [ "$RESPONSE" == "Not Found" ]; then
             echo "Version $CURRENT_VERSION does not exist on PyPI. Proceeding with the version bump."
             # Bump the version
             poetry version patch
             NEW_VERSION=$(poetry version -s)
+            echo "New version: $NEW_VERSION"
+            
             # Commit the version bump
             git add pyproject.toml poetry.lock
             git commit -m "Bump version to $NEW_VERSION"
+            
             # Push changes to main
-            git push --follow-tags
+            git push origin HEAD --follow-tags
+            echo "Version bumped and changes pushed successfully."
           else
             echo "Version $CURRENT_VERSION already exists on PyPI. Exiting."
             exit 1
+
 
   publish:
     needs: bump_version
