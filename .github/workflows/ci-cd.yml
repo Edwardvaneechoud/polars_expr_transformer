@@ -100,10 +100,10 @@ jobs:
       - name: Check if version exists on PyPI and bump version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
-          echo "poetry api token: $PYPI_API_TOKEN"
+          echo "poetry api token: PYPI_TOKEN"
           echo "Checking current version with Poetry..."
           CURRENT_VERSION=$(poetry version -s)
           echo "Current version: $CURRENT_VERSION"
@@ -122,7 +122,7 @@ jobs:
           fi
   
           echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry publish --build --username __token__ --password $PYPI_API_TOKEN
+          poetry publish --build --username __token__ --password PYPI_TOKEN
   
           echo "Configuring Git for pushing changes..."
           git config user.name "github-actions[bot]"
@@ -160,5 +160,5 @@ jobs:
 
       - name: Publish to PyPI
         env:
-          POETRY_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        run: poetry publish --build --username __token__ --password $POETRY_PYPI_TOKEN
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --build --username __token__ --password PYPI_TOKEN
