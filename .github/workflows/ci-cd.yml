@@ -134,31 +134,3 @@ jobs:
           git commit -m "Bump version to $NEW_VERSION"
           git tag $NEW_VERSION
           git push --follow-tags
-
-  publish:
-    needs: bump_version
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-      - name: Install dependencies
-        run: poetry install --no-dev
-
-      - name: Publish to PyPI
-        env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish --build --username __token__ --password $PYPI_TOKEN
