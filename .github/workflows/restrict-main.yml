@@ -10,9 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check source branch
-      run: |
-        if [[ ${{ github.head_ref }} != "develop" ]]; then
-          echo "Pull requests to main must come from the develop branch."
-          exit 1
-        fi
+      - name: Check source branch
+        run: |
+          if [[ "${{ github.actor }}" == "github-actions[bot]" ]]; then
+            echo "Merge triggered by GitHub Actions bot. Allowing merge."
+          elif [[ "${{ github.event.pull_request.head.ref }}" != "develop" ]]; then
+            echo "Pull requests to main must come from the develop branch."
+            exit 1
+          else
+            echo "Valid pull request to main from develop branch."
+          fi
