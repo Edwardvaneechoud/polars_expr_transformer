@@ -14,13 +14,21 @@ on:
 jobs:
   ensure_up_to_date:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
+      - name: Check if the push is from main branch
+        run: |
+          git fetch origin main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "This push is a merge from main branch. Exiting."
+            exit 0
+          fi
 
       - name: Set up Git
         run: |
@@ -51,8 +59,8 @@ jobs:
 
   build_and_test:
     runs-on: ubuntu-latest
-    if: always()
-    needs: ensure_up_to_date
+    needs: [ensure_up_to_date]
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
 
     steps:
       - name: Checkout repository
