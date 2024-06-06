@@ -103,7 +103,6 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
-          echo "poetry api token: $PYPI_TOKEN"
           echo "Checking current version with Poetry..."
           CURRENT_VERSION=$(poetry version -s)
           echo "Current version: $CURRENT_VERSION"
