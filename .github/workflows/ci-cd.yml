@@ -103,7 +103,7 @@ jobs:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
-          echo "poetry api token: PYPI_TOKEN"
+          echo "poetry api token: $PYPI_TOKEN"
           echo "Checking current version with Poetry..."
           CURRENT_VERSION=$(poetry version -s)
           echo "Current version: $CURRENT_VERSION"
@@ -122,7 +122,7 @@ jobs:
           fi
   
           echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry publish --build --username __token__ --password PYPI_TOKEN
+          poetry publish --build --username __token__ --password $PYPI_TOKEN
   
           echo "Configuring Git for pushing changes..."
           git config user.name "github-actions[bot]"
@@ -161,4 +161,4 @@ jobs:
       - name: Publish to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: poetry publish --build --username __token__ --password PYPI_TOKEN
+        run: poetry publish --build --username __token__ --password $PYPI_TOKEN
