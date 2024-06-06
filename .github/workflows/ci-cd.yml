@@ -73,7 +73,7 @@ jobs:
       - name: Run tests
         run: poetry run pytest tests/test.py
 
-  bump_version:
+  bump_version_and_publish:
     needs: build_and_test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
@@ -121,9 +121,6 @@ jobs:
             NEW_VERSION=$CURRENT_VERSION
           fi
   
-          echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry publish --build --username __token__ --password $PYPI_TOKEN
-  
           echo "Configuring Git for pushing changes..."
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -134,3 +131,12 @@ jobs:
           git commit -m "Bump version to $NEW_VERSION"
           git tag $NEW_VERSION
           git push --follow-tags
+
+      - name: Publish version to PyPI
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          set -e
+          NEW_VERSION=$(poetry version -s)
+          echo "Publishing version $NEW_VERSION to PyPI..."
+          poetry publish --build --username __token__ --password $PYPI_TOKEN
