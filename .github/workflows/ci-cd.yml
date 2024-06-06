@@ -1,7 +1,15 @@
-name: CI/CD Test
+name: CI/CD
 
 on:
-  workflow_dispatch: # This allows you to manually trigger the workflow
+  push:
+    branches:
+      - develop
+      - main
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch: # Allows manual trigger
 
 jobs:
   ensure_up_to_date:
@@ -118,7 +126,6 @@ jobs:
           else
             echo "Version $CURRENT_VERSION already exists on PyPI. Exiting."
             exit 1
-
 
   publish:
     needs: bump_version
