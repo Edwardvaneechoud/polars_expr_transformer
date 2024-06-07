@@ -5,16 +5,16 @@ import polars as pl
 print('printing more and mroe and mroe')
 
 def test_simple_constant_expression():
-    df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
+    df = pl.from_dicts([{'a': 'row a', 'b': 'row b'}, {'a': 'row a 1', 'b': 'row b 1'}])
     result = df.select(simple_function_to_expr("'hallo world'"))
     expected = pl.DataFrame({'literal': ['hallo world']})
     assert result.equals(expected)
 
 
 def test_combining_columns_expression():
-    df = pl.from_dicts([{'a': 'edward', 'b': 'courtney'}, {'a': 'courtney', 'b': 'edward'}])
+    df = pl.from_dicts([{'a': 'man', 'b': 'woman'}, {'a': 'woman', 'b': 'man'}])
     result = df.select(simple_function_to_expr('[a] + " loves " + [b]').alias('literal'))
-    expected = pl.DataFrame({'literal': ['edward loves courtney', 'courtney loves edward']})
+    expected = pl.DataFrame({'literal': ['man loves woman', 'woman loves man']})
     assert result.equals(expected)
 
 
