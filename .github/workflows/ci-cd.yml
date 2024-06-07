@@ -51,7 +51,7 @@ jobs:
 
   build_and_test:
     runs-on: ubuntu-latest
-    if: always()
+    if: always  ()
     needs: ensure_up_to_date
 
     steps:
@@ -82,7 +82,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -99,7 +99,7 @@ jobs:
 
       - name: Check if version exists on PyPI and bump version
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
@@ -123,7 +123,7 @@ jobs:
           echo "Configuring Git for pushing changes..."
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
   
           echo "Adding and committing changes..."
           git add pyproject.toml poetry.lock
