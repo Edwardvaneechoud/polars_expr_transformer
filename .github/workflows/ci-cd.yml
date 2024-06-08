@@ -14,13 +14,18 @@ on:
 jobs:
   ensure_up_to_date:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
+
+      - name: Print GitHub Actor
+        run: |
+          GITHUB_ACTOR="${{ github.actor }}"
+          echo "GitHub Actor: $GITHUB_ACTOR"
 
       - name: Set up Git
         run: |
@@ -51,7 +56,7 @@ jobs:
 
   build_and_test:
     runs-on: ubuntu-latest
-    if: always() && github.actor != 'github-actions[bot]'
+    if: always  ()
     needs: ensure_up_to_date
 
     steps:
@@ -138,4 +143,4 @@ jobs:
           set -e
           NEW_VERSION=$(poetry version -s)
           echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry publish --build --username __token__ --passwor
+          poetry publish --build --username __token__ --password $PYPI_TOKEN
