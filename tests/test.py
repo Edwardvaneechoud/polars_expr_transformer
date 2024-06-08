@@ -12,7 +12,6 @@ def test_simple_constant_expression():
 
 
 def test_combining_columns_expression():
-
     df = pl.from_dicts([{'a': 'man', 'b': 'woman'}, {'a': 'woman', 'b': 'man'}])
     result = df.select(simple_function_to_expr('[a] + " loves " + [b]').alias('literal'))
     expected = pl.DataFrame({'literal': ['man loves woman', 'woman loves man']})
