@@ -2,7 +2,7 @@ import pytest
 from polars_expr_transformer.process.polars_expr_transformer import preprocess, simple_function_to_expr
 import polars as pl
 
-print('printing more and mroe and mroe')
+# tests
 
 def test_simple_constant_expression():
     df = pl.from_dicts([{'a': 'row a', 'b': 'row b'}, {'a': 'row a 1', 'b': 'row b 1'}])
