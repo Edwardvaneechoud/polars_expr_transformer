@@ -24,14 +24,12 @@ jobs:
 
       - name: Print GitHub Actor
         run: |
-          GITHUB_ACTOR="${{ github.actor }}"
+          GITHUB_ACTOR=${{ github.actor }}
           echo "GitHub Actor: $GITHUB_ACTOR"
-          GITHUB_REF="${{ github.ref }}"
+          GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
-          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
-          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_ENV
-          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_ENV
+          GITHUB=${{ github.event.head_commit.message }}
+          echo "$GITHUB"
 
       - name: Set up Git
         run: |
