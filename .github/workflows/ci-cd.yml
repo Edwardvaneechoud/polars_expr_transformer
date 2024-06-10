@@ -30,7 +30,7 @@ jobs:
           echo "Commit refs parsed: $COMMIT_REFS_PARSED"
           echo "Commit Refs: $COMMIT_REFS"
           
-          if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "COMMIT_REFS_PARSED" == *"main"* ]]; then
+          if [[ "$AUTHOR_NAME" == "github-actions[bot]" ]]; then
             echo "::set-output name=run_jobs::false"
             echo "Ending rest of job"
           else
@@ -141,7 +141,6 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     if: always  ()
-    needs: ensure_up_to_date
 
     steps:
       - name: Checkout repository
@@ -163,7 +162,7 @@ jobs:
         run: poetry run pytest tests/test.py
 
   bump_version_and_publish:
-    needs: build_and_test
+    needs: [build_and_test, ensure_up_to_date]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
 
