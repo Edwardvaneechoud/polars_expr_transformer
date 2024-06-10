@@ -28,8 +28,8 @@ jobs:
           echo "GitHub Actor: $GITHUB_ACTOR"
           GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
-          GITHUB = "${{ github.event.head_commit.message }}"
-          echo "commit message: $GITHUB"
+          COMMIT_MESSAGE=${{ github.event.head_commit.message }}
+          
 
       - name: Set up Git
         run: |
