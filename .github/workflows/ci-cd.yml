@@ -33,6 +33,7 @@ jobs:
           EVENT_TYPE="${{ github.event.type }}"
           TRIGGER_ACTOR="${{ github.triggering_actor }}"
           AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+          echo "$AUTHOR_NAME"
 
 
       - name: Print Push Event Data
