@@ -22,6 +22,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check Author and Refs
+        id: check_author
+        run: |
+          AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+          COMMIT_REFS=$(git log -1 --pretty=format:'%d')
+          echo "Author Name: $AUTHOR_NAME"
+          echo "Commit Refs: $COMMIT_REFS"
+          if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
+            echo "::set-output name=cancel_job::true"
+          else
+            echo "::set-output name=cancel_job::false"
+          fi
+
+      - name: Cancel Job if Conditions Met
+        if: steps.check_author.outputs.cancel_job == 'true'
+        run: |
+          echo "Condition met, canceling job."
+          exit 0
+
+      - name: Proceed if Conditions Not Met
+        if: steps.check_author.outputs.cancel_job == 'false'
+        run: echo "Conditions not met, proceeding with the job."
+
       - name: Print GitHub Actor
         run: |
           GITHUB_ACTOR=${{ github.actor }}
