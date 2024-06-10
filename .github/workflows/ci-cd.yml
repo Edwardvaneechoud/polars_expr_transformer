@@ -32,6 +32,8 @@ jobs:
           echo "$COMMIT_MESSAGE"
           EVENT_TYPE="${{ github.event.type }}"
           TRIGGER_ACTOR="${{ github.triggering_actor }}"
+          AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+
 
       - name: Print Push Event Data
         if: github.event_name == 'push'
