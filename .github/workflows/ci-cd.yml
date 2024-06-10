@@ -28,8 +28,10 @@ jobs:
           echo "GitHub Actor: $GITHUB_ACTOR"
           GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
-          COMMIT_MESSAGE=${{ github.event.head_commit.message }}
-
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          SANITIZED_COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr '\r' ' ')
+          EVENT_TYPE="${{ github.event.type }}"
+          TRIGGER_ACTOR="${{ github.triggering_actor }}"
 
       - name: Set up Git
         run: |
