@@ -24,6 +24,11 @@ jobs:
       - name: set output if run
         id: set_output
         run: |
+          AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+          COMMIT_REFS_PARSED=$(git log -1 --pretty=format:'%d')
+          echo "Author Name: $AUTHOR_NAME"
+          echo "Author Email: $AUTHOR_EMAIL"
+          echo "Commit Refs: $COMMIT_REFS"
           if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
             echo "::set-output name=run_jobs::true"
             echo "running rest of job"
@@ -75,7 +80,7 @@ jobs:
           COMMIT_REFS=$(git log -1 --pretty=format:'%d')
           echo "Author Name: $AUTHOR_NAME"
           echo "Author Email: $AUTHOR_EMAIL"
-          echo "Commit Refs (Tags/Branches): $COMMIT_REFS"
+          echo "Commit Refs: $COMMIT_REFS"
 
 
       - name: Print Push Event Data
