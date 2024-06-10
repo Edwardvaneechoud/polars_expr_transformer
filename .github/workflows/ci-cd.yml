@@ -33,6 +33,7 @@ jobs:
           EVENT_TYPE="${{ github.event.type }}"
           TRIGGER_ACTOR="${{ github.triggering_actor }}"
 
+
       - name: Set up Git
         run: |
           git config --global user.name "github-actions[bot]"
