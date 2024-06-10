@@ -28,7 +28,7 @@ jobs:
           echo "GitHub Actor: $GITHUB_ACTOR"
           GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
-          GITHUB=${{ github.event.head_commit.message }}
+          GITHUB= "${{ github.event.head_commit.message }}"
           echo "$GITHUB"
 
       - name: Set up Git
