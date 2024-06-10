@@ -12,9 +12,34 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
+  verify_run:
+    runs-on: ubuntu-latest
+    outputs:
+      run_rest_jobs: ${{ steps.set_output.outputs.run_jobs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: set output if run
+        id: set_output
+        run: |
+          AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+          COMMIT_REFS_PARSED=$(git log -1 --pretty=format:'%d')
+          echo "Author Name: $AUTHOR_NAME"
+          echo "Commit refs parsed: $COMMIT_REFS_PARSED"
+          
+          if [[ "$AUTHOR_NAME" == "github-actions[bot]" ]]; then
+            echo "::set-output name=run_jobs::false"
+            echo "Ending rest of job"
+          else
+            echo "::set-output name=run_jobs::true"
+            echo "Running rest of job"
+          fi
+
   ensure_up_to_date:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if: (github.event_name == 'pull_request' || github.event_name == 'push')
 
     steps:
       - name: Checkout repository
@@ -22,12 +47,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Print GitHub Actor
+      - name: Check Author and Refs
+        id: check_author
         run: |
-          GITHUB_ACTOR="${{ github.actor }}"
-          echo "GitHub Actor: $GITHUB_ACTOR"
-          GITHUB_REF="${{ github.ref }}"
-          echo "Github ref: $GITHUB_REF"
+          AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+          COMMIT_REFS=$(git log -1 --pretty=format:'%d')
+          echo "Author Name: $AUTHOR_NAME"
+          echo "Commit Refs: $COMMIT_REFS"
 
       - name: Set up Git
         run: |
@@ -58,8 +84,8 @@ jobs:
 
   build_and_test:
     runs-on: ubuntu-latest
-    if: always  ()
     needs: ensure_up_to_date
+    if: always  ()
 
     steps:
       - name: Checkout repository
@@ -81,9 +107,9 @@ jobs:
         run: poetry run pytest tests/test.py
 
   bump_version_and_publish:
-    needs: build_and_test
+    needs: [build_and_test, verify_run]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.actor != 'github-actions[bot]'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.verify_run.outputs.run_rest_jobs == 'true'
 
     steps:
       - name: Checkout repository
