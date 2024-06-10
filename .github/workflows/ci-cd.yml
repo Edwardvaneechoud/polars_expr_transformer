@@ -29,7 +29,6 @@ jobs:
           GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
           COMMIT_MESSAGE=${{ github.event.head_commit.message }}
-          TRIGGER_ACTOR=${{ github.triggering_actor }}
 
       - name: Set up Git
         run: |
@@ -43,8 +42,6 @@ jobs:
           if [[ "${GITHUB_REF}" == "refs/heads/develop" ]]; then
             BASE_BRANCH=$(jq -r .pull_request.base.ref $GITHUB_EVENT_PATH)
             HEAD_BRANCH=$(jq -r .pull_request.head.ref $GITHUB_EVENT_PATH)
-            echo "HEAD BRANCH= $HEAD_BRANCH"
-            echo "BASE BRANCH= $BASE_BRANCH"
             if [[ "$BASE_BRANCH" == "develop" ]]; then
               git checkout $HEAD_BRANCH
               git merge origin/develop
