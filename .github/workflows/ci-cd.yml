@@ -33,6 +33,32 @@ jobs:
           EVENT_TYPE="${{ github.event.type }}"
           TRIGGER_ACTOR="${{ github.triggering_actor }}"
 
+      - name: Print Push Event Data
+        if: github.event_name == 'push'
+        run: |
+          echo "Push Event Data:"
+          echo "github.event.ref: ${{ github.event.ref }}"
+          echo "github.event.before: ${{ github.event.before }}"
+          echo "github.event.after: ${{ github.event.after }}"
+          echo "github.event.head_commit.message: ${{ github.event.head_commit.message }}"
+          echo "github.event.head_commit.timestamp: ${{ github.event.head_commit.timestamp }}"
+          echo "github.event.head_commit.author.name: ${{ github.event.head_commit.author.name }}"
+          echo "github.event.head_commit.author.email: ${{ github.event.head_commit.author.email }}"
+          echo "github.event.head_commit.committer.name: ${{ github.event.head_commit.committer.name }}"
+          echo "github.event.head_commit.committer.email: ${{ github.event.head_commit.committer.email }}"
+          echo "github.event.commits: ${{ toJson(github.event.commits) }}"
+
+      - name: Print Pull Request Event Data
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Pull Request Event Data:"
+          echo "github.event.action: ${{ github.event.action }}"
+          echo "github.event.number: ${{ github.event.number }}"
+          echo "github.event.pull_request.title: ${{ github.event.pull_request.title }}"
+          echo "github.event.pull_request.body: ${{ github.event.pull_request.body }}"
+          echo "github.event.pull_request.head.ref: ${{ github.event.pull_request.head.ref }}"
+          echo "github.event.pull_request.base.ref: ${{ github.event.pull_request.base.ref }}"
+          echo "github.event.pull_request.user.login: ${{ github.event.pull_request.user.login }}"
 
       - name: Set up Git
         run: |
