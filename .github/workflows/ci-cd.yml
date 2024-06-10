@@ -26,8 +26,10 @@ jobs:
         run: |
           if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
             echo "::set-output name=run_jobs::true"
+            echo "running rest of job"
           else
             echo "::set-output name=run_jobs::false"
+            echo "Ending rest of job"
           fi
 
   ensure_up_to_date:
