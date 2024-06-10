@@ -29,11 +29,14 @@ jobs:
           GITHUB_REF=${{ github.ref }}
           echo "Github ref: $GITHUB_REF"
           COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
-          echo "$COMMIT_MESSAGE"
+          echo "Commit message= $COMMIT_MESSAGE"
           EVENT_TYPE="${{ github.event.type }}"
-          TRIGGER_ACTOR="${{ github.triggering_actor }}"
           AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
-          echo "AUTHOR NAME PRETTY= $AUTHOR_NAME"
+          AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
+          COMMIT_REFS=$(git log -1 --pretty=format:'%d')
+          echo "Author Name: $AUTHOR_NAME"
+          echo "Author Email: $AUTHOR_EMAIL"
+          echo "Commit Refs (Tags/Branches): $COMMIT_REFS"
 
 
       - name: Print Push Event Data
