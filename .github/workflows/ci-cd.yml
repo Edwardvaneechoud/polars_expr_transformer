@@ -28,6 +28,10 @@ jobs:
           echo "GitHub Actor: $GITHUB_ACTOR"
           GITHUB_REF="${{ github.ref }}"
           echo "Github ref: $GITHUB_REF"
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_ENV
+          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_ENV
 
       - name: Set up Git
         run: |
