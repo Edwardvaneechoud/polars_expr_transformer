@@ -109,7 +109,7 @@ jobs:
   bump_version_and_publish:
     needs: [build_and_test, verify_run]
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request' || github.event_name == 'push') && needs.verify_run.outputs.run_rest_jobs == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.verify_run.outputs.run_rest_jobs == 'true'
 
     steps:
       - name: Checkout repository
