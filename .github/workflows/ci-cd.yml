@@ -27,13 +27,14 @@ jobs:
           AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
           COMMIT_REFS_PARSED=$(git log -1 --pretty=format:'%d')
           echo "Author Name: $AUTHOR_NAME"
-          echo "Author Email: $AUTHOR_EMAIL"
+          echo "Commit refs parsed: COMMIT_REFS_PARSED"
           echo "Commit Refs: $COMMIT_REFS"
+          
           if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
-            echo "::set-output name=run_jobs::true"
+            echo "::set-output name=run_jobs::false"
             echo "running rest of job"
           else
-            echo "::set-output name=run_jobs::false"
+            echo "::set-output name=run_jobs::true"
             echo "Ending rest of job"
           fi
 
