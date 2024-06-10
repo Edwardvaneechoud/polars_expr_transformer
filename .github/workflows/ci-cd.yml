@@ -12,9 +12,28 @@ on:
   workflow_dispatch: # Allows manual trigger
 
 jobs:
+  verify_run:
+    runs-on: ubuntu-latest
+    outputs:
+      run_rest_jobs: ${{ steps.set_output.outputs.run_jobs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
+      - name: set output if run
+        id: set_output
+        run: |
+          if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
+            echo "::set-output name=run_jobs::true"
+          else
+            echo "::set-output name=run_jobs::false"
+          fi
+
   ensure_up_to_date:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    needs: verify_run
+    if: github.event_name == 'pull_request' || github.event_name == 'push' && needs.verify_run.outputs.run_rest_jobs == 'true'
 
     steps:
       - name: Checkout repository
@@ -29,11 +48,6 @@ jobs:
           COMMIT_REFS=$(git log -1 --pretty=format:'%d')
           echo "Author Name: $AUTHOR_NAME"
           echo "Commit Refs: $COMMIT_REFS"
-          if [[ "$AUTHOR_NAME" == "github-actions[bot]" && "$COMMIT_REFS" == *"main"* ]]; then
-            echo "::set-output name=cancel_job::true"
-          else
-            echo "::set-output name=cancel_job::false"
-          fi
 
       - name: Cancel Job if Conditions Met
         if: steps.check_author.outputs.cancel_job == 'true'
