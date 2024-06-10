@@ -26,6 +26,8 @@ jobs:
         run: |
           GITHUB_ACTOR="${{ github.actor }}"
           echo "GitHub Actor: $GITHUB_ACTOR"
+          GITHUB_REF="${{ github.ref }}"
+          echo "Github ref: $GITHUB_REF"
 
       - name: Set up Git
         run: |
