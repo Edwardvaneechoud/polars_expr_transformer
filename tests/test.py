@@ -4,6 +4,7 @@ import polars as pl
 
 
 def test_simple_constant_expression():
+    print('logging')
     df = pl.from_dicts([{'a': 'row a', 'b': 'row b'}, {'a': 'row a 1', 'b': 'row b 1'}])
     result = df.select(simple_function_to_expr("'hallo world'"))
     expected = pl.DataFrame({'literal': ['hallo world']})
