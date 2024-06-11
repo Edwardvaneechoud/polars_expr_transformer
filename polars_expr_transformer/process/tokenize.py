@@ -2,6 +2,15 @@ from polars_expr_transformer.configs.settings import all_split_vals, all_functio
 
 
 def tokenize(formula: str):
+    """
+    Tokenize a formula string into components based on specified split values and functions.
+
+    Args:
+        formula: The formula string to tokenize.
+
+    Returns:
+        A list of tokens extracted from the formula string.
+    """
     r = list(formula[::-1])
     output = []
     v = ''

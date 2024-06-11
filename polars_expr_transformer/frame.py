@@ -24,9 +24,9 @@ class DataFrame(PlDataFrame):
                          infer_schema_length=infer_schema_length,
                          nan_to_null=nan_to_null)
 
-    def query_simple_func(self, expression: str, column_name: str):
+    def apply_expression(self, expression: str, column_name: str):
         """
-        Apply a simple function to the DataFrame.
+        Apply a simple function to the DataFrame in SQL style
 
         This method allows the user to apply a simple function to the DataFrame and store the result in a new column.
 
@@ -47,7 +47,7 @@ class DataFrame(PlDataFrame):
         Apply a simple concatenation function to the DataFrame:
 
         >>> df = DataFrame({'names': ['Alice', 'Bob'], 'surnames': ['Smith', 'Jones']})
-        >>> result = df.query_simple_func('concat([names], " ", [surnames])', 'full_name')
+        >>> result = df.apply_expression('concat([names], " ", [surnames])', 'full_name')
         >>> result
         shape: (2, 3)
         ┌───────┬────────┬────────────┐
@@ -83,11 +83,12 @@ class LazyFrame(PlLazyFrame):
                          orient=orient,
                          infer_schema_length=infer_schema_length,
                          nan_to_null=nan_to_null)
-    def query_simple_func(self, expression: str, column_name: str):
-        """
-        Apply a simple function to the DataFrame.
 
-        This method allows the user to apply a simple function to the DataFrame and store the result in a new column.
+    def apply_expression(self, expression: str, column_name: str):
+        """
+        Apply a simple function to the LazyFrame.
+
+        This method allows the user to apply a simple expression to the DataFrame and store the result in a new column.
 
         Parameters
         ----------
@@ -106,7 +107,7 @@ class LazyFrame(PlLazyFrame):
         Apply a simple concatenation function to the DataFrame:
 
         >>> df = LazyFrame({'names': ['Alice', 'Bob'], 'surnames': ['Smith', 'Jones']})
-        >>> result = df.query_simple_func('concat([names], " ", [surnames])', 'full_name')
+        >>> result = df.apply_expression('concat([names], " ", [surnames])', 'full_name')
         >>> result.collect()
         shape: (2, 3)
         ┌───────┬────────┬────────────┐
