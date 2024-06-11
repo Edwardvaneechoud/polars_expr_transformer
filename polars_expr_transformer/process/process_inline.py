@@ -5,10 +5,28 @@ from polars_expr_transformer.process.tree import build_hierarchy
 
 
 def reverse_dict(d: dict) -> dict:
+    """
+    Reverse the keys and values in a dictionary.
+
+    Args:
+        d: The dictionary to reverse.
+
+    Returns:
+        A new dictionary with keys and values swapped.
+    """
     return {v: k for k, v in d.items()}
 
 
 def inline_to_prefix_formula(inline_formula: List[Union[Classifier, IfFunc, Func]]):
+    """
+    Convert an inline formula to a prefix formula.
+
+    Args:
+        inline_formula: The list of tokens in inline formula notation.
+
+    Returns:
+        The list of tokens in prefix notation.
+    """
     stack = []
     prefix_formula = []
     for i, token in enumerate(inline_formula):
@@ -33,6 +51,15 @@ def inline_to_prefix_formula(inline_formula: List[Union[Classifier, IfFunc, Func
 
 
 def evaluate_prefix_formula(formula_tokens: List[Union[Classifier, IfFunc, Func]]):
+    """
+    Evaluate a prefix formula to construct the corresponding expression.
+
+    Args:
+        formula_tokens: The list of tokens in prefix notation.
+
+    Returns:
+        The evaluated expression.
+    """
     stack = []
     for token in reversed(formula_tokens):
         if token != '':
@@ -56,6 +83,15 @@ def evaluate_prefix_formula(formula_tokens: List[Union[Classifier, IfFunc, Func]
 
 
 def parse_formula(tokens:  List[Union[Classifier, IfFunc, Func]]):
+    """
+    Parse a list of formula tokens and replace operator tokens with corresponding functions.
+
+    Args:
+        tokens: The list of tokens to parse.
+
+    Returns:
+        The list of parsed tokens with operators replaced by functions.
+    """
     parsed_formula = []
     for val in tokens:
         if isinstance(val, Classifier):
@@ -70,6 +106,15 @@ def parse_formula(tokens:  List[Union[Classifier, IfFunc, Func]]):
 
 
 def flatten_inline_formula(nested_classifier:  tuple[Classifier]) -> List[Classifier]:
+    """
+    Flatten a nested structure of classifier tokens into a single list.
+
+    Args:
+        nested_classifier: The nested structure of classifier tokens.
+
+    Returns:
+        A flat list of classifier tokens.
+    """
     flat_result = []
 
     def flatten_result(vals: List[Classifier]):
@@ -85,6 +130,15 @@ def flatten_inline_formula(nested_classifier:  tuple[Classifier]) -> List[Classi
 
 
 def resolve_inline_formula(inline_formula_tokens: List[Classifier]):
+    """
+    Resolve an inline formula by converting it to prefix notation and evaluating it.
+
+    Args:
+        inline_formula_tokens: The list of tokens in inline formula notation.
+
+    Returns:
+        The resolved list of tokens.
+    """
     if any(c.val_type == 'operator' for c in inline_formula_tokens):
         prefixed_formula = inline_to_prefix_formula(inline_formula_tokens)
         parsed_prefixed_formula = parse_formula(prefixed_formula)
@@ -94,6 +148,12 @@ def resolve_inline_formula(inline_formula_tokens: List[Classifier]):
 
 
 def parse_inline_functions(_hierarchical_formula: Func):
+    """
+    Parse inline functions within a hierarchical formula structure.
+
+    Args:
+        _hierarchical_formula: The hierarchical formula to parse.
+    """
     run = [True]
     def parse_inline_function_worker(_hierarchical_formula: Func):
         if any([a.val_type == 'operator' for a in _hierarchical_formula.args if isinstance(a, Classifier)]):

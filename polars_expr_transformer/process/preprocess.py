@@ -3,38 +3,98 @@ from copy import deepcopy
 from typing import List, Tuple
 
 
-
 def replace_double_spaces(func_string: str):
+    """
+    Replace all double spaces in the input string with single spaces.
+
+    Args:
+        func_string: The string to process.
+
+    Returns:
+        The processed string with double spaces replaced by single spaces.
+    """
     while '  ' in func_string:
         func_string = func_string.replace('  ', ' ')
     return func_string
 
 
 def add_additions_outside_of_quotes(func_string: str, addition: str, *args):
+    """
+    Add additions outside quoted substrings in the input string.
+
+    Args:
+        func_string: The string to process.
+        addition: The addition to add outside of quotes.
+        *args: Additional arguments specifying the values to add the addition to.
+
+    Returns:
+        The processed string with additions added outside of quotes.
+    """
     parts = re.split(r'("[^"]*"|\'[^\']*\')', func_string)
     parts[::2] = [replace_values(v, addition, *args) for v in parts[::2]]
     return ''.join(parts)
 
 
 def replace_value_outside_of_quotes(func_string: str, val: str, replace: str):
+    """
+    Replace a value with another value outside quoted substrings in the input string.
+
+    Args:
+        func_string: The string to process.
+        val: The value to replace.
+        replace: The value to replace with.
+
+    Returns:
+        The processed string with the value replaced outside of quotes.
+    """
     parts = re.split(r"""("[^"]*"|'[^']*')""", ' ' + func_string + ' ')
     parts[::2] = [v.replace(val, replace) for v in parts[::2]]
     return ''.join(parts)
 
 
 def replace_values_outside_of_quotes(func_string: str, replacements: List[Tuple[str, str]]):
+    """
+    Replace multiple values with corresponding replacements outside quoted substrings in the input string.
+
+    Args:
+        func_string: The string to process.
+        replacements: A list of tuples where each tuple contains a value to replace and its replacement.
+
+    Returns:
+        The processed string with values replaced outside of quotes.
+    """
     for _old, _new in replacements:
         func_string = func_string.replace(_old, _new)
     return func_string
 
 
 def replace_values(part_string: str, addition: str, *args):
+    """
+    Add an addition around specified values in the input substring.
+
+    Args:
+        part_string: The substring to process.
+        addition: The addition to add around specified values.
+        *args: Values to add the addition to.
+
+    Returns:
+        The processed substring with additions added around specified values.
+    """
     for arg in args:
         part_string = re.sub(rf'\b{arg}\b', f'{addition}{arg}{addition}', part_string)
     return part_string
 
 
 def parse_pl_cols(func_string):
+    """
+    Parse Polars column expressions in the input string and replace them with appropriate Polars expressions.
+
+    Args:
+        func_string: The string containing Polars column expressions.
+
+    Returns:
+        The processed string with Polars column expressions replaced.
+    """
     func_op = []
     func_string = deepcopy(func_string)
     cur_string = func_string
@@ -83,21 +143,40 @@ def parse_pl_cols(func_string):
         func_string = func_string.replace(old_val, new_val)
     return func_string
 
+
 def remove_unwanted_characters(func_string: str) -> str:
+    """
+    Remove unwanted characters outside quoted substrings in the input string.
+
+    Args:
+        func_string: The string to process.
+
+    Returns:
+        The processed string with unwanted characters removed outside of quotes.
+    """
     parts = re.split(r"""("[^"]*"|'[^']*')""", func_string)
     parts[::2] = map(lambda s: "".join(s.split()), parts[::2])  # outside quotes
     return "".join(parts)
 
 
 def preprocess(input_function: str):
-    input_function = input_function.replace('\n' ,' ')
+    """
+    Preprocess the input function string by applying a series of transformations.
+
+    Args:
+        input_function: The function string to preprocess.
+
+    Returns:
+        The preprocessed function string.
+    """
+    input_function = input_function.replace('\n', ' ')
     input_function = replace_double_spaces(input_function)
-    input_function = add_additions_outside_of_quotes(input_function, '$', 'if','else' ,'endif' ,'elseif' ,'then')
-    input_function = replace_values_outside_of_quotes(input_function, replacements =[('$if$', '$if$('),
-                                                                                      ('$else$', ')$else$('),
-                                                                                      ('$endif$', ')$endif$'),
-                                                                                      ('$elseif$', ')$elseif$('),
-                                                                                      ('$then$', ')$then$(')])
+    input_function = add_additions_outside_of_quotes(input_function, '$', 'if', 'else', 'endif', 'elseif', 'then')
+    input_function = replace_values_outside_of_quotes(input_function, replacements=[('$if$', '$if$('),
+                                                                                    ('$else$', ')$else$('),
+                                                                                    ('$endif$', ')$endif$'),
+                                                                                    ('$elseif$', ')$elseif$('),
+                                                                                    ('$then$', ')$then$(')])
     input_function = replace_value_outside_of_quotes(input_function, '==', '=')
     # input_function = standardize_quotes(input_function)
     input_function = parse_pl_cols(input_function)
