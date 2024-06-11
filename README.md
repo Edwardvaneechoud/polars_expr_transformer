@@ -41,7 +41,7 @@ To install Polars Expression Transformer, you can use pip:
 ```
 pip install polars-expr-transformer
 ```
-Example Use Case
+Examples
 ----------------
 
 Let's say you have a Polars DataFrame `df` with columns "names" and "subnames", and you want to create a new column "combined" that concatenates the values in "names" and "subnames" with a space in between.
@@ -57,6 +57,38 @@ from polars_expr_transformer.process.polars_expr_transformer import simple_funct
 df = df.select(simple_function_to_expr('concat([names], " ", [subnames])').alias("combined"))
 ```
 This makes it easy to perform complex data transformations without having to write Python code.
+
+Using DataFrame and LazyFrame
+-----------------------------
+
+Polars Expression Transformer provides `DataFrame` and `LazyFrame` classes that extend the functionality of Polars' native `DataFrame` and `LazyFrame` classes, allowing you to apply simple functions using string expressions.
+
+### DataFrame
+
+The `DataFrame` class allows you to apply simple functions to a DataFrame and store the results in a new column.
+
+Example:
+
+```python
+from polars_expr_transformer import DataFrame
+
+df = DataFrame({'names': ['Alice', 'Bob'], 'surnames': ['Smith', 'Jones']})
+result = df.apply_expression('concat([names], " ", [surnames])', 'full_name')
+print(result)
+
+```
+```commandline
+output:
+shape: (2, 3)
+┌───────┬─────────┬────────────┐
+│ names ┆ surnames┆ full_name  │
+│ ---   ┆ ---     ┆ ---        │
+│ str   ┆ str     ┆ str        │
+╞═══════╪═════════╪════════════╡
+│ Alice ┆ Smith   ┆ Alice Smith│
+│ Bob   ┆ Jones   ┆ Bob Jones  │
+└───────┴─────────┴────────────┘
+```
 
 Built on Polars
 --------------
