@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polars_expr_transformer"
-version = "0.3.1.0"
+version = "0.3.2.0"
 description = "Transform string-based expressions into Polars DataFrame operations"
 authors = ["Edward van Eehoud <evaneechoudl@gmail.com>"]
 readme = "README.md"
