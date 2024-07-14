@@ -1,8 +1,11 @@
-from polars_expr_transformer.process.polars_expr_transformer import simple_function_to_expr
 from polars.dataframe.frame import DataFrame as PlDataFrame
 from polars.lazyframe.frame import LazyFrame as PlLazyFrame
 from polars.datatypes.constants import N_INFER_DEFAULT
 from polars.type_aliases import FrameInitTypes, SchemaDict, SchemaDefinition, Orientation
+import inspect
+from functools import wraps
+
+from polars_expr_transformer.process.polars_expr_transformer import simple_function_to_expr
 
 
 class DataFrame(PlDataFrame):
@@ -63,6 +66,27 @@ class DataFrame(PlDataFrame):
         expr = simple_function_to_expr(expression)
         result = self.with_columns(expr.alias(column_name))
         return result
+
+
+def wrap_methods(original_cls, custom_cls, __target_cls):
+    print(__target_cls)
+    for name, method in inspect.getmembers(original_cls, predicate=inspect.isfunction):
+        if name.startswith("_"):
+            continue
+        if not name == 'lazy':
+            continue
+        # Define a wrapper generator to capture the method
+        def create_wrapper(method):
+            @wraps(method)
+            def wrapper(self, *args, **kwargs):
+                result = method(self, *args, **kwargs)
+                if isinstance(result, original_cls):
+                    return __target_cls(result)
+                return result
+            return wrapper
+
+        # Set the wrapper for the method
+        setattr(custom_cls, name, create_wrapper(method))
 
 
 class LazyFrame(PlLazyFrame):
@@ -127,3 +151,13 @@ class LazyFrame(PlLazyFrame):
 
 LazyFrame.__doc__ = PlLazyFrame.__doc__
 DataFrame.__doc__ = PlDataFrame.__doc__
+
+#
+# wrap_methods(PlDataFrame, DataFrame)
+wrap_methods(PlLazyFrame, DataFrame, LazyFrame)
+# # wrap_methods(PlLazyFrame, LazyFrame)
+# # wrap_methods(PlDataFrame, LazyFrame, DataFrame)
+#
+
+df = DataFrame()
+print(type(df.lazy()))
