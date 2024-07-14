@@ -11,6 +11,27 @@ def test_simple_constant_expression():
     assert result.equals(expected)
 
 
+def test_subtraction_expression_two_columns():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('[a]-[b]'))
+    expected = pl.DataFrame({'a': [-22, -22]})
+    assert result.equals(expected)
+
+
+def test_subtraction_expression_one_column():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('[a]-2'))
+    expected = pl.DataFrame({'a': [10, 54]})
+    assert result.equals(expected)
+
+
+def test_negative():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('-[a]'))
+    expected = pl.DataFrame({'a': [-12, -56]})
+    assert result.equals(expected)
+
+
 def test_combining_columns_expression():
     df = pl.from_dicts([{'a': 'man', 'b': 'woman'}, {'a': 'woman', 'b': 'man'}])
     result = df.select(simple_function_to_expr('[a] + " loves " + [b]').alias('literal'))

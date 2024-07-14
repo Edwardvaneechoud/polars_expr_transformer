@@ -69,4 +69,5 @@ def standardize_tokens(tokens: List[str]) -> List[Classifier]:
     standardized_tokens = standardize_quotes(tokens)
     toks = [Classifier(val) for val in standardized_tokens]
     toks = [t for t in toks if t.val_type != 'empty']
-    return replace_ambiguity_minus_sign(toks)
+    return toks
+    #return replace_ambiguity_minus_sign(toks)
