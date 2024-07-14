@@ -151,13 +151,4 @@ class LazyFrame(PlLazyFrame):
 
 LazyFrame.__doc__ = PlLazyFrame.__doc__
 DataFrame.__doc__ = PlDataFrame.__doc__
-
-#
-# wrap_methods(PlDataFrame, DataFrame)
 wrap_methods(PlLazyFrame, DataFrame, LazyFrame)
-# # wrap_methods(PlLazyFrame, LazyFrame)
-# # wrap_methods(PlDataFrame, LazyFrame, DataFrame)
-#
-
-df = DataFrame()
-print(type(df.lazy()))
