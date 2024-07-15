@@ -11,6 +11,13 @@ def test_simple_constant_expression():
     assert result.equals(expected)
 
 
+def test_subtract_and_multiplication_expression():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('2 * -2'))
+    expected = pl.DataFrame({'literal': [-4]})
+    assert result.equals(expected)
+
+
 def test_subtraction_expression_two_columns():
     df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
     result = df.select(simple_function_to_expr('[a]-[b]'))

@@ -5,6 +5,8 @@ import os
 
 PlStringType = pl.Expr | str
 PlIntType = pl.Expr | int
+PlNumericType = pl.NUMERIC_DTYPES
+
 
 
 def is_polars_expr(v: Any) -> bool:
