@@ -218,7 +218,9 @@ def build_hierarchy(tokens: List[Classifier]):
             elif current_val.val_type == 'function':
                 current_func = handle_function(current_func, current_val)
             elif current_val.val_type in ('string', 'number', 'boolean', 'operator'):
-                if current_val.val_type == 'operator' and current_val.val == '-' and len(current_func.args)==0:
+                if (current_val.val_type == 'operator' and
+                        current_val.val == '-' and
+                        (len(current_func.args) == 0 or previous_val.val_type == 'operator')):
                     current_func = handle_function(current_func, Classifier('negation'))
                 else:
                     handle_literal(current_func, current_val)
