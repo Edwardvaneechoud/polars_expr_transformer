@@ -1,6 +1,6 @@
 from polars_expr_transformer.configs.settings import PRECEDENCE
 from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
-from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, PlNumericType
 from polars_expr_transformer.configs.settings import operators, funcs
 from polars_expr_transformer.configs import logging
 from dataclasses import dataclass, field
@@ -67,7 +67,7 @@ def allow_expressions(_type):
     Returns:
         True if the type allows expressions, False otherwise.
     """
-    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty]
+    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty, PlNumericType]
 
 
 def allow_non_pl_expressions(_type):
