@@ -12,7 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = ">=3.9"
 pydantic = "~1.10.6"
-polars = "~0.20.4"
+polars = "~1.8.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "~7.4.0"
