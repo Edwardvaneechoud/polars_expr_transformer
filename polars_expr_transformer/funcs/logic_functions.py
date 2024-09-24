@@ -55,7 +55,7 @@ def is_not_empty(s: pl.Expr) -> pl.Expr:
 def does_not_equal(s: Any, t: Any):
     s = s if is_polars_expr(s) else create_fix_col(s)
     t = t if is_polars_expr(t) else create_fix_col(t)
-    return pl.Expr.eq(s, t).is_not()
+    return pl.Expr.eq(s, t).not_()
 
 
 def _not(s: Any) -> pl.Expr:
