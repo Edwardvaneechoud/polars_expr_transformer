@@ -18,6 +18,13 @@ def test_subtract_and_multiplication_expression():
     assert result.equals(expected)
 
 
+def test_not_equal_cols():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('[a] != [b]'))
+    expected = pl.DataFrame({'a': [True, True]})
+    assert result.equals(expected)
+
+
 def test_subtraction_expression_two_columns():
     df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
     result = df.select(simple_function_to_expr('[a]-[b]'))
