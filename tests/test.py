@@ -1,6 +1,7 @@
 import pytest
 from polars_expr_transformer.process.polars_expr_transformer import preprocess, simple_function_to_expr
 import polars as pl
+from polars.testing import assert_frame_equal
 
 
 def test_simple_constant_expression():
@@ -175,6 +176,14 @@ def test_contains_functionality():
     assert result.equals(expected)
 
 
+def test_str_contains_expr():
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs']})
+    df.select(pl.lit('this is ham').str.contains(pl.col('names')))
+    result = df.select(simple_function_to_expr('contains("this is ham", [names])'))
+    expected = pl.DataFrame({'literal': [True, False, False]})
+    assert result.equals(expected)
+
+
 def test_contains_two_cols():
     df = pl.DataFrame({'names': ['ham', 'spam', 'eggs'],
                        'subnames': ['bread', 'sandwich', 'breakfast']})
@@ -233,6 +242,28 @@ def test_right_from_col():
 
 def test_find_position():
     ...
+
+
+def test_string_similarity_two_columns():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
+                       'other': ['hamm', 'sandwhich with cheese', 'eeggs']})
+    result = df.select(simple_function_to_expr('string_similarity([names], [other], "levenshtein")'))
+    expected = pl.DataFrame([0.75, 0.666667, 0.8], schema=['names'])
+    assert_frame_equal(result, expected)
+
+
+def test_string_similarity_column_value():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('string_similarity([names], "ham", "levenshtein")'))
+    expected = pl.DataFrame([1.0, 0.166667, 0.0], schema=['names'])
+    assert_frame_equal(result, expected)
+
+
+def test_string_similarity_two_values():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    result = df.select(simple_function_to_expr('string_similarity("hams", "ham", "levenshtein")'))
+    expected = pl.DataFrame([0.75], schema=['literal'])
+    assert_frame_equal(result, expected)
 
 
 def test_str_length():
