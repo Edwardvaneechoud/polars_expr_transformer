@@ -109,18 +109,12 @@ def contains(base: PlStringType, pattern: Any) -> pl.Expr:
     - If one of them is a string and the other is an expression, built-in string matching is used.
     - If both are strings, Python's native 'in' operator is used and the result is wrapped as an expression.
     """
-    def _contain(_row: Dict):
-        base_val, pattern_val = _row.values()
-        return pattern_val in base_val
 
     if isinstance(base, pl.Expr):
-        if isinstance(pattern, pl.Expr):
-            return pl.struct([base, pattern]).map_elements(lambda r: _contain(r), return_dtype=pl.Boolean)
-        else:
-            return base.str.contains(pattern)
+        return base.str.contains(pattern)
     else:
         if isinstance(pattern, pl.Expr):
-            return pl.struct([pattern]).map_elements(lambda x: next(iter(x.values())) in base)
+            return pl.lit(base).str.contains(pattern)
         else:
             return pl.lit(pattern in base)
 

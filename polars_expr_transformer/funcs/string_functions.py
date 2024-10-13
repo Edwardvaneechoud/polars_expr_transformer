@@ -1,7 +1,9 @@
 import polars as pl
-from typing import List, Tuple, Callable, Dict, Any
+import polars_ds as pds
+from typing import Dict
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
+from functools import partial
 
 
 def concat(*columns) -> pl.Expr:
@@ -51,64 +53,64 @@ def length(column: PlStringType) -> pl.Expr:
     return column.str.len_chars()
 
 
-def uppercase(_v: PlStringType) -> pl.Expr:
+def uppercase(text: PlStringType) -> pl.Expr:
     """
     Convert the characters in a given column or string to uppercase.
 
     Parameters:
-    - _v: The column or string to convert.
+    - text: The column or string to convert.
 
     Returns:
     - An expression representing the uppercase conversion.
     """
-    if isinstance(_v, pl.Expr):
-        return _v.str.to_uppercase()
-    return pl.lit(_v.__str__().upper())
+    if isinstance(text, pl.Expr):
+        return text.str.to_uppercase()
+    return pl.lit(text.__str__().upper())
 
 
-def titlecase(_v: PlStringType) -> pl.Expr:
+def titlecase(text: PlStringType) -> pl.Expr:
     """
     Convert the characters in a given column or string to title case.
 
     Parameters:
-    - _v: The column or string to convert.
+    - text: The column or string to convert.
 
     Returns:
     - An expression representing the title case conversion.
     """
-    if isinstance(_v, pl.Expr):
-        return _v.str.to_titlecase()
-    return pl.lit(_v.__str__().title())
+    if isinstance(text, pl.Expr):
+        return text.str.to_titlecase()
+    return pl.lit(text.__str__().title())
 
 
-def to_string(_v: PlStringType) -> pl.Expr:
+def to_string(text: PlStringType) -> pl.Expr:
     """
     Convert a given column or value to its string representation.
 
     Parameters:
-    - _v: The column or value to convert.
+    - text: The column or value to convert.
 
     Returns:
     - An expression representing the string conversion.
     """
-    if isinstance(_v, pl.Expr):
-        return _v.cast(str)
-    return pl.lit(_v.__str__())
+    if isinstance(text, pl.Expr):
+        return text.cast(str)
+    return pl.lit(text.__str__())
 
 
-def lowercase(_v: PlStringType) -> pl.Expr:
+def lowercase(text: PlStringType) -> pl.Expr:
     """
     Convert the characters in a given column or string to lowercase.
 
     Parameters:
-    - _v: The column or string to convert.
+    - text: The column or string to convert.
 
     Returns:
     - An expression representing the lowercase conversion.
     """
-    if isinstance(_v, pl.Expr):
-        return _v.str.to_lowercase()
-    return pl.lit(_v.__str__().lower())
+    if isinstance(text, pl.Expr):
+        return text.str.to_lowercase()
+    return pl.lit(text.__str__().lower())
 
 
 def __left(row: Dict):
@@ -322,17 +324,75 @@ def left_trim(s: PlStringType) -> pl.Expr:
     return s.str.strip_chars_start()
 
 
-def right_trim(s: PlStringType) -> pl.Expr:
+def right_trim(text: PlStringType) -> pl.Expr:
     """
     Remove trailing whitespace from a string.
 
     Parameters:
-    - s (Any): The string to trim. Can be a pl expression or any other value.
+    - text: The text to trim. Can be a pl expression or any other value.
 
     Returns:
     - pl.Expr: A pl expression representing the trimmed string.
 
     Note: If `s` is not a pl expression, it will be converted into one.
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
+    s = text if is_polars_expr(text) else create_fix_col(text)
     return s.str.strip_chars_end()
+
+
+def __get_similarity_method(how: str) -> callable:
+    match how:
+        case 'levenshtein':
+            return partial(pds.str_leven, return_sim=True)
+        case 'jaro':
+            return pds.str_jaro
+        case 'jaro_winkler':
+            return pds.str_jw
+        case 'damerau_levenshtein':
+            return partial(pds.str_d_leven, return_sim=True)
+        case 'hamming':
+            return pds.str_hamming
+        case 'fuzzy':
+            return pds.str_fuzz
+        case 'optimal_string_alignment':
+            return pds.str_osa
+        case 'sorensen_dice':
+            return pds.str_sorensen_dice
+        case 'jaccard':
+            return pds.str_jaccard
+        case _:
+            raise ValueError(f"Unknown similarity method: {how}\n\n"
+                             f"Possible options are: "
+                             f"levenshtein, jaro, jaro_winkler, damerau_levenshtein, "
+                             f"hamming, fuzzy, optimal_string_alignment, "
+                             f"sorensen_dice, jaccard")
+
+
+def string_similarity(text: PlStringType, other_text: PlStringType, how: str = 'levenshtein') -> pl.Expr:
+    """
+    Calculate the similarity between two strings using a specified similarity method.
+
+    Args:
+        text (PlStringType): The first string or a Polars expression containing the strings to compare.
+        other_text (PlStringType): The second string or a Polars expression containing the strings to compare.
+        how (str): The similarity metric to use. Defaults to 'levenshtein'.
+                   Possible options are:
+                   - 'levenshtein'
+                   - 'jaro'
+                   - 'jaro_winkler'
+                   - 'damerau_levenshtein'
+                   - 'hamming'
+                   - 'fuzzy'
+                   - 'optimal_string_alignment'
+                   - 'sorensen_dice'
+                   - 'jaccard'
+
+    Returns:
+        pl.Expr: A Polars expression that evaluates the similarity between `text` and `other_text`,
+                 with a result in the range [0, 1], where 1 means the strings are identical
+                 and 0 means no similarity.
+    """
+    method = partial(__get_similarity_method(how), parallel=True)
+    v1 = text if is_polars_expr(text) else pl.lit(text)
+    v2 = other_text if is_polars_expr(other_text) else pl.lit(other_text)
+    return method(v1, v2)
