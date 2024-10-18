@@ -201,3 +201,16 @@ def tanh(v: PlNumericType) -> pl.Expr:
 
 def negative() -> int:
     return -1
+
+
+def random_int(from_value: int = 0, to_value: int = 2):
+    """
+    Generate a random integer between two values.
+    Args:
+        from_value: Number to start the range from.
+        to_value: Number to end the range at.
+
+    Returns:
+        A random integer between the two values.
+    """
+    return pl.int_range(from_value, to_value).sample(n=pl.len(), with_replacement=True)

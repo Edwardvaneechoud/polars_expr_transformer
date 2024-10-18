@@ -7,3 +7,4 @@ def __negative() -> pl.Expr:
 
 def __make_negative() -> pl.Expr:
     return pl.lit(-1)
+
