@@ -431,6 +431,14 @@ def detect_date_format():
     ...
 
 
+def test_random_int():
+    df = pl.DataFrame({'from_values': [1, 2, 3],
+                       'to_values': [10, 20, 30]})
+    result = df.select(simple_function_to_expr('random_int(1, 3)'))
+    min_val, max_val = result['literal'].min(), result.max()[0, 0]
+    assert 1 <= min_val <= max_val < 3, 'Expected random integer between 1 and 3'
+
+
 if __name__ == '__main__':
     pytest.main()
 
