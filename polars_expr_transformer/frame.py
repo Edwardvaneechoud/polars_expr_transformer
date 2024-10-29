@@ -69,7 +69,6 @@ class DataFrame(PlDataFrame):
 
 
 def wrap_methods(original_cls, custom_cls, __target_cls):
-    print(__target_cls)
     for name, method in inspect.getmembers(original_cls, predicate=inspect.isfunction):
         if name.startswith("_"):
             continue
