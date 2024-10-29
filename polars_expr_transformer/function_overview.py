@@ -1,23 +1,34 @@
 import os
+import sys
 import importlib.util
 import inspect
+import importlib.resources
 from polars_expr_transformer.schemas import ExpressionRef, ExpressionsOverview
 from typing import List, Optional
-
 
 _available_expressions: Optional[ExpressionsOverview] = None
 
 
 def get_formula_scripts():
     try:
-        current_file_ref = os.path.abspath(__file__)
-        current_file_path = os.path.dirname(current_file_ref)
-    except:
-        current_file_path = os.path.sep.join(('backend','flowfile','rowFuncs'))
-    script_file_path = os.path.join(current_file_path, 'funcs')
-    python_files = ((f[:-3], os.path.join(script_file_path,f)) for f in os.listdir(script_file_path) if '.py')
-    filtered_files = (f for f in python_files if f[0][:min(2,len(f))] != '__' and f[0] != 'utils')
-    return filtered_files
+        # Use importlib.resources to get the package path
+        import polars_expr_transformer
+        package_path = os.path.dirname(polars_expr_transformer.__file__)
+        script_file_path = os.path.join(package_path, 'funcs')
+
+        if not os.path.exists(script_file_path):
+            raise FileNotFoundError(f"Cannot find funcs directory at {script_file_path}")
+
+        python_files = [(f[:-3], os.path.join(script_file_path, f))
+                        for f in os.listdir(script_file_path)
+                        if f.endswith('.py')]
+
+        filtered_files = [(name, path) for name, path in python_files
+                          if not name.startswith('__') and name != 'utils']
+        return filtered_files
+    except Exception as e:
+        print(f"Error finding formula scripts: {e}")
+        return []
 
 
 def get_module_members(module_name: str, path: str):
