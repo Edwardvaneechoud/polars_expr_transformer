@@ -5,8 +5,11 @@ description = "Transform string-based expressions into Polars DataFrame operatio
 authors = ["Edward van Eehoud <evaneechoudl@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/edwardvaneechoud/polars_expr_transformer"
+
+# Specify the packages to include, including the 'funcs' directory
 packages = [
     { include = "polars_expr_transformer" },
+    { include = "polars_expr_transformer/funcs", from = "polars_expr_transformer" }
 ]
 
 [tool.poetry.dependencies]
@@ -21,6 +24,13 @@ pytest = "~7.4.0"
 check-manifest = "^0.46"
 flake8 = "^3.9.2"
 coverage = "^6.2"
+
+# Specify additional files and directories to include in the distribution
+[tool.poetry.include]
+files = [
+    { path = "polars_expr_transformer/funcs/*.py", format = "sdist" },
+    { path = "README.md", format = "sdist" }
+]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
