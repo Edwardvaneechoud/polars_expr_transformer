@@ -1,7 +1,10 @@
-from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
-from typing import Any, Dict
+# logic functions
+
 import polars as pl
-from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
+
+from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
+from typing import Any
+from polars_expr_transformer.funcs.utils import PlStringType
 
 
 def equals(s: Any, t: Any) -> pl.Expr:
