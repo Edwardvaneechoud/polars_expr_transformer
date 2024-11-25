@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Optional
 from polars_expr_transformer.schemas import ExpressionRef, ExpressionsOverview
 from polars_expr_transformer.funcs import (
     logic_functions,
@@ -7,6 +7,7 @@ from polars_expr_transformer.funcs import (
     special_funcs,
     date_functions
 )
+import inspect
 
 MODULE_CATEGORIES = {
     'logic': logic_functions,
@@ -33,7 +34,9 @@ def get_expression_overview() -> List[ExpressionsOverview]:
                         doc=func.__doc__
                     )
                     for name, func in module.__dict__.items()
-                    if callable(func) and not name.startswith('_')
+                    if callable(func)
+                    and not name.startswith('_')
+                    and inspect.getmodule(func) == module
                 ]
             )
             for category, module in MODULE_CATEGORIES.items()
@@ -48,5 +51,7 @@ def get_all_expressions() -> List[str]:
         name
         for module in MODULE_CATEGORIES.values()
         for name, func in module.__dict__.items()
-        if callable(func) and not name.startswith('_')
+        if callable(func)
+        and not name.startswith('_')
+        and inspect.getmodule(func) == module
     ]

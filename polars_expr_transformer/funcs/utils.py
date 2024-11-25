@@ -8,7 +8,6 @@ PlIntType = pl.Expr | int
 PlNumericType = pl.NUMERIC_DTYPES
 
 
-
 def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
 
