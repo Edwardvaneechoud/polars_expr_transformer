@@ -451,8 +451,3 @@ def test_random_int():
     result = df.select(simple_function_to_expr('random_int(1, 3)'))
     min_val, max_val = result['literal'].min(), result.max()[0, 0]
     assert 1 <= min_val <= max_val < 3, 'Expected random integer between 1 and 3'
-
-
-if __name__ == '__main__':
-    pytest.main()
-

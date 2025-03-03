@@ -7,120 +7,140 @@ from typing import Any
 from polars_expr_transformer.funcs.utils import PlStringType
 
 
-def equals(s: Any, t: Any) -> pl.Expr:
+def equals(value1: Any, value2: Any) -> pl.Expr:
     """
-    Check if two expressions or values are equal.
+    Checks if two values are equal to each other.
+
+    For example, equals("apple", "apple") would return True.
 
     Parameters:
-    - s (Any): The first expression or value to compare. Can be a pl expression or any other value.
-    - t (Any): The second expression or value to compare. Can be a pl expression or any other value.
+    - value1: The first value to compare
+    - value2: The second value to compare
 
     Returns:
-    - pl.Expr: A pl expression representing the equality of `s` and `t`.
-
-    Note: If `s` or `t` is not a pl expression, it will be converted into one.
+    - True if the values are equal, False otherwise
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    t = t if is_polars_expr(t) else create_fix_col(t)
+    s = value1 if is_polars_expr(value1) else create_fix_col(value1)
+    t = value2 if is_polars_expr(value2) else create_fix_col(value2)
     return s.eq(t)
 
 
-def is_empty(s: pl.Expr) -> pl.Expr:
+def is_empty(value: pl.Expr) -> pl.Expr:
     """
-    Check if a given expression is empty.
+    Checks if a value is empty (null/missing).
+
+    For example, is_empty(null) would return True.
 
     Parameters:
-    - s (pl.Expr): The expression to check. Must be a pl expression.
+    - value: The value to check
 
     Returns:
-    - pl.Expr: A pl expression representing whether `s` is empty.
-
-    Note: If `s` is not a pl expression, a ValueError will be raised.
+    - True if the value is empty, False otherwise
     """
-    return s.is_null()
+    return value.is_null()
 
 
-def is_not_empty(s: pl.Expr) -> pl.Expr:
+def is_not_empty(value: pl.Expr) -> pl.Expr:
     """
-    Check if a given expression is empty.
+    Checks if a value contains something (is not null/missing).
+
+    For example, is_not_empty("apple") would return True.
 
     Parameters:
-    - s (pl.Expr): The expression to check. Must be a pl expression.
+    - value: The value to check
 
     Returns:
-    - pl.Expr: A pl expression representing whether `s` is empty.
-
-    Note: If `s` is not a pl expression, a ValueError will be raised.
+    - True if the value contains something, False if it's empty
     """
-    return s.is_not_null()
+    return value.is_not_null()
 
 
-def does_not_equal(s: Any, t: Any):
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    t = t if is_polars_expr(t) else create_fix_col(t)
+def does_not_equal(value1: Any, value2: Any):
+    """
+    Checks if two values are different from each other.
+
+    For example, does_not_equal("apple", "orange") would return True.
+
+    Parameters:
+    - value1: The first value to compare
+    - value2: The second value to compare
+
+    Returns:
+    - True if the values are different, False if they're the same
+    """
+    s = value1 if is_polars_expr(value1) else create_fix_col(value1)
+    t = value2 if is_polars_expr(value2) else create_fix_col(value2)
     return pl.Expr.eq(s, t).not_()
 
 
-def _not(s: Any) -> pl.Expr:
+def _not(value: Any) -> pl.Expr:
     """
-    Negate a given expression.
+    Reverses a True/False value.
+
+    For example, _not(True) would return False.
 
     Parameters:
-    - s (pl.Expr): The expression to negate. Must be a pl expression.
+    - value: The True/False value to reverse
 
     Returns:
-    - pl.Expr: A pl expression representing the negation of `s`.
-
-    Note: If `s` is not a pl expression, a ValueError will be raised.
+    - The opposite value (True becomes False, False becomes True)
     """
-    if not is_polars_expr(s):
-        s = pl.lit(s)
-    return pl.Expr.not_(s)
+    if not is_polars_expr(value):
+        value = pl.lit(value)
+    return pl.Expr.not_(value)
 
 
-def is_string(val: Any) -> pl.Expr:
+def is_string(value: Any) -> pl.Expr:
     """
-    Check if a given expression or value is a string.
+    Checks if a value is text (a string).
+
+    For example, is_string("apple") would return True, but is_string(123) would return False.
 
     Parameters:
-    - val (Any): The expression or value to check. Can be a pl expression or any other value.
+    - value: The value to check
 
     Returns:
-    - pl.Expr: A pl expression representing whether `val` is a string.
-
-    Note: If `val` is a pl expression, its dtype will be checked. Otherwise, Python's isinstance will be used.
+    - True if the value is text, False otherwise
     """
-    if is_polars_expr(val):
-        dtype = pl.select(val).dtypes[0]
+    if is_polars_expr(value):
+        dtype = pl.select(value).dtypes[0]
         return pl.lit(dtype.is_(pl.Utf8))
-    return pl.lit(isinstance(val, str))
+    return pl.lit(isinstance(value, str))
 
 
-def contains(base: PlStringType, pattern: Any) -> pl.Expr:
+def contains(text: PlStringType, search_for: Any) -> pl.Expr:
     """
-    Check if a pattern is contained within a base string or expression.
+    Checks if some text contains a specific pattern.
+
+    For example, contains("hello world", "world") would return True.
 
     Parameters:
-    - base (Union[Expr, str]): The base string or expression where the pattern is to be searched.
-    - pattern (Union[Expr, str]): The pattern string or expression to search for within the base.
+    - text: The text to search in
+    - search_for: The pattern to look for
 
     Returns:
-    - Expr: An expression indicating whether the pattern is contained within the base.
-
-    Note: 
-    - If both base and pattern are expressions, a custom function is used for performance optimization.
-    - If one of them is a string and the other is an expression, built-in string matching is used.
-    - If both are strings, Python's native 'in' operator is used and the result is wrapped as an expression.
+    - True if the pattern is found in the text, False otherwise
     """
-
-    if isinstance(base, pl.Expr):
-        return base.str.contains(pattern)
+    if isinstance(text, pl.Expr):
+        return text.str.contains(search_for)
     else:
-        if isinstance(pattern, pl.Expr):
-            return pl.lit(base).str.contains(pattern)
+        if isinstance(search_for, pl.Expr):
+            return pl.lit(text).str.contains(search_for)
         else:
-            return pl.lit(pattern in base)
+            return pl.lit(search_for in text)
 
 
-def _in(pattern: Any, base: PlStringType) -> pl.Expr:
-    return contains(base, pattern)
+def _in(value: Any, collection: PlStringType) -> pl.Expr:
+    """
+    Checks if a value exists within a larger text.
+
+    For example, _in("world", "hello world") would return True.
+
+    Parameters:
+    - value: The value to search for
+    - collection: The text to search in
+
+    Returns:
+    - True if the value is found in the collection, False otherwise
+    """
+    return contains(collection, value)

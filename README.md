@@ -58,38 +58,6 @@ df = df.select(simple_function_to_expr('concat([names], " ", [subnames])').alias
 ```
 This makes it easy to perform complex data transformations without having to write Python code.
 
-Using DataFrame and LazyFrame
------------------------------
-
-Polars Expression Transformer provides `DataFrame` and `LazyFrame` classes that extend the functionality of Polars' native `DataFrame` and `LazyFrame` classes, allowing you to apply simple functions using string expressions.
-
-### DataFrame
-
-The `DataFrame` class allows you to apply simple functions to a DataFrame and store the results in a new column.
-
-Example:
-
-```python
-from polars_expr_transformer import DataFrame
-
-df = DataFrame({'names': ['Alice', 'Bob'], 'surnames': ['Smith', 'Jones']})
-result = df.apply_expression('concat([names], " ", [surnames])', 'full_name')
-print(result)
-
-```
-```commandline
-output:
-shape: (2, 3)
-┌───────┬─────────┬────────────┐
-│ names ┆ surnames┆ full_name  │
-│ ---   ┆ ---     ┆ ---        │
-│ str   ┆ str     ┆ str        │
-╞═══════╪═════════╪════════════╡
-│ Alice ┆ Smith   ┆ Alice Smith│
-│ Bob   ┆ Jones   ┆ Bob Jones  │
-└───────┴─────────┴────────────┘
-```
-
 Built on Polars
 --------------
 
