@@ -165,9 +165,9 @@ jobs:
           echo "Current version: $CURRENT_VERSION"
   
           echo "Checking if version $CURRENT_VERSION exists on PyPI..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json)
+          PUBLISHED=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json | jq -r '.info.version')
           
-          if [ "$HTTP_STATUS" == "200" ]; then
+          if [ "$PUBLISHED" == "$CURRENT_VERSION" ]; then
             echo "Version $CURRENT_VERSION already exists on PyPI. Bumping patch version..."
             poetry version patch
             NEW_VERSION=$(poetry version -s)
@@ -188,12 +188,12 @@ jobs:
             NEW_VERSION=$CURRENT_VERSION
           fi
 
-      - name: Build and publish to PyPI
+      - name: Publish version to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
           NEW_VERSION=$(poetry version -s)
           echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry build
-          poetry publish --username __token__ --password $PYPI_TOKENte
+          poetry publish --build --username __token__ --password $PYPI_TOKEN
+
