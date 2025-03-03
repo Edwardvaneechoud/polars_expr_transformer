@@ -18,7 +18,7 @@ jobs:
       run_rest_jobs: ${{ steps.set_output.outputs.run_jobs }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - name: set output if run
@@ -30,10 +30,10 @@ jobs:
           echo "Commit refs parsed: $COMMIT_REFS_PARSED"
           
           if [[ "$AUTHOR_NAME" == "github-actions[bot]" ]]; then
-            echo "::set-output name=run_jobs::false"
+            echo "run_jobs=false" >> $GITHUB_OUTPUT
             echo "Ending rest of job"
           else
-            echo "::set-output name=run_jobs::true"
+            echo "run_jobs=true" >> $GITHUB_OUTPUT
             echo "Running rest of job"
           fi
 
@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -59,21 +59,21 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Fetch all branches
         run: git fetch --all
 
       - name: Merge develop into feature branch
         run: |
           if [[ "${GITHUB_REF}" == "refs/heads/develop" ]]; then
-            BASE_BRANCH=$(jq -r .pull_request.base.ref $GITHUB_EVENT_PATH)
-            HEAD_BRANCH=$(jq -r .pull_request.head.ref $GITHUB_EVENT_PATH)
-            if [[ "$BASE_BRANCH" == "develop" ]]; then
+            BASE_BRANCH=$(jq -r .pull_request.base.ref "$GITHUB_EVENT_PATH" || echo "")
+            HEAD_BRANCH=$(jq -r .pull_request.head.ref "$GITHUB_EVENT_PATH" || echo "")
+            if [[ "$BASE_BRANCH" == "develop" && -n "$HEAD_BRANCH" ]]; then
               git checkout $HEAD_BRANCH
-              git merge origin/develop
-              if [ $? -ne 0 ]; then
+              git merge origin/develop || {
                 echo "Merge conflict detected. Please resolve conflicts before merging."
                 exit 1
-              fi
+              }
               git push origin $HEAD_BRANCH
             else
               echo "No need to merge develop into the feature branch."
@@ -85,50 +85,68 @@ jobs:
   build_and_test:
     runs-on: ubuntu-latest
     needs: ensure_up_to_date
-    if: always  ()
+    if: always()
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'poetry'
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: snok/install-poetry@v1.3.4
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
       - name: Install dependencies
-        run: poetry install
+        run: poetry install --no-interaction
 
       - name: Run tests
         run: poetry run pytest tests/test.py
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            .pytest_cache/
+            test-reports/
+          retention-days: 7
 
   bump_version_and_publish:
     needs: [build_and_test, verify_run]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.verify_run.outputs.run_rest_jobs == 'true'
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GH_PAT }}
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'poetry'
 
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        uses: snok/install-poetry@v1.3.4
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
       - name: Install dependencies
-        run: poetry install --no-dev
+        run: poetry install --without dev --no-interaction
 
       - name: Check if version exists on PyPI and bump version
         env:
@@ -141,9 +159,9 @@ jobs:
           echo "Current version: $CURRENT_VERSION"
   
           echo "Checking if version $CURRENT_VERSION exists on PyPI..."
-          PUBLISHED=$(curl -s https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json | jq -r '.info.version')
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pypi.org/pypi/polars_expr_transformer/$CURRENT_VERSION/json)
           
-          if [ "$PUBLISHED" == "$CURRENT_VERSION" ]; then
+          if [ "$HTTP_STATUS" == "200" ]; then
             echo "Version $CURRENT_VERSION already exists on PyPI. Bumping patch version..."
             poetry version patch
             NEW_VERSION=$(poetry version -s)
@@ -164,11 +182,12 @@ jobs:
             NEW_VERSION=$CURRENT_VERSION
           fi
 
-      - name: Publish version to PyPI
+      - name: Build and publish to PyPI
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           set -e
           NEW_VERSION=$(poetry version -s)
           echo "Publishing version $NEW_VERSION to PyPI..."
-          poetry publish --build --username __token__ --password $PYPI_TOKEN
+          poetry build
+          poetry publish --username __token__ --password $PYPI_TOKEN
