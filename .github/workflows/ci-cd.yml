@@ -114,7 +114,7 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run tests
-        run: poetry run pytest tests/test.py
+        run: poetry run pytest tests
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -197,4 +197,4 @@ jobs:
           NEW_VERSION=$(poetry version -s)
           echo "Publishing version $NEW_VERSION to PyPI..."
           poetry build
-          poetry publish --username __token__ --password $PYPI_TOKEN
+          poetry publish --username __token__ --password $PYPI_TOKENte

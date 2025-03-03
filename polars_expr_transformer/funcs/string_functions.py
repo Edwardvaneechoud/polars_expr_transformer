@@ -6,62 +6,69 @@ from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 from functools import partial
 
 
-def concat(*columns) -> pl.Expr:
+def concat(*text_parts) -> pl.Expr:
     """
-    Concatenate the values of multiple columns into a single string.
+    Combines multiple text values into a single text.
+
+    For example, concat("Hello", " ", "World") would return "Hello World".
 
     Parameters:
-    - columns: List of columns to concatenate.
+    - text_parts: The texts you want to combine
 
     Returns:
-    - An expression representing the concatenated string.
+    - The combined text
     """
-    columns = [create_fix_col(c) if not is_polars_expr(c) else c for c in columns]
+    columns = [create_fix_col(c) if not is_polars_expr(c) else c for c in text_parts]
     return pl.concat_str(columns)
 
 
-def count_match(column: PlStringType, value: str) -> pl.Expr:
-
+def count_match(text: PlStringType, pattern: str) -> pl.Expr:
     """
-    Count the number of occurrences of a given value in a column.
+    Counts how many times a pattern appears in text.
+
+    For example, count_match("banana", "a") would return 3.
 
     Parameters:
-    - column: The column in which to count the occurrences.
-    - value: The value to count.
+    - text: The text to search in
+    - pattern: The pattern to search for
 
     Returns:
-    - An expression representing the number of occurrences.
+    - The number of matches found
     """
-    if isinstance(column, pl.Expr):
-        return column.str.count_matches(value)
-    return pl.lit(column).str.count_matches(value)
+    if isinstance(text, pl.Expr):
+        return text.str.count_matches(pattern)
+    return pl.lit(text).str.count_matches(pattern)
 
 
-def length(column: PlStringType) -> pl.Expr:
+def length(text: PlStringType) -> pl.Expr:
     """
-    Calculate the length of a given column or string.
+    Counts the number of characters in text.
+
+    For example, length("hello") would return 5.
 
     Parameters:
-    - column: The column or string for which to calculate the length.
+    - text: The text to measure
 
     Returns:
-    - An expression representing the length.
+    - The number of characters
     """
-    if isinstance(column, str):
-        return pl.lit(len(column))
-    column: pl.Expr
-    return column.str.len_chars()
+    if isinstance(text, str):
+        return pl.lit(len(text))
+    text: pl.Expr
+    return text.str.len_chars()
 
 
 def uppercase(text: PlStringType) -> pl.Expr:
     """
-    Convert the characters in a given column or string to uppercase.
+    Converts text to ALL UPPERCASE.
+
+    For example, uppercase("Hello World") would return "HELLO WORLD".
 
     Parameters:
-    - text: The column or string to convert.
+    - text: The text to convert
 
     Returns:
-    - An expression representing the uppercase conversion.
+    - The uppercase text
     """
     if isinstance(text, pl.Expr):
         return text.str.to_uppercase()
@@ -70,109 +77,101 @@ def uppercase(text: PlStringType) -> pl.Expr:
 
 def titlecase(text: PlStringType) -> pl.Expr:
     """
-    Convert the characters in a given column or string to title case.
+    Converts Text To Title Case, Where Each Word Is Capitalized.
+
+    For example, titlecase("hello world") would return "Hello World".
 
     Parameters:
-    - text: The column or string to convert.
+    - text: The text to convert
 
     Returns:
-    - An expression representing the title case conversion.
+    - The title case text
     """
     if isinstance(text, pl.Expr):
         return text.str.to_titlecase()
     return pl.lit(text.__str__().title())
 
 
-def to_string(text: PlStringType) -> pl.Expr:
+def to_string(value: PlStringType) -> pl.Expr:
     """
-    Convert a given column or value to its string representation.
+    Converts any value to text.
+
+    For example, to_string(123) would return "123".
 
     Parameters:
-    - text: The column or value to convert.
+    - value: The value to convert to text
 
     Returns:
-    - An expression representing the string conversion.
+    - The text representation
     """
-    if isinstance(text, pl.Expr):
-        return text.cast(str)
-    return pl.lit(text.__str__())
+    if isinstance(value, pl.Expr):
+        return value.cast(str)
+    return pl.lit(value.__str__())
 
 
 def lowercase(text: PlStringType) -> pl.Expr:
     """
-    Convert the characters in a given column or string to lowercase.
+    Converts text to all lowercase.
+
+    For example, lowercase("Hello World") would return "hello world".
 
     Parameters:
-    - text: The column or string to convert.
+    - text: The text to convert
 
     Returns:
-    - An expression representing the lowercase conversion.
+    - The lowercase text
     """
     if isinstance(text, pl.Expr):
         return text.str.to_lowercase()
     return pl.lit(text.__str__().lower())
 
 
-def __left(row: Dict):
-    v, l = row.values()
-    if v is not None:
-        return v[:l]
-    return None
-
-
-def left(column: PlStringType, length: pl.Expr | int) -> pl.Expr:
+def left(text: PlStringType, num_chars: pl.Expr | int) -> pl.Expr:
     """
-    Extracts a substring from a column or string, starting from the beginning.
+    Gets a specified number of characters from the beginning of text.
+
+    For example, left("Hello World", 5) would return "Hello".
 
     Parameters:
-    - column: The column or string from which to extract the substring.
-    - length: The length of the substring to extract.
+    - text: The text to extract from
+    - num_chars: How many characters to take from the beginning
 
     Returns:
-    - An expression representing the substring.
+    - The extracted text
     """
-    if is_polars_expr(column):
-        if is_polars_expr(length):
-            print(' pl.struct([column, length]).apply(lambda r: __left(r))')
-            return pl.struct([column, length]).map_elements(lambda r: __left(r), return_dtype=pl.String)
+    if is_polars_expr(text):
+        if is_polars_expr(num_chars):
+            return text.str.slice(0, num_chars)
         else:
-            print('column.str.slice(0, length)')
-            return column.str.slice(0, length)
-    elif is_polars_expr(length):
-        print('pl.struct([length]).apply(lambda r: column[:list(r.values)[0]])')
-        return pl.struct([length]).map_elements(lambda r: column[:list(r.values)[0]], return_dtype=pl.String)
+            return text.str.slice(0, num_chars)
+    elif is_polars_expr(num_chars):
+        return pl.lit(text).str.slice(0, num_chars)
     else:
-        print('pl.lit(column[:length])')
-        return pl.lit(column[:length])
+        return pl.lit(text[:num_chars])
 
 
-def __right(row: Dict):
-    v, l = row.values()
-    if v is not None:
-        return v[-l:]
-
-
-def right(column: PlStringType, length: PlIntType) -> pl.Expr:
+def right(text: PlStringType, num_chars: PlIntType) -> pl.Expr:
     """
-    Extracts a substring from a column or string, starting from the end.
+    Gets a specified number of characters from the end of text.
+
+    For example, right("Hello World", 5) would return "World".
 
     Parameters:
-    - column: The column or string from which to extract the substring.
-    - length: The length of the substring to extract.
+    - text: The text to extract from
+    - num_chars: How many characters to take from the end
 
     Returns:
-    - An expression representing the substring.
+    - The extracted text
     """
-
-    if is_polars_expr(column):
-        if is_polars_expr(length):
-            return pl.struct([column, length]).map_elements(__right, return_dtype=pl.String)
+    if is_polars_expr(text):
+        if is_polars_expr(num_chars):
+            return text.str.slice(-num_chars)
         else:
-            return column.str.slice(-length)
-    elif is_polars_expr(length):
-        return pl.struct([length]).map_elements(lambda r: column[-next(iter(r.values())):], return_dtype=pl.String)
+            return text.str.slice(pl.lit(-num_chars))
+    elif is_polars_expr(num_chars):
+        return pl.lit(text).str.slice(-num_chars)
     else:
-        return pl.lit(column[-length:])
+        return pl.lit(text[-num_chars:])
 
 
 def __apply_replace(row, replace_by=None):
@@ -183,43 +182,46 @@ def __apply_replace(row, replace_by=None):
     return main_str.replace(other_str, replace_str)
 
 
-def replace(main: PlStringType, other: PlStringType, replace_by: PlStringType) -> pl.Expr:
+def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringType) -> pl.Expr:
     """
-       Replaces occurrences of a substring within a main string with another string.
+    Replaces specific text with different text.
 
-       Parameters:
-       - main: The main string or expression where the replacement will occur.
-       - other: The substring or expression that needs to be replaced.
-       - replace_by: The string or expression that will replace the 'other' substring in 'main'.
-
-       Returns:
-       An expression representing the string after replacement.
-
-       Example:
-       Given main = "Hello, world!", other = "world", and replace_by = "there"
-       The function will return "Hello, there!"
-       """
-    if not is_polars_expr(main):
-        main = pl.lit(main)
-    return main.str.replace_all(other, replace_by, literal=True).cast(pl.Utf8)
-
-
-def to_date(s: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
-    """
-    Convert a string to a date.
+    For example, replace("Hello world", "world", "friend") would return "Hello friend".
 
     Parameters:
-    - s (Any): The string to convert to a date. Can be a pl expression or any other value.
-    - format (str): The format of the date string. Default is "%Y-%m-%d".
+    - text: The original text where replacements will be made
+    - find_text: The text you want to find and replace
+    - replace_with: The new text that will replace the found text
 
     Returns:
-    - pl.Expr: A pl expression representing the converted date.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The text after replacement
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    return s.str.to_date(date_format, strict=False)
+    if not is_polars_expr(text):
+        text = pl.lit(text)
+    return text.str.replace_all(find_text, replace_with, literal=True).cast(pl.Utf8)
 
+
+def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
+    """
+    Converts text to a date value.
+
+    For example, to_date("2023-01-15") would return a date value for January 15, 2023.
+
+    Parameters:
+    - text: The text to convert to a date
+    - date_format: Instructions for how to interpret the date text (default is year-month-day)
+      Common format codes:
+      - %Y: Four-digit year (e.g., 2023)
+      - %m: Two-digit month (01-12)
+      - %d: Two-digit day (01-31)
+      - %b: Month abbreviation (Jan, Feb)
+      - %B: Full month name (January, February)
+
+    Returns:
+    - The date value
+    """
+    text = text if is_polars_expr(text) else create_fix_col(text)
+    return text.str.to_date(date_format, strict=False)
 
 def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
     """
@@ -238,12 +240,12 @@ def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.E
     return s.str.to_datetime(date_format, strict=False)
 
 
-def find_position(s: PlStringType, sub: PlStringType) -> pl.Expr:
+def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
     """
     Find the position of a substring within a string.
 
     Parameters:
-    - s (Any): The string in which to find the position of the substring. Can be a pl expression or any other value.
+    - text: The text in which to find the position of the substring. Can be a pl expression or any other value.
     - sub (Any): The substring to find the position of. Can be a pl expression or any other value.
 
     Returns:
@@ -251,90 +253,90 @@ def find_position(s: PlStringType, sub: PlStringType) -> pl.Expr:
 
     Note: If `s` or `sub` is not a pl expression, it will be converted into one.
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
+    text = text if is_polars_expr(text) else create_fix_col(text)
     sub = sub if is_polars_expr(sub) else create_fix_col(sub)
-    return s.str(sub)
+    return text.str(sub)
 
 
-def pad_left(s: PlStringType, _length: int, pad: str = " ") -> pl.Expr:
+def pad_left(text: PlStringType, length: int, pad_character: str = " ") -> pl.Expr:
     """
-    Pad a string on the left side with a specified character to reach a certain length.
+    Adds characters to the beginning of text to reach a specific length.
+
+    For example, pad_left("123", 5, "0") would return "00123".
 
     Parameters:
-    - s (Any): The string to pad. Can be a pl expression or any other value.
-    - length (int): The desired length of the padded string.
-    - pad (str): The character to use for padding. Default is " ".
+    - text: The text you want to pad
+    - length: How long you want the final text to be
+    - pad_character: What character to use for padding (default is a space)
 
     Returns:
-    - pl.Expr: A pl expression representing the padded string.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The padded text
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    return s.str.pad_start(_length, pad)
+    s = text if is_polars_expr(text) else create_fix_col(text)
+    return s.str.pad_start(length, pad_character)
 
 
-def pad_right(s: PlStringType, _length: int, pad: str = " ") -> pl.Expr:
+def pad_right(text: PlStringType, length: int, pad_character: str = " ") -> pl.Expr:
     """
-    Pad a string on the right side with a specified character to reach a certain length.
+    Adds characters to the end of text to reach a specific length.
+
+    For example, pad_right("123", 5, "0") would return "12300".
 
     Parameters:
-    - s (Any): The string to pad. Can be a pl expression or any other value.
-    - length (int): The desired length of the padded string.
-    - pad (str): The character to use for padding. Default is " ".
+    - text: The text you want to pad
+    - length: How long you want the final text to be
+    - pad_character: What character to use for padding (default is a space)
 
     Returns:
-    - pl.Expr: A pl expression representing the padded string.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The padded text
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    return s.str.pad_end(_length, pad)
+    s = text if is_polars_expr(text) else create_fix_col(text)
+    return s.str.pad_end(length, pad_character)
 
 
-def trim(s: PlStringType) -> pl.Expr:
+def trim(text: PlStringType) -> pl.Expr:
     """
-    Remove leading and trailing whitespace from a string.
+    Removes spaces from both the beginning and end of text.
+
+    For example, trim("  hello world  ") would return "hello world".
 
     Parameters:
-    - s (Any): The string to trim. Can be a pl expression or any other value.
+    - text: The text you want to trim
 
     Returns:
-    - pl.Expr: A pl expression representing the trimmed string.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The trimmed text
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
+    s = text if is_polars_expr(text) else create_fix_col(text)
     return s.str.strip_chars_end().str.strip_chars_start()
 
 
-def left_trim(s: PlStringType) -> pl.Expr:
+def left_trim(text: PlStringType) -> pl.Expr:
     """
-    Remove leading whitespace from a string.
+    Removes spaces from the beginning of text.
+
+    For example, left_trim("  hello world  ") would return "hello world  ".
 
     Parameters:
-    - s (Any): The string to trim. Can be a pl expression or any other value.
+    - text: The text you want to trim
 
     Returns:
-    - pl.Expr: A pl expression representing the trimmed string.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The trimmed text
     """
-    s = s if is_polars_expr(s) else create_fix_col(s)
+    s = text if is_polars_expr(text) else create_fix_col(text)
     return s.str.strip_chars_start()
 
 
 def right_trim(text: PlStringType) -> pl.Expr:
     """
-    Remove trailing whitespace from a string.
+    Removes spaces from the end of text.
+
+    For example, right_trim("hello world  ") would return "hello world".
 
     Parameters:
-    - text: The text to trim. Can be a pl expression or any other value.
+    - text: The text you want to trim
 
     Returns:
-    - pl.Expr: A pl expression representing the trimmed string.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The trimmed text
     """
     s = text if is_polars_expr(text) else create_fix_col(text)
     return s.str.strip_chars_end()
@@ -368,31 +370,28 @@ def __get_similarity_method(how: str) -> callable:
                              f"sorensen_dice, jaccard")
 
 
-def string_similarity(text: PlStringType, other_text: PlStringType, how: str = 'levenshtein') -> pl.Expr:
+def string_similarity(text1: PlStringType, text2: PlStringType, method: str = 'levenshtein') -> pl.Expr:
     """
-    Calculate the similarity between two strings using a specified similarity method.
+    Measures how similar two texts are to each other, on a scale of 0 to 1.
 
-    Args:
-        text (PlStringType): The first string or a Polars expression containing the strings to compare.
-        other_text (PlStringType): The second string or a Polars expression containing the strings to compare.
-        how (str): The similarity metric to use. Defaults to 'levenshtein'.
-                   Possible options are:
-                   - 'levenshtein'
-                   - 'jaro'
-                   - 'jaro_winkler'
-                   - 'damerau_levenshtein'
-                   - 'hamming'
-                   - 'fuzzy'
-                   - 'optimal_string_alignment'
-                   - 'sorensen_dice'
-                   - 'jaccard'
+    A value of 1 means the texts are identical, while 0 means they are completely different.
+
+    For example, string_similarity("apple", "appl") might return 0.8.
+
+    Parameters:
+    - text1: The first text to compare
+    - text2: The second text to compare
+    - method: Which comparison method to use (default is 'levenshtein')
+      Available methods include:
+      - 'levenshtein': Good general-purpose similarity measure
+      - 'jaro': Good for short strings like names
+      - 'jaro_winkler': Similar to jaro but gives higher scores to strings that match at the beginning
+      - 'fuzzy': Finds approximate matches, good for typos
 
     Returns:
-        pl.Expr: A Polars expression that evaluates the similarity between `text` and `other_text`,
-                 with a result in the range [0, 1], where 1 means the strings are identical
-                 and 0 means no similarity.
+    - A similarity score between 0 and 1
     """
-    method = partial(__get_similarity_method(how), parallel=True)
-    v1 = text if is_polars_expr(text) else pl.lit(text)
-    v2 = other_text if is_polars_expr(other_text) else pl.lit(other_text)
-    return method(v1, v2)
+    similarity_method = partial(__get_similarity_method(method), parallel=True)
+    v1 = text1 if is_polars_expr(text1) else pl.lit(text1)
+    v2 = text2 if is_polars_expr(text2) else pl.lit(text2)
+    return similarity_method(v1, v2)
