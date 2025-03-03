@@ -92,23 +92,6 @@ def titlecase(text: PlStringType) -> pl.Expr:
     return pl.lit(text.__str__().title())
 
 
-def to_string(value: PlStringType) -> pl.Expr:
-    """
-    Converts any value to text.
-
-    For example, to_string(123) would return "123".
-
-    Parameters:
-    - value: The value to convert to text
-
-    Returns:
-    - The text representation
-    """
-    if isinstance(value, pl.Expr):
-        return value.cast(str)
-    return pl.lit(value.__str__())
-
-
 def lowercase(text: PlStringType) -> pl.Expr:
     """
     Converts text to all lowercase.
@@ -199,45 +182,6 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     if not is_polars_expr(text):
         text = pl.lit(text)
     return text.str.replace_all(find_text, replace_with, literal=True).cast(pl.Utf8)
-
-
-def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
-    """
-    Converts text to a date value.
-
-    For example, to_date("2023-01-15") would return a date value for January 15, 2023.
-
-    Parameters:
-    - text: The text to convert to a date
-    - date_format: Instructions for how to interpret the date text (default is year-month-day)
-      Common format codes:
-      - %Y: Four-digit year (e.g., 2023)
-      - %m: Two-digit month (01-12)
-      - %d: Two-digit day (01-31)
-      - %b: Month abbreviation (Jan, Feb)
-      - %B: Full month name (January, February)
-
-    Returns:
-    - The date value
-    """
-    text = text if is_polars_expr(text) else create_fix_col(text)
-    return text.str.to_date(date_format, strict=False)
-
-def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
-    """
-    Convert a string to a datetime.
-
-    Parameters:
-    - s (Any): The string to convert to a datetime. Can be a pl expression or any other value.
-    - format (str): The format of the datetime string. Default is "%Y-%m-%d %H:%M:%S".
-
-    Returns:
-    - pl.Expr: A pl expression representing the converted datetime.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
-    """
-    s = s if is_polars_expr(s) else create_fix_col(s)
-    return s.str.to_datetime(date_format, strict=False)
 
 
 def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
