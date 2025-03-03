@@ -7,35 +7,39 @@ from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 
 def now() -> pl.Expr:
     """
-    Get the current timestamp.
+    Gets the current date and time.
+
+    For example, now() might return "2023-05-15 14:30:25".
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the current timestamp.
+    - The current date and time
     """
     return pl.lit(datetime.now())
 
 
 def today() -> pl.Expr:
     """
-    Get the current date.
+    Gets the current date.
+
+    For example, today() might return "2023-05-15".
 
     Returns:
-    - pl.Expr: A FlowFile expression representing the current date.
+    - The current date
     """
     return pl.lit(datetime.today())
 
 
 def year(date_value: Any) -> pl.Expr:
     """
-    Extract the year from a date or timestamp.
+    Gets the year from a date.
 
-    Args:
-        date_value: The date or timestamp to extract the year from. Can be a FlowFile expression or any other value.
+    For example, year("2023-05-15") would return 2023.
+
+    Parameters:
+    - date_value: The date to extract the year from
 
     Returns:
-        pl.Expr: A Polars expression representing the year extracted from the input.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The year as a number
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.year()
@@ -43,15 +47,15 @@ def year(date_value: Any) -> pl.Expr:
 
 def month(date_value: Any) -> pl.Expr:
     """
-    Extract the month from a date or timestamp.
+    Gets the month from a date.
 
-    Args:
-        date_value: The date or timestamp to extract the month from. Can be a FlowFile expression or any other value.
+    For example, month("2023-05-15") would return 5.
+
+    Parameters:
+    - date_value: The date to extract the month from
 
     Returns:
-        pl.Expr: A Polars expression representing the month extracted from the input.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The month as a number (1-12)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_col(date_value).str.to_datetime()
     return date_value.dt.month()
@@ -59,15 +63,15 @@ def month(date_value: Any) -> pl.Expr:
 
 def day(date_value: PlStringType) -> pl.Expr:
     """
-    Extract the day from a date or timestamp.
+    Gets the day from a date.
 
-    Args:
-        date_value: The date or timestamp to extract the day from. Can be a FlowFile expression or any other value.
+    For example, day("2023-05-15") would return 15.
+
+    Parameters:
+    - date_value: The date to extract the day from
 
     Returns:
-        pl.Expr: A Polars expression representing the day extracted from the input.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The day of the month as a number (1-31)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.day()
@@ -75,15 +79,15 @@ def day(date_value: PlStringType) -> pl.Expr:
 
 def hour(date_value: PlStringType) -> pl.Expr:
     """
-    Extract the hour from a timestamp.
+    Gets the hour from a time.
 
-    Args:
-        date_value: The timestamp or Polars expression to extract the hour from.
+    For example, hour("2023-05-15 14:30:25") would return 14.
+
+    Parameters:
+    - date_value: The date and time to extract the hour from
 
     Returns:
-        pl.Expr: A Polars expression representing the extracted hour.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The hour as a number (0-23)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.hour()
@@ -91,15 +95,15 @@ def hour(date_value: PlStringType) -> pl.Expr:
 
 def minute(date_value: PlStringType) -> pl.Expr:
     """
-    Extract the minute from a timestamp.
+    Gets the minute from a time.
 
-    Args:
-        date_value: The timestamp or Polars expression to extract the minute from.
+    For example, minute("2023-05-15 14:30:25") would return 30.
+
+    Parameters:
+    - date_value: The date and time to extract the minute from
 
     Returns:
-        pl.Expr: A Polars expression representing the extracted minute.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The minute as a number (0-59)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.minute()
@@ -107,15 +111,15 @@ def minute(date_value: PlStringType) -> pl.Expr:
 
 def second(date_value: PlStringType) -> pl.Expr:
     """
-    Extract the second from a timestamp.
+    Gets the second from a time.
 
-    Args:
-        date_value: The timestamp or Polars expression to extract the second from.
+    For example, second("2023-05-15 14:30:25") would return 25.
+
+    Parameters:
+    - date_value: The date and time to extract the second from
 
     Returns:
-        pl.Expr: A Polars expression representing the extracted second.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The second as a number (0-59)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.second()
@@ -123,16 +127,16 @@ def second(date_value: PlStringType) -> pl.Expr:
 
 def add_days(date_value: PlStringType, days: PlIntType) -> pl.Expr:
     """
-    Add a specified number of days to a date or timestamp.
+    Adds a number of days to a date.
 
-    Args:
-        date_value: The date or Polars expression to add days to.
-        days (PlIntType): The number of days to add.
+    For example, add_days("2023-05-15", 5) would return "2023-05-20".
+
+    Parameters:
+    - date_value: The starting date
+    - days: How many days to add
 
     Returns:
-        pl.Expr: A Polars expression representing the date after adding the specified number of days.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The new date
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     days = days if is_polars_expr(days) else create_fix_col(days)
@@ -141,16 +145,16 @@ def add_days(date_value: PlStringType, days: PlIntType) -> pl.Expr:
 
 def add_years(date_value: PlStringType, years: PlIntType) -> pl.Expr:
     """
-    Add a specified number of years to a date or timestamp.
+    Adds a number of years to a date.
 
-    Args:
-        date_value: The date or Polars expression to add years to.
-        years (PlIntType): The number of years to add.
+    For example, add_years("2023-05-15", 1) would return "2024-05-15".
+
+    Parameters:
+    - date_value: The starting date
+    - years: How many years to add
 
     Returns:
-        pl.Expr: A Polars expression representing the date after adding the specified number of years.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The new date
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     years = years if is_polars_expr(years) else create_fix_col(years)
@@ -159,16 +163,16 @@ def add_years(date_value: PlStringType, years: PlIntType) -> pl.Expr:
 
 def add_hours(date_value: PlStringType, hours: PlIntType) -> pl.Expr:
     """
-    Add a specified number of hours to a timestamp.
+    Adds a number of hours to a date and time.
 
-    Args:
-        date_value: The timestamp or Polars expression to add hours to.
-        hours (PlIntType): The number of hours to add.
+    For example, add_hours("2023-05-15 14:30:00", 3) would return "2023-05-15 17:30:00".
+
+    Parameters:
+    - date_value: The starting date and time
+    - hours: How many hours to add
 
     Returns:
-        pl.Expr: A Polars expression representing the timestamp after adding the specified number of hours.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The new date and time
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     hours = hours if is_polars_expr(hours) else create_fix_col(hours)
@@ -177,16 +181,16 @@ def add_hours(date_value: PlStringType, hours: PlIntType) -> pl.Expr:
 
 def add_minutes(date_value: PlStringType, minutes: PlIntType) -> pl.Expr:
     """
-    Add a specified number of minutes to a timestamp.
+    Adds a number of minutes to a date and time.
 
-    Args:
-        date_value: The timestamp or Polars expression to add minutes to.
-        minutes (PlIntType): The number of minutes to add.
+    For example, add_minutes("2023-05-15 14:30:00", 15) would return "2023-05-15 14:45:00".
+
+    Parameters:
+    - date_value: The starting date and time
+    - minutes: How many minutes to add
 
     Returns:
-        pl.Expr: A Polars expression representing the timestamp after adding the specified number of minutes.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The new date and time
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     minutes = minutes if is_polars_expr(minutes) else create_fix_col(minutes)
@@ -195,88 +199,94 @@ def add_minutes(date_value: PlStringType, minutes: PlIntType) -> pl.Expr:
 
 def add_seconds(date_value: PlStringType, seconds: PlIntType) -> pl.Expr:
     """
-    Add a specified number of seconds to a timestamp.
+    Adds a number of seconds to a date and time.
 
-    Args:
-        date_value: The timestamp or Polars expression to add seconds to.
-        seconds (PlIntType): The number of seconds to add.
+    For example, add_seconds("2023-05-15 14:30:00", 30) would return "2023-05-15 14:30:30".
+
+    Parameters:
+    - date_value: The starting date and time
+    - seconds: How many seconds to add
 
     Returns:
-        pl.Expr: A Polars expression representing the timestamp after adding the specified number of seconds.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The new date and time
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     seconds = seconds if is_polars_expr(seconds) else create_fix_col(seconds)
     return date_value + pl.duration(seconds=seconds)
 
 
-def datetime_diff_seconds(date_value1: PlStringType, date_value2: PlStringType) -> pl.Expr:
+def datetime_diff_seconds(date1: PlStringType, date2: PlStringType) -> pl.Expr:
     """
-    Calculate the difference in seconds between two timestamps.
+    Calculates the number of seconds between two dates and times.
 
-    Args:
-        date_value1: The first timestamp or Polars expression.
-        date_value2: The second timestamp or Polars expression.
+    For example, datetime_diff_seconds("2023-05-15 14:30:00", "2023-05-15 14:29:00") would return 60.
+
+    Parameters:
+    - date1: The first date and time
+    - date2: The second date and time
 
     Returns:
-        pl.Expr: A Polars expression representing the difference in seconds between the two timestamps.
-
-    Note: If the inputs are not Polars expressions, they will be converted into ones.
+    - The number of seconds between the two dates and times
     """
-    date_value1 = date_value1 if is_polars_expr(date_value1) else create_fix_date_col(date_value1)
-    date_value2 = date_value2 if is_polars_expr(date_value2) else create_fix_date_col(date_value2)
+    date_value1 = date1 if is_polars_expr(date1) else create_fix_date_col(date1)
+    date_value2 = date2 if is_polars_expr(date2) else create_fix_date_col(date2)
     return (date_value1 - date_value2).dt.total_seconds()
 
 
-def datetime_diff_nanoseconds(date_value1: PlStringType, date_value2: PlStringType) -> pl.Expr:
+def datetime_diff_nanoseconds(date1: PlStringType, date2: PlStringType) -> pl.Expr:
     """
-    Calculate the difference in nanoseconds between two timestamps.
+    Calculates the number of nanoseconds between two dates and times.
 
-    Args:
-        date_value1: The first timestamp or Polars expression.
-        date_value2: The second timestamp or Polars expression.
+    For very precise time measurements, this function shows the exact difference down to billionths of a second.
+
+    Parameters:
+    - date1: The first date and time
+    - date2: The second date and time
 
     Returns:
-        pl.Expr: A Polars expression representing the difference in nanoseconds between the two timestamps.
-
-    Note: If the inputs are not Polars expressions, they will be converted into ones.
+    - The number of nanoseconds between the two dates and times
     """
-    date_value1 = date_value1 if is_polars_expr(date_value1) else create_fix_date_col(date_value1)
-    date_value2 = date_value2 if is_polars_expr(date_value2) else create_fix_date_col(date_value2)
+    date_value1 = date1 if is_polars_expr(date1) else create_fix_date_col(date1)
+    date_value2 = date2 if is_polars_expr(date2) else create_fix_date_col(date2)
     return (date_value1 - date_value2).dt.total_nanoseconds()
 
 
-def date_diff_days(date_value1: PlStringType, date_value2: PlStringType) -> pl.Expr:
+def date_diff_days(date1: PlStringType, date2: PlStringType) -> pl.Expr:
     """
-    Calculate the difference in days between two dates.
+    Calculates the number of days between two dates.
 
-    Args:
-        date_value1: The first date or Polars expression.
-        date_value2: The second date or Polars expression.
+    For example, date_diff_days("2023-05-15", "2023-05-10") would return 5.
+
+    Parameters:
+    - date1: The first date
+    - date2: The second date
 
     Returns:
-        pl.Expr: A Polars expression representing the difference in days between the two dates.
-
-    Note: If the inputs are not Polars expressions, they will be converted into ones.
+    - The number of days between the two dates
     """
-    date_value1 = date_value1 if is_polars_expr(date_value1) else create_fix_date_col(date_value1)
-    date_value2 = date_value2 if is_polars_expr(date_value2) else create_fix_date_col(date_value2)
+    date_value1 = date1 if is_polars_expr(date1) else create_fix_date_col(date1)
+    date_value2 = date2 if is_polars_expr(date2) else create_fix_date_col(date2)
     return (date_value1 - date_value2).dt.total_days()
 
 
 def date_trim(date_value: Any, part: str) -> pl.Expr:
     """
-    Trim a date to a specified part. For example, trimming 2023-01-12 12:34:56.123 to 'day' will return 2023-01-12 00:00:00.000.
+    Removes the smaller parts of a date or time.
 
-    Args:
-        date_value: The date or timestamp to trim. Can be a FlowFile expression or any other value.
-        part: The part of the date to trim to. Can be 'year', 'month', 'day', 'hour', 'minute', or 'second'.
+    For example, date_trim("2023-05-15 14:30:25", "day") would return "2023-05-15 00:00:00".
+
+    Parameters:
+    - date_value: The date and time to trim
+    - part: Which part to keep ('year', 'month', 'day', 'hour', 'minute', or 'second')
+      - 'year': Keeps only the year (resets month to January, day to 1, time to midnight)
+      - 'month': Keeps year and month (resets day to 1, time to midnight)
+      - 'day': Keeps year, month, and day (resets time to midnight)
+      - 'hour': Keeps date and hour (resets minutes and seconds to 0)
+      - 'minute': Keeps date, hour, and minute (resets seconds to 0)
+      - 'second': Keeps date and time (resets milliseconds to 0)
 
     Returns:
-        pl.Expr: A Polars expression representing the date trimmed to the specified part.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The trimmed date and time
     """
     date_value = date_value if isinstance(date_value, pl.Expr) else pl.col(date_value)
 
@@ -299,16 +309,21 @@ def date_trim(date_value: Any, part: str) -> pl.Expr:
 
 def date_truncate(date_value: Any, truncate_by: str) -> pl.Expr:
     """
-    Truncate a date to a specified part. For example, truncating 2023-01-12 12:34:56.123 by '1day' will return 2023-01-12 00:00:00.000.
+    Rounds a date down to the nearest specified unit.
 
-    Args:
-        date_value: The date or timestamp to truncate. Can be a FlowFile expression or any other value.
-        truncate_by: The part of the date to truncate by. Can be 'Nyear', 'Nmonth', 'Nday', 'Nhour', 'Nminute', or 'Nsecond'.
+    For example, date_truncate("2023-05-15 14:30:25", "1day") would return "2023-05-15 00:00:00".
+
+    Parameters:
+    - date_value: The date and time to truncate
+    - truncate_by: The time unit to round down to (like "1day", "2hours", "15minutes")
+      Some examples:
+      - "1year": Round to the start of the year
+      - "3months": Round to the nearest 3-month boundary
+      - "1week": Round to the start of the week
+      - "12hours": Round to the nearest 12-hour boundary
 
     Returns:
-        pl.Expr: A Polars expression representing the truncated date.
-
-    Note: If `date_value` is not a Polars expression, it will be converted into one.
+    - The truncated date and time
     """
     date_value = date_value if isinstance(date_value, pl.Expr) else pl.col(date_value)
     return date_value.dt.truncate(truncate_by)
