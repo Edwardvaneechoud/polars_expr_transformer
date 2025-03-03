@@ -19,7 +19,6 @@ def contains_outside_of_quotes(func_string, *args):
     return all(f'~~~{arg}~~~' in vals for arg in args)
 
 
-
 def find_min_pos(fs: str, characters: Tuple):
     if any(character in fs for character in characters):
         return min(fs.find(c) for c in characters if c in fs)
