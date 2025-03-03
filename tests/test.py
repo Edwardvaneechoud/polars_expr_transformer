@@ -240,6 +240,20 @@ def test_right_from_col():
     assert result.equals(expected)
 
 
+def test_right_from_literal_and_column():
+    df = pl.DataFrame({'len': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('right("edward", [len])'))
+    expected = pl.DataFrame({'literal': ['d', 'rd', 'ard']})
+    assert result.equals(expected)
+
+
+def test_left_from_literal_and_column():
+    df = pl.DataFrame({'len': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('left("edward", [len])'))
+    expected = pl.DataFrame({'literal': ['e', 'ed', 'edw']})
+    assert result.equals(expected)
+
+
 def test_find_position():
     ...
 

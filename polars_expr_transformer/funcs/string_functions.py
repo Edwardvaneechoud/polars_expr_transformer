@@ -133,23 +133,13 @@ def left(column: PlStringType, length: pl.Expr | int) -> pl.Expr:
     """
     if is_polars_expr(column):
         if is_polars_expr(length):
-            print(' pl.struct([column, length]).apply(lambda r: __left(r))')
-            return pl.struct([column, length]).map_elements(lambda r: __left(r), return_dtype=pl.String)
+            return column.str.slice(0, length)
         else:
-            print('column.str.slice(0, length)')
             return column.str.slice(0, length)
     elif is_polars_expr(length):
-        print('pl.struct([length]).apply(lambda r: column[:list(r.values)[0]])')
-        return pl.struct([length]).map_elements(lambda r: column[:list(r.values)[0]], return_dtype=pl.String)
+        return pl.lit(column).str.slice(0, length)
     else:
-        print('pl.lit(column[:length])')
         return pl.lit(column[:length])
-
-
-def __right(row: Dict):
-    v, l = row.values()
-    if v is not None:
-        return v[-l:]
 
 
 def right(column: PlStringType, length: PlIntType) -> pl.Expr:
@@ -166,11 +156,11 @@ def right(column: PlStringType, length: PlIntType) -> pl.Expr:
 
     if is_polars_expr(column):
         if is_polars_expr(length):
-            return pl.struct([column, length]).map_elements(__right, return_dtype=pl.String)
-        else:
             return column.str.slice(-length)
+        else:
+            return column.str.slice(pl.lit(-length))
     elif is_polars_expr(length):
-        return pl.struct([length]).map_elements(lambda r: column[-next(iter(r.values())):], return_dtype=pl.String)
+        return pl.lit(column).str.slice(-length)
     else:
         return pl.lit(column[-length:])
 
