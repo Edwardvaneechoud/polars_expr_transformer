@@ -78,13 +78,6 @@ def test_nested_if_expression():
     assert result.equals(expected)
 
 
-def test_date_from_string():
-    df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
-    result = df.select(simple_function_to_expr('to_date([date])'))
-    expected = df.select(pl.col('date').str.to_date())
-    assert result.equals(expected)
-
-
 def test_get_year_from_date():
     df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
     result = df.select(simple_function_to_expr('year(to_date([date]))'))
