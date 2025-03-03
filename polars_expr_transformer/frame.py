@@ -1,7 +1,7 @@
 from polars.dataframe.frame import DataFrame as PlDataFrame
 from polars.lazyframe.frame import LazyFrame as PlLazyFrame
 from polars.datatypes.constants import N_INFER_DEFAULT
-from polars.type_aliases import FrameInitTypes, SchemaDict, SchemaDefinition, Orientation
+from polars._typing import FrameInitTypes, SchemaDict, SchemaDefinition, Orientation
 import inspect
 from functools import wraps
 
