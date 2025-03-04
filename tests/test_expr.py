@@ -248,7 +248,11 @@ def test_left_from_literal_and_column():
 
 
 def test_find_position():
-    ...
+    df = pl.DataFrame({'names': ['ham', 'cheese with ham', 'eggs'],
+                       'other': ['hamm', ' with cheese', 'eeggs']})
+    result = df.select(simple_function_to_expr('find_position([names], "a")'))
+    expected = pl.DataFrame([1, 13, None], schema={"names": pl.UInt32})
+    assert_frame_equal(result, expected)
 
 
 def test_string_similarity_two_columns():

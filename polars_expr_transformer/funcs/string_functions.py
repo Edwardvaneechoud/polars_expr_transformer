@@ -189,17 +189,17 @@ def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
     Find the position of a substring within a string.
 
     Parameters:
-    - text: The text in which to find the position of the substring. Can be a pl expression or any other value.
-    - sub (Any): The substring to find the position of. Can be a pl expression or any other value.
+    - text: The text in which to find the position of the substring. Can be an expression or any other value.
+    - sub (Any): The substring to find the position of. Can be an expression or any other value.
 
     Returns:
-    - pl.Expr: A pl expression representing the position of the substring within the string.
+    - the position of the text
 
     Note: If `s` or `sub` is not a pl expression, it will be converted into one.
     """
     text = text if is_polars_expr(text) else create_fix_col(text)
     sub = sub if is_polars_expr(sub) else create_fix_col(sub)
-    return text.str(sub)
+    return text.str.find(sub, literal=True, strict=False)
 
 
 def pad_left(text: PlStringType, length: int, pad_character: str = " ") -> pl.Expr:
