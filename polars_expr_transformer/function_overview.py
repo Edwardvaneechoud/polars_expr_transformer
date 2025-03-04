@@ -5,7 +5,7 @@ from polars_expr_transformer.funcs import (
     string_functions,
     math_functions,
     special_funcs,
-    date_functions
+    date_functions, type_conversions
 )
 import inspect
 
@@ -14,7 +14,8 @@ MODULE_CATEGORIES = {
     'string': string_functions,
     'math': math_functions,
     'special': special_funcs,
-    'date': date_functions
+    'date': date_functions,
+    'type_conversions': date_functions
 }
 
 _available_expressions: Optional[List[ExpressionsOverview]] = None
