@@ -58,6 +58,26 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     return finalize_hierarchy(hierarchical_formula)
 
 
+def test_tokenization(func_str, all_split_vals, all_functions):
+    """
+    Test the preprocessing and tokenization of a function string.
+
+    Args:
+        func_str: The function string to test.
+        all_split_vals: Set of all split values.
+        all_functions: Dictionary of all functions.
+
+    Returns:
+        The tokenized result.
+    """
+    print(f"Original: {func_str}")
+    processed = preprocess(func_str)
+    print(f"Preprocessed: {processed}")
+    tokens = tokenize(processed)
+    print(f"Tokens: {tokens}")
+    return tokens
+
+
 def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
     """
     Convert a simple function string to a Polars expression.

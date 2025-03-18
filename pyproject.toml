@@ -15,7 +15,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9, !=3.9.7"
 polars = ">1.8.2"
 pydantic = ">=2.9.2"
 polars-distance = "^0.4.3"
@@ -26,6 +26,11 @@ pytest = "~7.4.0"
 check-manifest = "^0.46"
 flake8 = "^3.9.2"
 coverage = "^6.2"
+streamlit = "^1.30.0"
+
+
+[tool.poetry.group.demo.dependencies]
+streamlit = "^1.30.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
