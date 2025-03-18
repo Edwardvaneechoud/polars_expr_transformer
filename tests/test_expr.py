@@ -1,5 +1,4 @@
-import pytest
-from polars_expr_transformer.process.polars_expr_transformer import preprocess, simple_function_to_expr
+from polars_expr_transformer.process.polars_expr_transformer import simple_function_to_expr
 import polars as pl
 from polars.testing import assert_frame_equal
 
@@ -255,6 +254,11 @@ def test_find_position():
     assert_frame_equal(result, expected)
 
 
+def test_and_contains_combination():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs']})
+    expr = simple_function_to_expr('contains([names], "a") and contains([names], "m")')
+
+
 def test_string_similarity_two_columns():
     df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
                        'other': ['hamm', 'sandwhich with cheese', 'eeggs']})
@@ -438,8 +442,28 @@ def divide_test_simple():
     assert result.equals(expected)
 
 
-def detect_date_format():
-    ...
+def divide_test_two_cols():
+    df = pl.DataFrame({'from_values': [1, 2, 3],
+                       'to_values': [10, 20, 30]})
+    result = df.select(simple_function_to_expr('[to_values]/[from_values]'))
+    expected = pl.DataFrame({'to_values': [10.0, 10.0, 10.0]})
+    assert result.equals(expected)
+
+
+def divide_test_two_cols_plus_literal():
+    df = pl.DataFrame({'from_values': [1, 2, 3],
+                       'to_values': [10, 20, 30]})
+    result = df.select(simple_function_to_expr('[to_values]/[from_values] + 1'))
+    expected = pl.DataFrame({'to_values': [11.0, 11.0, 11.0]})
+    assert result.equals(expected)
+
+
+def divide_test_two_cols_plus_literal_multiply():
+    df = pl.DataFrame({'from_values': [1, 2, 3],
+                       'to_values': [10, 20, 30]})
+    result = df.select(simple_function_to_expr('([to_values]/[from_values] + 1) * 2'))
+    expected = pl.DataFrame({'to_values': [22.0, 22.0, 22.0]})
+    assert result.equals(expected)
 
 
 def test_random_int():
@@ -448,3 +472,268 @@ def test_random_int():
     result = df.select(simple_function_to_expr('random_int(1, 3)'))
     min_val, max_val = result['literal'].min(), result.max()[0, 0]
     assert 1 <= min_val <= max_val < 3, 'Expected random integer between 1 and 3'
+
+
+def test_complex_nested_parentheses():
+    """Test expressions with deeply nested parentheses."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    result = df.select(simple_function_to_expr('(([a] + [b]) * 2) / ([b] - [a])'))
+    expected = pl.DataFrame({'a': [3.333333, 4.666667, 6.0]})
+    assert_frame_equal(expected, result)
+
+
+def test_complexer_nested_parentheses():
+    """Test expressions with deeply nested parentheses."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    result = df.select(simple_function_to_expr('([a] + [b] * 2) / ([b] - [a])'))
+    expected = pl.DataFrame({'a': [3.0, 4.0, 5.0]})
+    assert_frame_equal(expected, result)
+
+
+def test_multiple_logical_operators():
+    """Test expressions with multiple logical operators."""
+    df = pl.DataFrame({'a': [1, 5, 10], 'b': [2, 5, 8]})
+    result = df.select(simple_function_to_expr('[a] < [b] and [a] > 0 and [b] < 10'))
+    expected = pl.DataFrame({'a': [True, False, False]})
+    assert result.equals(expected)
+
+
+def test_nested_function_calls():
+    """Test deeply nested function calls."""
+    df = pl.DataFrame({'nums': [1.23456, 2.34567, 3.45678]})
+    result = df.select(simple_function_to_expr('abs(ceil(floor(round([nums], 2))))'))
+    expected = pl.DataFrame({'nums': [1.0, 2.0, 3.0]})
+    assert result.equals(expected)
+
+
+def test_string_with_operators():
+    """Test strings containing operator-like symbols."""
+    df = pl.DataFrame({'names': ['John', 'Mary', 'Bob']})
+    result = df.select(simple_function_to_expr('"a+b*c/d" + [names]'))
+    expected = pl.DataFrame({'literal': ['a+b*c/dJohn', 'a+b*c/dMary', 'a+b*c/dBob']})
+    assert result.equals(expected)
+
+
+def test_complex_if_condition():
+    """Test complex conditions in if statements."""
+    df = pl.DataFrame({'a': [1, 4, 10], 'b': [2, 5, 8]})
+    result = df.select(simple_function_to_expr('''
+        if [a] < [b] and ([a] * 2 > [b] or [b] / 2 < [a]) then 
+            [a] * [b] 
+        else 
+            [a] + [b] 
+        endif
+    '''))
+    expected = pl.DataFrame({'a': [3, 20, 18]})
+    assert result.equals(expected)
+
+
+def test_consecutive_operators():
+    """Test handling of consecutive operators."""
+    df = pl.DataFrame({'a': [5, 10, 15]})
+    result = df.select(simple_function_to_expr('[a] * -1'))
+    expected = pl.DataFrame({'a': [-5, -10, -15]})
+    assert result.equals(expected)
+
+
+def test_whitespace_in_expressions():
+    """Test expressions with irregular whitespace."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    result = df.select(simple_function_to_expr('  [a]    +  [b]   *   2  '))
+    expected = pl.DataFrame({'a': [9, 12, 15]})
+    assert result.equals(expected)
+
+
+def test_column_names_with_special_chars():
+    """Test column names containing special characters."""
+    df = pl.DataFrame({'col.with.dots': [1, 2, 3], 'col-with-dashes': [4, 5, 6]})
+    result = df.select(simple_function_to_expr('[col.with.dots] + [col-with-dashes]'))
+    expected = pl.DataFrame({'col.with.dots': [5, 7, 9]})
+    assert result.equals(expected)
+
+
+def test_mixed_case_functions():
+    """Test functions with mixed case names."""
+    df = pl.DataFrame({'text': ['HELLO', 'World', 'MiXeD']})
+    result = df.select(simple_function_to_expr('lowercase([text])'))
+    expected = pl.DataFrame({'text': ['hello', 'world', 'mixed']})
+    assert result.equals(expected)
+
+
+def test_long_expression():
+    """Test a very long expression with multiple operations."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
+    long_expr = '''
+        ([a] + [b] * 2) / ([c] - [a]) + 
+        sqrt(abs([b] - [c])) * 
+        if [a] < [b] then 
+            ceil([a] / 2) 
+        else 
+            floor([b] / 2) 
+        endif
+    '''
+    result = df.select(simple_function_to_expr(long_expr))
+    # Calculate expected values manually
+    expected_values = []
+    for row in range(3):
+        a, b, c = df['a'][row], df['b'][row], df['c'][row]
+        first_part = (a + b * 2) / (c - a)
+        sqrt_part = (b - c) ** 0.5 if b > c else (-1 * (c - b)) ** 0.5
+        if a < b:
+            if_part = -(-a // 2)  # Ceiling division
+        else:
+            if_part = b // 2  # Floor division
+        expected_values.append(first_part + abs(sqrt_part) * if_part)
+    expected = pl.DataFrame({'a': expected_values})
+    assert_frame_equal(result, expected, rtol=1e-10)
+
+
+def test_string_with_keywords():
+    """Test strings containing keywords like 'and', 'or', 'if', etc."""
+    df = pl.DataFrame({'names': ['John', 'Mary', 'Bob']})
+    result = df.select(simple_function_to_expr('"This and that or something if else" + [names]'))
+    expected = pl.DataFrame({'literal': ['This and that or something if elseJohn',
+                                      'This and that or something if elseMary',
+                                      'This and that or something if elseBob']})
+    assert result.equals(expected)
+
+
+def test_null_handling():
+    """Test expressions with null values."""
+    df = pl.DataFrame({'a': [1, None, 3], 'b': [4, 5, None]})
+    result = df.select(simple_function_to_expr('[a] + [b]'))
+    expected = pl.DataFrame({'a': [5.0, None, None]})
+    assert result.equals(expected)
+
+
+def test_boolean_literals():
+    """Test handling of boolean literals."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('if [a] > 2 then true else false endif'))
+    expected = pl.DataFrame({'literal': [False, False, True]})
+    assert result.equals(expected)
+
+
+def test_chained_string_operations():
+    """Test chained string operations."""
+    df = pl.DataFrame({'text': ['  hello  ', '  WORLD  ', ' Test ']})
+    result = df.select(simple_function_to_expr('uppercase(trim([text]))'))
+    expected = pl.DataFrame({'text': ['HELLO', 'WORLD', 'TEST']})
+    assert result.equals(expected)
+
+
+def test_remove_comments():
+    """Test that comments starting with // are removed."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    expr = """
+        ([a] + [b] * 2) // This adds a and multiplies b by 2
+        / ([b] - [a]) + // Division operation
+        sqrt(abs([b] - [b]))
+    """
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({'a': [3.0, 4.0, 5.0]})
+    assert_frame_equal(result, expected)
+
+
+def test_comments_in_quoted_strings():
+    """Test that // inside quoted strings are not treated as comments."""
+    df = pl.DataFrame({'text': ['hello', 'world', 'test']})
+    result = df.select(simple_function_to_expr('concat([text], " // This is not a comment")'))
+    expected = pl.DataFrame({'text': ['hello // This is not a comment',
+                                      'world // This is not a comment',
+                                      'test // This is not a comment']})
+    assert result.equals(expected)
+
+
+def test_comment_at_end_of_expression():
+    """Test that comments at the end of expressions are removed."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('[a] * 2 // Multiply by 2'))
+    expected = pl.DataFrame({'a': [2, 4, 6]})
+    assert result.equals(expected)
+
+
+def test_multline_with_comments():
+    """Test multiline expressions with comments on different lines."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+    expr = """
+    if [a] < [b] // Check if a is less than b
+    then 
+        [a] * 2 // Double a
+    else 
+        [b] * 2 // Double b
+    endif // End of if statement
+    """
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({'a': [2, 4, 6]})
+    assert result.equals(expected)
+
+
+def test_comment_within_if_statement():
+    """Test comments within if statement conditions and bodies."""
+    df = pl.DataFrame({'a': [1, 5, 10], 'b': [2, 5, 8]})
+    expr = """
+    if [a] <= [b] // This is the condition
+    and [a] > 0 // And this is another condition
+    then 
+        [a] * [b] // Multiply a and b
+    else 
+        [a] + [b] // Add a and b
+    endif
+    """
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({'a': [2, 25, 18]})
+    assert result.equals(expected)
+
+
+def test_comment_after_string_literal():
+    """Test comments after string literals are properly handled."""
+    df = pl.DataFrame({'names': ['John', 'Mary', 'Bob']})
+    expr = """
+    concat("Hello, ", [names]) // Greeting message
+    """
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({'literal': ['Hello, John', 'Hello, Mary', 'Hello, Bob']})
+    assert result.equals(expected)
+
+
+def test_multiple_comments_same_line():
+    """Test that only the first comment marker on a line is considered."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    expr = "[a] * 2 // First comment // Second comment shouldn't be parsed"
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({'a': [2, 4, 6]})
+    assert result.equals(expected)
+
+
+def test_complex_expression_with_comments():
+    """Test a complex expression with multiple comments."""
+    df = pl.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9]})
+    expr = """
+    // Comment at the beginning
+    ([a] + [b] * 2) // Comment after first term
+    / ([c] - [a]) + // Comment after division
+    sqrt(abs([b] - [c])) * // Comment after sqrt
+    if [a] < [b] // Comment in if condition
+    then 
+        ceil([a] / 2) // Comment in then clause
+    else 
+        floor([b] / 2) // Comment in else clause
+    endif // Comment at the end
+    """
+    result = df.select(simple_function_to_expr(expr))
+
+    # Calculate expected values manually
+    expected_values = []
+    for row in range(3):
+        a, b, c = df['a'][row], df['b'][row], df['c'][row]
+        first_part = (a + b * 2) / (c - a)
+        sqrt_part = (b - c) ** 0.5 if b > c else (-1 * (c - b)) ** 0.5
+        if a < b:
+            if_part = -(-a // 2)  # Ceiling division
+        else:
+            if_part = b // 2  # Floor division
+        expected_values.append(first_part + abs(sqrt_part) * if_part)
+
+    expected = pl.DataFrame({'a': expected_values})
+    assert_frame_equal(result, expected, rtol=1e-10)
