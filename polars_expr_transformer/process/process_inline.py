@@ -1,7 +1,7 @@
 from typing import List, Union
 from polars_expr_transformer.configs.settings import operators
 from polars_expr_transformer.process.models import IfFunc, Classifier, Func
-from polars_expr_transformer.process.tree import build_hierarchy
+from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 
 
 def reverse_dict(d: dict) -> dict:
@@ -40,7 +40,10 @@ def inline_to_prefix_formula(inline_formula: List[Union[Classifier, IfFunc, Func
                 prefix_formula.append(stack.pop())
             stack.pop()
         elif token.val in operators:
-            while len(stack) > 0 and stack[-1].val != '(' and ((token.precedence if token.precedence is not None else 1) <= (stack[-1].precedence if stack[-1].precedence is not None else 0)):
+            while len(stack) > 0 and stack[-1].val != '(' and (
+                    (token.precedence if token.precedence is not None else 1) <=
+                    (stack[-1].precedence if stack[-1].precedence is not None else 0)
+            ):
                 prefix_formula.append(stack.pop())
             stack.append(token)
         else:
@@ -105,7 +108,7 @@ def parse_formula(tokens:  List[Union[Classifier, IfFunc, Func]]):
     return parsed_formula
 
 
-def flatten_inline_formula(nested_classifier:  tuple[Classifier]) -> List[Classifier]:
+def flatten_inline_formula(nested_classifier:  tuple[Classifier, ...]) -> List[Classifier]:
     """
     Flatten a nested structure of classifier tokens into a single list.
 
@@ -118,7 +121,7 @@ def flatten_inline_formula(nested_classifier:  tuple[Classifier]) -> List[Classi
     flat_result = []
 
     def flatten_result(vals: List[Classifier]):
-        while len(vals)>0:
+        while len(vals) > 0:
             current_val = vals.pop(0)
             if isinstance(current_val, (tuple, list)):
                 flatten_result(list(current_val))

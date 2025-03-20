@@ -125,6 +125,8 @@ class Classifier:
             return 'case_when'
         elif self.val.isdigit():
             return 'number'
+        elif self.val.startswith('-') and len(self.val) > 1 and self.val[1:].isdigit():
+            return 'number'
         elif self.val == '__negative()':
             return 'special'
         elif self.val.isalpha():

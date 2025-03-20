@@ -1,8 +1,8 @@
 from typing import List, Union
 from polars_expr_transformer.process.models import IfFunc, Func, TempFunc
-from polars_expr_transformer.process.tree import build_hierarchy
+from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 from polars_expr_transformer.process.tokenize import tokenize
-from polars_expr_transformer.process.standardize import standardize_tokens
+from polars_expr_transformer.process.token_classifier import classify_tokens
 from polars_expr_transformer.process.process_inline import parse_inline_functions
 from polars_expr_transformer.process.preprocess import preprocess
 import polars as pl
@@ -52,7 +52,7 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     """
     formula = preprocess(func_str)
     tokens = tokenize(formula)
-    standardized_tokens = standardize_tokens(tokens)
+    standardized_tokens = classify_tokens(tokens)
     hierarchical_formula = build_hierarchy(standardized_tokens)
     parse_inline_functions(hierarchical_formula)
     return finalize_hierarchy(hierarchical_formula)
