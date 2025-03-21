@@ -266,7 +266,3 @@ class TestPreprocessFunctions(unittest.TestCase):
         self.assertIn("pl.col(\"col2\")<10", result)
         self.assertIn(" and ", result)  # Space around logical operators should be preserved
 
-#
-# # Run the tests
-# if __name__ == "__main__":
-#     unittest.main()

@@ -105,6 +105,12 @@ def test_add_years():
     assert result.equals(expected)
 
 
+def test_add_years_static():
+    df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
+    result = df.select(simple_function_to_expr('add_years(to_date("2021-01-03"), 1)'))
+
+
+
 def test_add_days():
     df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
     result = df.select(simple_function_to_expr('add_days(to_date([date]), 1)'))

@@ -197,7 +197,7 @@ class TestClassifier(unittest.TestCase):
 class TestFunc(unittest.TestCase):
 
     def setUp(self):
-        self.classifier = Classifier("test_func")
+        self.classifier = Classifier("concat")
         self.func = Func(self.classifier)
 
     def test_init(self):
@@ -214,12 +214,12 @@ class TestFunc(unittest.TestCase):
 
     def test_get_readable_pl_function(self):
         self.setUp()
-        arg1 = Classifier("arg1")
-        arg2 = Classifier("arg2")
+        arg1 = Classifier("'a'")
+        arg2 = Classifier("'b'")
         self.func.add_arg(arg1)
         self.func.add_arg(arg2)
 
-        self.assertEqual(self.func.get_readable_pl_function(), "test_func(arg1, arg2)")
+        self.assertEqual(self.func.get_readable_pl_function(), "concat('a', 'b')")
 
     @patch('polars_expr_transformer.process.models.funcs')
     def test_get_pl_func_pl_lit(self, mock_funcs):

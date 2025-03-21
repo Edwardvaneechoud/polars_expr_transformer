@@ -156,3 +156,53 @@ class TestSimpleFunctionToExpr(unittest.TestCase):
         expected_value = df.select(mock_expr).item()
         self.assertEqual(result_value, expected_value)
 
+
+class TestFunctionsToReadableExpr(unittest.TestCase):
+
+    def test_simple_concat_function_to_readable_expr(self):
+        f = build_func('concat("a", "b")')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'concat("a", "b")'
+        self.assertEqual(result_value, expected_value)
+
+    def test_constant_to_readable_expr(self):
+        f = build_func('"hello world"')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.lit("hello world")'
+        self.assertEqual(result_value, expected_value)
+
+    def test_simple_if_else_statement_to_readable_expr(self):
+        f = build_func('if 1>2 then "a" else "b" endif')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.when(pl.lit(pl.Expr.gt(1, 2))).then(pl.lit("a")).otherwise(pl.lit("b"))'
+        self.assertEqual(result_value, expected_value)
+
+    def test_simple_inline_to_readable_pl_expr(self):
+        f = build_func('1 + 2')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.lit(pl.Expr.add(1, 2))'
+        self.assertEqual(result_value, expected_value)
+
+    def test_complex_inline_to_readable_pl_expr(self):
+        f = build_func('1+2*10/(12-1*2)')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2)))))'
+        self.assertEqual(result_value, expected_value)
+
+    def test_simple_column_to_readable_expr(self):
+        f = build_func("[col_a]")
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.col("col_a")'
+        self.assertEqual(result_value, expected_value)
+
+    def test_complex_nested_function(self):
+        f = build_func('if 1+2*10/(12-1*2) > 100 then concat("true value", "hello world") else "a" + "b" endif')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.when(pl.Expr.gt(pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2))))), 100)).then(concat("true value", "hello world")).otherwise(pl.lit(pl.Expr.add("a", "b")))'
+        self.assertEqual(result_value, expected_value)
+
+    def test_comments_in_readable_function(self):
+        f = build_func('"this is a value"//this is a comment')
+        result_value = f.get_readable_pl_function()
+        expected_value = 'pl.lit("this is a value")'
+        self.assertEqual(result_value, expected_value)
