@@ -280,9 +280,26 @@ class TestFunc(unittest.TestCase):
         func.add_arg(arg2)
 
         mock_all_numeric.return_value = False
-        mock_func = MagicMock()
-        mock_func.return_value = "result"
-        mock_funcs.__getitem__.return_value = mock_func
+
+        # Create a separate mock for pl.lit
+        mock_lit = MagicMock()
+        mock_lit.return_value = pl.lit(2)
+
+        # Create a separate mock for test_func
+        mock_test_func = MagicMock()
+        mock_test_func.return_value = "result"
+
+        # Configure the funcs dictionary mock to return different functions
+        # based on the key that's used to look it up
+        def getitem_side_effect(key):
+            if key == 'pl.lit':
+                return mock_lit
+            elif key == 'test_func':
+                return mock_test_func
+            else:
+                raise KeyError(f"Unexpected key: {key}")
+
+        mock_funcs.__getitem__.side_effect = getitem_side_effect
 
         # Mock get_types_from_func
         with patch('polars_expr_transformer.process.models.get_types_from_func') as mock_get_types:
@@ -292,7 +309,8 @@ class TestFunc(unittest.TestCase):
             with patch('polars_expr_transformer.process.models.allow_expressions', return_value=True):
                 result = func.get_pl_func()
                 self.assertEqual(result, "result")
-                mock_func.assert_called_once()
+                mock_test_func.assert_called_once()
+
 
     @patch('polars_expr_transformer.process.models.funcs')
     @patch('polars_expr_transformer.process.models.all_numeric_types')

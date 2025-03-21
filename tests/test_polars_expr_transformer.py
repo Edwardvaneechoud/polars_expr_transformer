@@ -198,11 +198,17 @@ class TestFunctionsToReadableExpr(unittest.TestCase):
     def test_complex_nested_function(self):
         f = build_func('if 1+2*10/(12-1*2) > 100 then concat("true value", "hello world") else "a" + "b" endif')
         result_value = f.get_readable_pl_function()
-        expected_value = 'pl.when(pl.Expr.gt(pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2))))), 100)).then(concat("true value", "hello world")).otherwise(pl.lit(pl.Expr.add("a", "b")))'
+        expected_value = 'pl.when(pl.Expr.gt(pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2))))), pl.lit(100))).then(concat("true value", "hello world")).otherwise(pl.lit(pl.Expr.add("a", "b")))'
         self.assertEqual(result_value, expected_value)
 
     def test_comments_in_readable_function(self):
         f = build_func('"this is a value"//this is a comment')
         result_value = f.get_readable_pl_function()
         expected_value = 'pl.lit("this is a value")'
+        self.assertEqual(result_value, expected_value)
+
+    def test_concat(self):
+        f = build_func("contains([customer_name], 'John')")
+        result_value = f.get_readable_pl_function()
+        expected_value = 'contains(pl.col("customer_name"), pl.lit("John"))'
         self.assertEqual(result_value, expected_value)

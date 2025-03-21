@@ -67,7 +67,7 @@ def allow_expressions(_type):
     Returns:
         True if the type allows expressions, False otherwise.
     """
-    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty, PlNumericType]
+    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty, PlNumericType, "Any"]
 
 
 def allow_non_pl_expressions(_type):
@@ -220,18 +220,8 @@ class Func:
             pl_args = ensure_all_numeric_types_align(pl_args)
         func = funcs[self.func_ref.val]
         if self._check_if_standardization_of_args_is_needed(pl_args):
-            func_types = get_types_from_func(func)
-            standardized_args: List[str] = []
-            if len(func_types) == len(pl_args):
-                for func_type, pl_arg, arg in zip(func_types, pl_args, self.args):
-                    if not isinstance(pl_arg, pl.Expr) and allow_expressions(func_type):
-                        standardized_args.append(f'pl.lit({arg.get_readable_pl_function()})')
-                    else:
-                        standardized_args.append(arg.get_readable_pl_function())
-            else:
-                standardized_args = [f'pl.lit({arg.get_readable_pl_function()})'
-                                     if not isinstance(pl_arg, pl.Expr) else arg.get_readable_pl_function()
-                                     for pl_arg, arg in zip(pl_args, self.args)]
+            _ = self._standardize_args()
+            standardized_args = [arg.get_readable_pl_function() for arg in self.args]
         else:
             standardized_args = [arg.get_readable_pl_function() for arg in self.args]
         return f'{self.func_ref.val}({", ".join(standardized_args)})'
@@ -249,6 +239,37 @@ class Func:
         """
         self.args.append(arg)
         arg.parent = self
+
+    def _standardize_args(self):
+        """
+        Standardize the arguments of the function.
+
+        This method ensures that the arguments of the function are standardized
+        by checking for mixed Polars expression types and applying standardization
+        when necessary. It standardizes the arguments based on their types and
+        returns the standardized arguments.
+
+        Returns:
+            A list of standardized arguments for the function.
+        """
+        pl_args = [arg.get_pl_func() if isinstance(arg, Func) else arg.get_pl_func() for arg in self.args]
+        if self._check_if_standardization_of_args_is_needed(pl_args):
+            func_types = get_types_from_func(funcs[self.func_ref.val])
+            if len(func_types) == len(pl_args):
+                for i, (func_type, pl_arg, arg) in enumerate(zip(func_types, pl_args, self.args)):
+                    if not isinstance(pl_arg, pl.Expr) and allow_expressions(func_type):
+                        tf = Func(Classifier('pl.lit'))
+                        tf.add_arg(
+                            arg)
+                        self.args[i] = tf
+
+            else:
+                for i, (pl_arg, arg) in enumerate(zip(pl_args, self.args)):
+                    if not isinstance(pl_arg, pl.Expr):
+                        tf = Func(Classifier('pl.lit'))
+                        tf.add_arg(arg)
+                        self.args[i] = tf
+        return [a.get_pl_func() for a in self.args]
 
     def get_pl_func(self):
         """
@@ -280,17 +301,7 @@ class Func:
             pl_args = ensure_all_numeric_types_align(pl_args)
         func = funcs[self.func_ref.val]
         if self._check_if_standardization_of_args_is_needed(pl_args):
-            func_types = get_types_from_func(func)
-            standardized_args = []
-            if len(func_types) == len(pl_args):
-                for func_type, arg in zip(func_types, pl_args):
-                    if not isinstance(arg, pl.Expr) and allow_expressions(func_type):
-                        standardized_args.append(pl.lit(arg))
-                    else:
-                        standardized_args.append(arg)
-            else:
-                standardized_args = [pl.lit(arg) if not isinstance(arg, pl.Expr) else arg for arg in pl_args]
-
+            standardized_args = self._standardize_args()
         else:
             standardized_args = pl_args
         r = func(*standardized_args)
@@ -404,4 +415,3 @@ class TempFunc:
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):
         self.args.append(arg)
         arg.parent = self
-

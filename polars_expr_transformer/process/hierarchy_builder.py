@@ -15,7 +15,9 @@ def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func
         The updated current function.
     """
     if previous_val and previous_val.val_type == 'function':
-        pass
+        new_func = TempFunc()
+        current_func.add_arg(new_func)
+        current_func = new_func
     elif isinstance(current_func, IfFunc) and previous_val.val in ('$if$', '$elseif$'):
         condition = Func(Classifier('pl.lit'))
         val = Func(Classifier('pl.lit'))
@@ -26,7 +28,7 @@ def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func
         current_func.add_condition(condition_val)
         current_func = condition
     else:
-        new_func = Func(Classifier('pl.lit'))
+        new_func = TempFunc()
         current_func.add_arg(new_func)
         current_func = new_func
     return current_func
@@ -175,6 +177,12 @@ def handle_literal(current_func: Func, current_val: Classifier):
     current_func.add_arg(current_val)
 
 
+def handle_seperator(current_func: Func):
+    new_func = TempFunc()
+    current_func.parent.add_arg(new_func)
+    return new_func
+
+
 def build_hierarchy(tokens: List[Classifier]):
     """
     Build the function hierarchy from a list of tokens.
@@ -210,10 +218,12 @@ def build_hierarchy(tokens: List[Classifier]):
                 current_func = handle_elseif(current_func)
             elif current_val.val == '$endif$':
                 current_func = handle_endif(current_func)
+            elif current_val.val_type == 'sep':
+                current_func = handle_seperator(current_func)
             elif current_val.val == ')':
                 if next_val is None:
                     pass
-                    break
+                    # break
                 current_func, main_func = handle_closing_bracket(current_func, main_func)
             elif current_val.val_type == 'function':
                 current_func = handle_function(current_func, current_val)

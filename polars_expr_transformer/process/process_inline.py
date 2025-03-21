@@ -1,6 +1,6 @@
 from typing import List, Union
 from polars_expr_transformer.configs.settings import operators
-from polars_expr_transformer.process.models import IfFunc, Classifier, Func
+from polars_expr_transformer.process.models import IfFunc, Classifier, Func, TempFunc
 from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 
 
@@ -175,6 +175,8 @@ def parse_inline_functions(_hierarchical_formula: Func):
                         parse_inline_function_worker(condition.condition)
                         parse_inline_function_worker(condition.val)
                     parse_inline_function_worker(arg.else_val)
+                elif isinstance(arg, TempFunc):
+                    parse_inline_function_worker(arg)
     while run[0]:
         run[0] = False
         parse_inline_function_worker(_hierarchical_formula)

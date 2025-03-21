@@ -1,10 +1,10 @@
-from polars_expr_transformer.process.polars_expr_transformer import build_func
+from polars_expr_transformer.process.polars_expr_transformer import build_func, Func
 
 
-def visualize_function_hierarchy(func_obj, original_expr=None):
+def visualize_function_hierarchy(func_obj: Func):
     """
     Generate a text-based hierarchy visualization of a function object,
-    showing the accurate structure including pl.lit wrappers.
+    skipping pl.lit pass-through functions and showing inner expressions directly.
 
     Args:
         func_obj: The function object (Func, IfFunc, Classifier instance)
@@ -13,31 +13,13 @@ def visualize_function_hierarchy(func_obj, original_expr=None):
     Returns:
         String containing the formatted hierarchy visualization
     """
-    result = []
 
-    # Add header
-    if original_expr:
-        result.append("# Function Hierarchy: Expression Structure\n")
-        result.append(f"This represents the expression: `{original_expr}`\n")
-
-    # Generate the hierarchy tree
-    result.append("```")
-    tree_lines = _generate_tree(func_obj)
-    result.extend(tree_lines)
-    result.append("```\n")
-
-    # Add the readable polars function
-    if hasattr(func_obj, 'get_readable_pl_function'):
-        result.append(f"## Polars Expression\n")
-        result.append(f"```python\n{func_obj.get_readable_pl_function()}\n```\n")
-
-    return "\n".join(result)
+    return "\n".join(_generate_tree(func_obj))
 
 
 def _is_pl_lit_wrapper(obj):
     """
     Check if this is a pl.lit wrapper that should be skipped when it contains another expression.
-    But only when configured to do so (we're now preserving these structures).
 
     Args:
         obj: The function object
@@ -57,20 +39,34 @@ def _is_pl_lit_wrapper(obj):
         return False
 
     # Only unwrap if the argument is a Func (not a Classifier or primitive)
-    # return hasattr(obj.args[0], '__class__') and obj.args[0].__class__.__name__ == 'Func'
-    return False
+    return hasattr(obj.args[0], '__class__') and obj.args[0].__class__.__name__ == 'Func'
 
 
-def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
+def _get_unwrapped_obj(obj):
     """
-    Recursively generate tree representation of a function object.
+    Unwrap pl.lit wrappers and return the inner object when it contains a Func.
+
+    Args:
+        obj: The object to unwrap
+
+    Returns:
+        The unwrapped object, or the original if not a pl.lit wrapper around a Func
+    """
+    if _is_pl_lit_wrapper(obj):
+        return _get_unwrapped_obj(obj.args[0])
+    return obj
+
+
+def _generate_tree(obj: Func, prefix="", is_last=True, level=0):
+    """
+    Recursively generate tree representation of a function object,
+    skipping pl.lit wrappers to show inner expressions directly only when appropriate.
 
     Args:
         obj: The object to visualize
         prefix: Current line prefix for formatting
         is_last: Whether this is the last item in its branch
         level: Current nesting level
-        unwrap_pl_lit: Whether to unwrap pl.lit wrappers (default: False)
 
     Returns:
         List of formatted lines for the tree
@@ -80,10 +76,13 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
     # Handle TempFunc wrapper if present
     if hasattr(obj, '__class__') and obj.__class__.__name__ == 'TempFunc':
         if hasattr(obj, 'args') and obj.args:
-            return _generate_tree(obj.args[0], prefix, is_last, level, unwrap_pl_lit)
+            return _generate_tree(obj.args[0], prefix, is_last, level)
         else:
             lines.append(f"{prefix}└── TempFunc (empty)")
             return lines
+
+    # Only unwrap pl.lit when it contains another Func
+    obj = _get_unwrapped_obj(obj)
 
     # Root node doesn't need a branch line
     if level > 0:
@@ -117,7 +116,7 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
             next_prefix = new_prefix + ("    " if is_last_arg else "│   ")
 
             # Recursively process argument
-            sub_lines = _generate_tree(arg, next_prefix, True, level + 2, unwrap_pl_lit)
+            sub_lines = _generate_tree(arg, next_prefix, True, level + 2)
             arg_lines.extend(sub_lines)
             lines.extend(arg_lines)
 
@@ -139,14 +138,14 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
             if hasattr(condition_val, 'condition') and condition_val.condition:
                 cond_lines.append(f"{cond_prefix}├── Condition Expression")
                 cond_expr_prefix = cond_prefix + "│   "
-                sub_lines = _generate_tree(condition_val.condition, cond_expr_prefix, True, level + 3, unwrap_pl_lit)
+                sub_lines = _generate_tree(condition_val.condition, cond_expr_prefix, True, level + 3)
                 cond_lines.extend(sub_lines)
 
             # Add then value
             if hasattr(condition_val, 'val') and condition_val.val:
                 cond_lines.append(f"{cond_prefix}└── Then")
                 then_prefix = cond_prefix + "    "
-                sub_lines = _generate_tree(condition_val.val, then_prefix, True, level + 3, unwrap_pl_lit)
+                sub_lines = _generate_tree(condition_val.val, then_prefix, True, level + 3)
                 cond_lines.extend(sub_lines)
 
             lines.extend(cond_lines)
@@ -155,7 +154,7 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
         if obj.else_val:
             else_lines = [f"{new_prefix}└── Else"]
             else_prefix = new_prefix + "    "
-            sub_lines = _generate_tree(obj.else_val, else_prefix, True, level + 2, unwrap_pl_lit)
+            sub_lines = _generate_tree(obj.else_val, else_prefix, True, level + 2)
             else_lines.extend(sub_lines)
             lines.extend(else_lines)
 
@@ -171,7 +170,7 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
             is_last_item = not hasattr(obj, 'val') or obj.val is None
             cond_lines = [f"{new_prefix}{'└── ' if is_last_item else '├── '}Condition"]
             next_prefix = new_prefix + ("    " if is_last_item else "│   ")
-            sub_lines = _generate_tree(obj.condition, next_prefix, True, level + 2, unwrap_pl_lit)
+            sub_lines = _generate_tree(obj.condition, next_prefix, True, level + 2)
             cond_lines.extend(sub_lines)
             lines.extend(cond_lines)
 
@@ -179,7 +178,7 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
         if hasattr(obj, 'val') and obj.val:
             val_lines = [f"{new_prefix}└── Value"]
             next_prefix = new_prefix + "    "
-            sub_lines = _generate_tree(obj.val, next_prefix, True, level + 2, unwrap_pl_lit)
+            sub_lines = _generate_tree(obj.val, next_prefix, True, level + 2)
             val_lines.extend(sub_lines)
             lines.extend(val_lines)
 
@@ -192,7 +191,7 @@ def _generate_tree(obj, prefix="", is_last=True, level=0, unwrap_pl_lit=False):
 
         # For literals like numbers, strings, etc. - use a better label
         if val_type in ["number", "string", "boolean"]:
-            lines.append(f"{prefix}{branch}Literal: {val}{type_str}")
+            lines.append(f"{prefix}{branch}Value: {val}{type_str}")
         else:
             lines.append(f"{prefix}{branch}Classifier: {val}{type_str}")
 
@@ -214,13 +213,7 @@ def generate_visualization(expr):
     Returns:
         The visualization string
     """
-    # Build the function object from the expression
     func_obj = build_func(expr)
-
-    # Generate visualization
-    visualization = visualize_function_hierarchy(func_obj, expr)
-
-    # Print the generated visualization
-    print(visualization)
-
+    func_obj.get_pl_func()
+    visualization = visualize_function_hierarchy(func_obj)
     return visualization

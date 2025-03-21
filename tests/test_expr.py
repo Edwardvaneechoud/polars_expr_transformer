@@ -512,6 +512,11 @@ def test_nested_function_calls():
     assert result.equals(expected)
 
 
+def test_round(self):
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round(1000, 2)"
+    result = df.select(simple_function_to_expr(formula))
+
 def test_string_with_operators():
     """Test strings containing operator-like symbols."""
     df = pl.DataFrame({'names': ['John', 'Mary', 'Bob']})
