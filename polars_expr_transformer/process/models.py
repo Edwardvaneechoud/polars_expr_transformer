@@ -41,7 +41,7 @@ def ensure_all_numeric_types_align(numbers: List[Union[int, float]]):
         return numbers
     if all(isinstance(number, float) for number in numbers):
         return numbers
-    return [float(number) for number in numbers]
+    return [pl.lit(number) for number in numbers]
 
 
 def all_numeric_types(numbers: List[any]):

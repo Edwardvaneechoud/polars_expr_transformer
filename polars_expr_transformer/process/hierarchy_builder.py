@@ -28,7 +28,7 @@ def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func
         current_func.add_condition(condition_val)
         current_func = condition
     else:
-        new_func = TempFunc()
+        new_func = Func(Classifier('pl.lit'))
         current_func.add_arg(new_func)
         current_func = new_func
     return current_func
@@ -67,6 +67,11 @@ def handle_then(current_func: Func, current_val: Classifier, next_val: Optional[
     if isinstance(current_func, ConditionVal):
         current_func.func_ref = current_val
         current_func = current_func.val
+        if next_val and next_val.val == '(':
+            pos += 1
+    elif isinstance(current_func.parent, ConditionVal):
+        current_func.parent.func_ref = current_val
+        current_func = current_func.parent.val
         if next_val and next_val.val == '(':
             pos += 1
     return current_func, pos
@@ -127,7 +132,7 @@ def handle_endif(current_func: Func) -> Func:
     return current_func
 
 
-def handle_closing_bracket(current_func: Func, main_func: Func) -> (Func, Func):
+def handle_closing_bracket(current_func: Func, main_func: Func, next_val: Func) -> (Func, Func):
     """
     Handle the closing bracket in the function hierarchy.
 
@@ -144,6 +149,8 @@ def handle_closing_bracket(current_func: Func, main_func: Func) -> (Func, Func):
         main_func = current_func = new_main_func
     elif current_func.parent is not None:
         current_func = current_func.parent
+        # if current_func.func_ref is not None and current_func.func_ref.val_type == 'function':
+        #     current_func = current_func.parent
     else:
         raise Exception('Expected parent')
     return current_func, main_func
@@ -183,6 +190,10 @@ def handle_seperator(current_func: Func):
     return new_func
 
 
+def handle_operator(current_func: Func, current_val: Classifier):
+    current_func.parent.add_arg(current_val)
+    return current_func.parent
+
 def build_hierarchy(tokens: List[Classifier]):
     """
     Build the function hierarchy from a list of tokens.
@@ -196,14 +207,14 @@ def build_hierarchy(tokens: List[Classifier]):
     # print_classifier(tokens)
     new_tokens = deepcopy(tokens)
     if new_tokens[0].val_type == 'function':
-        main_func = Func(new_tokens.pop(0))
+        main_func = TempFunc()
     else:
         main_func = Func(Classifier('pl.lit'))
     current_func = main_func
     pos = 0
     while pos < len(new_tokens):
         current_val = new_tokens[pos]
-        previous_val = current_func.func_ref if pos < 1 else new_tokens[pos - 1]
+        previous_val = current_func.func_ref if pos < 1 and not isinstance(current_func, TempFunc) else new_tokens[pos - 1]
         next_val = new_tokens[pos + 1] if len(new_tokens) > pos + 1 else None
         if isinstance(current_val, Classifier):
             if current_val.val == '(':
@@ -224,7 +235,7 @@ def build_hierarchy(tokens: List[Classifier]):
                 if next_val is None:
                     pass
                     # break
-                current_func, main_func = handle_closing_bracket(current_func, main_func)
+                current_func, main_func = handle_closing_bracket(current_func, main_func, next_val)
             elif current_val.val_type == 'function':
                 current_func = handle_function(current_func, current_val)
             elif current_val.val_type in ('string', 'number', 'boolean', 'operator'):
@@ -232,6 +243,8 @@ def build_hierarchy(tokens: List[Classifier]):
                         current_val.val == '-' and
                         (len(current_func.args) == 0 or previous_val.val_type == 'operator')):
                     current_func = handle_function(current_func, Classifier('negation'))
+                elif current_val.val_type == 'operator':
+                    current_func = handle_operator(current_func, current_val)
                 else:
                     handle_literal(current_func, current_val)
             elif current_val.val == '__negative()':
@@ -239,4 +252,5 @@ def build_hierarchy(tokens: List[Classifier]):
         else:
             handle_literal(current_func, current_val)
         pos += 1
+
     return main_func
