@@ -87,6 +87,7 @@ def remove_temp_funcs(hierarchical_formula):
         return result
     return hierarchical_formula
 
+
 def build_func(func_str: str = 'concat("1", "2")') -> Func:
     """
     Build a Func object from a function string.
@@ -101,17 +102,18 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     Returns:
         The resulting Func object built from the function string.
     """
-    # func_str =   'if ((1222*[a])> 1222) then true else false endif'
+    func_str = '[a] < [b] and [a] > 0 and [b] < 10'
+    # df = pl.DataFrame({'a': [1, 2, 3]})
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
     tokens = classify_tokens(raw_tokens)
     hierarchical_formula = build_hierarchy(tokens)
     print(hierarchical_formula)
-    # hierarchical_formula = finalize_hierarchy(hierarchical_formula)
     parse_inline_functions(hierarchical_formula)
     print(hierarchical_formula)
     finalized_hierarchical_formula = finalize_hierarchy(hierarchical_formula)
-    print(finalized_hierarchical_formula)
+    # print(finalized_hierarchical_formula)
+    # df.select(finalized_hierarchical_formula.get_pl_func())
     return finalized_hierarchical_formula
 
 

@@ -39,4 +39,25 @@ for alias, ref in aliases.items():
     funcs[alias] = funcs[ref]
 
 
-PRECEDENCE = {'+': 2, '-': 2, '*': 3, '/': 3, '|': -1, '&': -1, 'and': -1, 'or': -1, 'in': -1}
+PRECEDENCE = {
+    # Arithmetic operators (higher precedence)
+    '*': 3,
+    '/': 3,
+    '+': 2,
+    '-': 2,
+
+    # Comparison operators (medium precedence)
+    '<': 1,
+    '>': 1,
+    '<=': 1,
+    '>=': 1,
+    '==': 1,
+    '!=': 1,
+
+    # Logical operators (lower precedence)
+    '&': -1,
+    '|': -1,
+    'and': -1,
+    'or': -1,
+    'in': -1
+}
