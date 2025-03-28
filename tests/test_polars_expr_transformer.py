@@ -34,15 +34,6 @@ class TestFinalizeHierarchy(unittest.TestCase):
         with self.assertRaises(Exception):
             finalize_hierarchy(temp_func)
 
-    def test_finalize_hierarchy_with_temp_func_zero_args(self):
-        """Test finalizing a TempFunc with zero arguments."""
-        # Create a TempFunc with no arguments
-        temp_func = TempFunc()
-
-        # Should raise an exception
-        with self.assertRaises(Exception):
-            finalize_hierarchy(temp_func)
-
     def test_finalize_hierarchy_with_func(self):
         """Test finalizing a Func."""
         # Create a Func

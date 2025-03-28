@@ -130,7 +130,7 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     Returns:
         The resulting Func object built from the function string.
     """
-    func_str = "today()"
+    # func_str = "today()"
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
     tokens = classify_tokens(raw_tokens)
