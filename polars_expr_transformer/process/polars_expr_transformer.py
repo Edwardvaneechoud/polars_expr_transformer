@@ -17,7 +17,8 @@ def finalize_hierarchy(obj):
         obj: The object to process (Func, TempFunc, IfFunc, or Classifier)
 
     Returns:
-        The processed object with all TempFunc instances replaced by their arguments
+        The processed object with all TempFunc instances replaced by their arguments,
+        or None if a TempFunc has zero arguments
     """
     # Base case: If it's not a TempFunc or doesn't need recursion, return it
     if isinstance(obj, Classifier) or obj is None:
@@ -25,46 +26,73 @@ def finalize_hierarchy(obj):
 
     # Handle TempFunc
     if isinstance(obj, TempFunc):
-        if len(obj.args) != 1:
-            raise Exception(f"Expected exactly one argument in TempFunc, got {len(obj.args)}")
-        child = obj.args[0]
+        if len(obj.args) > 1:
+            raise Exception("TempFunc should have at most one argument")
 
-        # Set the parent of the child to be the parent of this TempFunc
-        if hasattr(obj, "parent") and obj.parent:
-            child.parent = obj.parent
+        # Case: TempFunc with no arguments - remove it from parent
+        if len(obj.args) == 0:
+            if hasattr(obj, "parent") and obj.parent:
+                # If this TempFunc is in the parent's args list, remove it
+                if isinstance(obj.parent, Func):
+                    if obj in obj.parent.args:
+                        obj.parent.args.remove(obj)
+                elif isinstance(obj.parent, IfFunc):
+                    if obj.parent.else_val is obj:
+                        obj.parent.else_val = None
+                elif hasattr(obj.parent, "condition") and obj.parent.condition is obj:
+                    obj.parent.condition = None
+                elif hasattr(obj.parent, "val") and obj.parent.val is obj:
+                    obj.parent.val = None
+            # Return None to indicate this TempFunc should be removed
+            return None
 
-            # Replace this TempFunc in the parent's args list
-            if isinstance(obj.parent, Func):
-                for i, arg in enumerate(obj.parent.args):
-                    if arg is obj:
-                        obj.parent.args[i] = child
-                        break
-            elif isinstance(obj.parent, IfFunc):
-                if obj.parent.else_val is obj:
-                    obj.parent.else_val = child
-            elif hasattr(obj.parent, "condition") and obj.parent.condition is obj:
-                obj.parent.condition = child
-            elif hasattr(obj.parent, "val") and obj.parent.val is obj:
-                obj.parent.val = child
+        # Case: TempFunc with one argument - replace it with its child
+        if len(obj.args) == 1:
+            child = obj.args[0]
 
-        # Process the child recursively
-        return finalize_hierarchy(child)
+            # Set the parent of the child to be the parent of this TempFunc
+            if hasattr(obj, "parent") and obj.parent:
+                child.parent = obj.parent
+
+                # Replace this TempFunc in the parent's args list
+                if isinstance(obj.parent, Func):
+                    for i, arg in enumerate(obj.parent.args):
+                        if arg is obj:
+                            obj.parent.args[i] = child
+                            break
+                elif isinstance(obj.parent, IfFunc):
+                    if obj.parent.else_val is obj:
+                        obj.parent.else_val = child
+                elif hasattr(obj.parent, "condition") and obj.parent.condition is obj:
+                    obj.parent.condition = child
+                elif hasattr(obj.parent, "val") and obj.parent.val is obj:
+                    obj.parent.val = child
+
+            # Process the child recursively
+            return finalize_hierarchy(child)
 
     # Process Func objects
     if isinstance(obj, Func):
-        for i in range(len(obj.args)):
-            obj.args[i] = finalize_hierarchy(obj.args[i])
+        # Process all arguments and filter out None values (removed TempFuncs)
+        processed_args = []
+        for arg in obj.args:
+            processed_arg = finalize_hierarchy(arg)
+            if processed_arg is not None:
+                processed_args.append(processed_arg)
+        obj.args = processed_args
 
     # Process IfFunc objects
     elif isinstance(obj, IfFunc):
+        # Process conditions
         for cond in obj.conditions:
             cond.condition = finalize_hierarchy(cond.condition)
             cond.val = finalize_hierarchy(cond.val)
+
+        # Process else_val
         if obj.else_val:
             obj.else_val = finalize_hierarchy(obj.else_val)
 
     return obj
-
 
 # Wrapper function to handle the top-level case properly
 def remove_temp_funcs(hierarchical_formula):
@@ -102,7 +130,7 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     Returns:
         The resulting Func object built from the function string.
     """
-    # func_str = "round([salary] / 1000, 1)"
+    func_str = "today()"
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
     tokens = classify_tokens(raw_tokens)

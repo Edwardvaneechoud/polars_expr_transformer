@@ -543,6 +543,13 @@ def test_round_with_division():
     assert result.equals(expected)
 
 
+def test_today():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "today()"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'literal': [600]})
+
+
 def test_round_with_division_on_col():
     df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
     formula = "round([salary]/2, 2)"
