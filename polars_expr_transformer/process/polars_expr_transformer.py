@@ -102,18 +102,15 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     Returns:
         The resulting Func object built from the function string.
     """
-    func_str = '[a] < [b] and [a] > 0 and [b] < 10'
-    # df = pl.DataFrame({'a': [1, 2, 3]})
+    # func_str = "round([salary] / 1000, 1)"
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
     tokens = classify_tokens(raw_tokens)
     hierarchical_formula = build_hierarchy(tokens)
-    print(hierarchical_formula)
     parse_inline_functions(hierarchical_formula)
-    print(hierarchical_formula)
+
     finalized_hierarchical_formula = finalize_hierarchy(hierarchical_formula)
-    # print(finalized_hierarchical_formula)
-    # df.select(finalized_hierarchical_formula.get_pl_func())
+    hierarchical_formula.get_pl_func()
     return finalized_hierarchical_formula
 
 

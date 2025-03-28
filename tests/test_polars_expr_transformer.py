@@ -103,17 +103,24 @@ class TestBuildFunc(unittest.TestCase):
     @patch('polars_expr_transformer.process.polars_expr_transformer.classify_tokens')
     @patch('polars_expr_transformer.process.polars_expr_transformer.build_hierarchy')
     @patch('polars_expr_transformer.process.polars_expr_transformer.parse_inline_functions')
-    def test_build_func_integration(self, mock_parse, mock_build, mock_classify,
-                                    mock_tokenize, mock_preprocess):
+    @patch('polars_expr_transformer.process.polars_expr_transformer.finalize_hierarchy')
+    @patch('polars_expr_transformer.process.models.Func.get_pl_func')
+    def test_build_func_integration(self, mock_get_pl_func, mock_finalize, mock_parse,
+                                    mock_build, mock_classify, mock_tokenize, mock_preprocess):
         """Test build_func with minimal mocking to verify integration."""
-        # Setup minimal mocks
+        # Setup mocks
         mock_preprocess.return_value = "preprocessed"
         mock_tokenize.return_value = ["token1", "token2"]
         mock_classify.return_value = ["classified1", "classified2"]
 
-        # Create a real Func object for the return value
+        # Make get_pl_func return something simple to avoid errors
+        mock_get_pl_func.return_value = pl.lit(1)
+
+        # Create a real Func object but with mocked get_pl_func
         func = Func(Classifier("test_func"))
         mock_build.return_value = func
+        mock_parse.return_value = func
+        mock_finalize.return_value = func
 
         # Call the function
         result = build_func("test_func")
@@ -124,6 +131,10 @@ class TestBuildFunc(unittest.TestCase):
         mock_classify.assert_called_once()
         mock_build.assert_called_once()
         mock_parse.assert_called_once()
+        mock_finalize.assert_called_once()
+
+        # Verify the get_pl_func was called
+        mock_get_pl_func.assert_called()
 
         # Verify the result is a Func
         self.assertIsInstance(result, Func)
@@ -162,7 +173,7 @@ class TestFunctionsToReadableExpr(unittest.TestCase):
     def test_simple_concat_function_to_readable_expr(self):
         f = build_func('concat("a", "b")')
         result_value = f.get_readable_pl_function()
-        expected_value = 'concat("a", "b")'
+        expected_value = 'concat(pl.lit("a"), pl.lit("b"))'
         self.assertEqual(result_value, expected_value)
 
     def test_constant_to_readable_expr(self):
@@ -174,19 +185,19 @@ class TestFunctionsToReadableExpr(unittest.TestCase):
     def test_simple_if_else_statement_to_readable_expr(self):
         f = build_func('if 1>2 then "a" else "b" endif')
         result_value = f.get_readable_pl_function()
-        expected_value = 'pl.when(pl.lit(pl.Expr.gt(1, 2))).then(pl.lit("a")).otherwise(pl.lit("b"))'
+        expected_value = 'pl.when(pl.Expr.gt(pl.lit(1), pl.lit(2))).then(pl.lit("a")).otherwise(pl.lit("b"))'
         self.assertEqual(result_value, expected_value)
 
     def test_simple_inline_to_readable_pl_expr(self):
         f = build_func('1 + 2')
         result_value = f.get_readable_pl_function()
-        expected_value = 'pl.lit(pl.Expr.add(1, 2))'
+        expected_value = 'pl.Expr.add(pl.lit(1), pl.lit(2))'
         self.assertEqual(result_value, expected_value)
 
     def test_complex_inline_to_readable_pl_expr(self):
         f = build_func('1+2*10/(12-1*2)')
         result_value = f.get_readable_pl_function()
-        expected_value = 'pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2)))))'
+        expected_value = 'pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.Expr.mul(pl.lit(2), pl.lit(10)), pl.Expr.sub(pl.lit(12), pl.Expr.mul(pl.lit(1), pl.lit(2)))))'
         self.assertEqual(result_value, expected_value)
 
     def test_simple_column_to_readable_expr(self):
@@ -198,7 +209,7 @@ class TestFunctionsToReadableExpr(unittest.TestCase):
     def test_complex_nested_function(self):
         f = build_func('if 1+2*10/(12-1*2) > 100 then concat("true value", "hello world") else "a" + "b" endif')
         result_value = f.get_readable_pl_function()
-        expected_value = 'pl.when(pl.Expr.gt(pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.lit(pl.Expr.mul(2, 10)), pl.lit(pl.Expr.sub(12, pl.Expr.mul(1, 2))))), pl.lit(100))).then(concat("true value", "hello world")).otherwise(pl.lit(pl.Expr.add("a", "b")))'
+        expected_value = 'pl.when(pl.Expr.gt(pl.Expr.add(pl.lit(1), pl.Expr.truediv(pl.Expr.mul(pl.lit(2), pl.lit(10)), pl.Expr.sub(pl.lit(12), pl.Expr.mul(pl.lit(1), pl.lit(2))))), pl.lit(100))).then(concat(pl.lit("true value"), pl.lit("hello world"))).otherwise(pl.Expr.add(pl.lit("a"), pl.lit("b")))'
         self.assertEqual(result_value, expected_value)
 
     def test_comments_in_readable_function(self):

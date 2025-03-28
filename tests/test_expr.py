@@ -519,10 +519,37 @@ def test_nested_function_calls():
     assert result.equals(expected)
 
 
-def test_round(self):
+def test_round_column():
     df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
-    formula = "round(1000, 2)"
+    formula = "round([salary], 2)"
     result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'salary': [1.23, 2.35, 3.46]})
+    assert result.equals(expected)
+
+
+def test_round_value():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round(1200.120, 2)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'literal': [1200.12]})
+    assert result.equals(expected)
+
+
+def test_round_with_division():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round(1200.120/2, 0)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'literal': [600]})
+    assert result.equals(expected)
+
+
+def test_round_with_division_on_col():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round([salary]/2, 2)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'salary': [0.62, 1.17, 1.73]})
+    assert result.equals(expected)
+
 
 def test_string_with_operators():
     """Test strings containing operator-like symbols."""

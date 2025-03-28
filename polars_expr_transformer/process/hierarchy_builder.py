@@ -162,10 +162,12 @@ def handle_closing_bracket(current_func: Func, main_func: Func) -> (Func, Func):
         new_main_func = TempFunc()
         new_main_func.add_arg(main_func)
         main_func = current_func = new_main_func
+    elif isinstance(current_func, TempFunc):
+        parent_func = current_func.parent
+        if isinstance(parent_func, Func) and isinstance(parent_func.parent, (TempFunc, Func)):
+            current_func = parent_func.parent
     elif current_func.parent is not None:
         current_func = current_func.parent
-        # if current_func.func_ref is not None and current_func.func_ref.val_type == 'function':
-        #     current_func = current_func.parent
     else:
         raise Exception('Expected parent')
     return current_func, main_func
@@ -191,8 +193,9 @@ def handle_function(current_func: Func, current_val: Classifier, next_val: Class
     else:
         raise Exception('Expected opening bracket')
     current_func.add_arg(new_function)
-    current_func = new_function
-    return current_func, pos
+    first_arg = TempFunc()
+    new_function.add_arg(first_arg)
+    return first_arg, pos
 
 
 def handle_literal(current_func: Func, current_val: Classifier):
@@ -206,11 +209,15 @@ def handle_literal(current_func: Func, current_val: Classifier):
     current_func.add_arg(current_val)
 
 
-def handle_seperator(current_func: Func):
-    return current_func
-    # new_func = TempFunc()
-    # current_func.parent.add_arg(new_func)
-    # return new_func
+def handle_seperator(current_func: Func) -> Func:
+    # find opening of current function
+    parent_func = current_func.parent
+    if not isinstance(parent_func, Func):
+        raise Exception('Expected parent to be a function')
+
+    new_arg = TempFunc()
+    parent_func.add_arg(new_arg)
+    return new_arg
 
 
 def handle_operator(current_func: Func, current_val: Classifier):
@@ -235,8 +242,6 @@ def build_hierarchy(tokens: List[Classifier]):
         main_func = Func(Classifier('pl.lit'))
     current_func = main_func
     pos = 0
-    # for i, t in enumerate(tokens):
-    #     print(i, t)
 
     while pos < len(new_tokens):
         current_val = new_tokens[pos]
