@@ -8,6 +8,7 @@ PlStringType = pl.Expr | str
 PlIntType = pl.Expr | int
 PlNumericType = NUMERIC_DTYPES
 
+
 def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
 
@@ -17,4 +18,4 @@ def create_fix_col(val: Any) -> pl.Expr:
 
 
 def create_fix_date_col(s: Any) -> pl.Expr:
-    return pl.col(s).str.to_datetime()
+    return pl.lit(s).str.to_datetime()

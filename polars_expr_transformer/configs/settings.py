@@ -38,5 +38,10 @@ funcs.update(operators_mappings)
 for alias, ref in aliases.items():
     funcs[alias] = funcs[ref]
 
-
-PRECEDENCE = {'+': 2, '-': 2, '*': 3, '/': 3, '|': -1, '&': -1, 'and': -1, 'or': -1, 'in': -1}
+PRECEDENCE = {
+    'or': 1,
+    'and': 2,
+    '>': 3, '<': 3, '>=': 3, '<=': 3, '==': 3, '!=': 3, 'in': 3,
+    '+': 4, '-': 4,
+    '*': 5, '/': 5
+}
