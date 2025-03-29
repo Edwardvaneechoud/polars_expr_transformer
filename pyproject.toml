@@ -16,7 +16,7 @@ include = [
 
 [tool.poetry.dependencies]
 python = ">=3.9"
-polars = ">1.8.2"
+polars = ">1.8.2,<=1.25.2"
 pydantic = ">=2.9.2"
 polars-distance = "^0.4.3"
 polars-ds = "^0.6.0"

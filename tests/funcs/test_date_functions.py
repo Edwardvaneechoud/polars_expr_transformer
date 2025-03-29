@@ -1,6 +1,6 @@
 import pytest
 import polars as pl
-from datetime import datetime, timedelta
+from datetime import datetime
 from polars_expr_transformer.funcs.date_functions import (
     now, today, year, month, day
 )
