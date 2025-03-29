@@ -47,6 +47,7 @@ def year(date_value: Any) -> pl.Expr:
 
 def month(date_value: Any) -> pl.Expr:
     """
+    month(date_value: Any)
     Gets the month from a date.
 
     For example, month("2023-05-15") would return 5.

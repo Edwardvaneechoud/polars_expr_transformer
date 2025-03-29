@@ -12,13 +12,20 @@ def test_simple_constant_expression():
 
 
 def test_not_equal_columns_expression():
-    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    df = pl.from_dicts([{'a': 34, 'b': 34}, {'a': 56, 'b': 78}])
     result = df.select(simple_function_to_expr('[a] != [b]'))
-    expected = pl.DataFrame({'a': [True, True]})
+    expected = pl.DataFrame({'a': [False, True]})
     assert result.equals(expected)
 
 
-def test_subtract_and_multiplication_expression():
+def test_multiplication_expression():
+    df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
+    result = df.select(simple_function_to_expr('2 * 2'))
+    expected = pl.DataFrame({'literal': [4]})
+    assert result.equals(expected)
+
+
+def test_subtract_and_multiply_expression():
     df = pl.from_dicts([{'a': 12, 'b': 34}, {'a': 56, 'b': 78}])
     result = df.select(simple_function_to_expr('2 * -2'))
     expected = pl.DataFrame({'literal': [-4]})
@@ -103,6 +110,12 @@ def test_add_years():
     result = df.select(simple_function_to_expr('add_years(to_date([date]), 1)'))
     expected = pl.DataFrame({'date': ['2022-01-01', '2022-01-02', '2022-01-03']}).select(pl.col('date').str.to_date())
     assert result.equals(expected)
+
+
+def test_add_years_static():
+    df = pl.DataFrame({'date': ['2021-01-01', '2021-01-02', '2021-01-03']})
+    result = df.select(simple_function_to_expr('add_years(to_date("2021-01-03"), 1)'))
+
 
 
 def test_add_days():
@@ -503,6 +516,45 @@ def test_nested_function_calls():
     df = pl.DataFrame({'nums': [1.23456, 2.34567, 3.45678]})
     result = df.select(simple_function_to_expr('abs(ceil(floor(round([nums], 2))))'))
     expected = pl.DataFrame({'nums': [1.0, 2.0, 3.0]})
+    assert result.equals(expected)
+
+
+def test_round_column():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round([salary], 2)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'salary': [1.23, 2.35, 3.46]})
+    assert result.equals(expected)
+
+
+def test_round_value():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round(1200.120, 2)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'literal': [1200.12]})
+    assert result.equals(expected)
+
+
+def test_round_with_division():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round(1200.120/2, 0)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'literal': [600]})
+    assert result.equals(expected)
+
+
+def test_today():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "today()"
+    result = df.select(simple_function_to_expr(formula))
+    assert 'literal' in result.columns
+
+
+def test_round_with_division_on_col():
+    df = pl.DataFrame({'salary': [1.23456, 2.34567, 3.45678]})
+    formula = "round([salary]/2, 2)"
+    result = df.select(simple_function_to_expr(formula))
+    expected = pl.DataFrame({'salary': [0.62, 1.17, 1.73]})
     assert result.equals(expected)
 
 

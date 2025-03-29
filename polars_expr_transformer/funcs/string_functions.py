@@ -1,6 +1,5 @@
 import polars as pl
 import polars_ds as pds
-from typing import Dict
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 from functools import partial

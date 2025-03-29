@@ -64,7 +64,7 @@ def remove_comments(input_string: str) -> str:
 
 def normalize_whitespace(input_string: str) -> str:
     """
-    Normalize whitespace in the input string by replacing newlines with spaces
+    Normalize whitespace in the input string by replacing newlines and tabs with spaces
     and ensuring no double spaces exist.
 
     Args:
@@ -75,6 +75,8 @@ def normalize_whitespace(input_string: str) -> str:
     """
     # Replace newlines with spaces
     result = input_string.replace('\n', ' ')
+    # Replace tabs with spaces
+    result = result.replace('\t', ' ')
     # Remove double spaces
     return replace_double_spaces(result)
 
@@ -220,10 +222,16 @@ def replace_values_outside_of_quotes(func_string: str, replacements: List[Tuple[
     Returns:
         The processed string with values replaced outside of quotes.
     """
-    for _old, _new in replacements:
-        func_string = func_string.replace(_old, _new)
-    return func_string
+    # Split the string by quoted parts
+    parts = re.split(r'("[^"]*"|\'[^\']*\')', func_string)
 
+    # Process only the parts outside quotes (even indices)
+    for i in range(0, len(parts), 2):
+        for old_val, new_val in replacements:
+            parts[i] = parts[i].replace(old_val, new_val)
+
+    # Join the parts back together
+    return ''.join(parts)
 
 def replace_values(part_string: str, addition: str, *args) -> str:
     """

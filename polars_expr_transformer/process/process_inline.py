@@ -1,177 +1,144 @@
-from typing import List, Union
-from polars_expr_transformer.configs.settings import operators
-from polars_expr_transformer.process.models import IfFunc, Classifier, Func
-from polars_expr_transformer.process.tree import build_hierarchy
+from typing import List, Union, Any
+from polars_expr_transformer.configs.settings import operators, PRECEDENCE
+from polars_expr_transformer.process.models import IfFunc, Classifier, Func, TempFunc
+from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 
 
-def reverse_dict(d: dict) -> dict:
+def parse_inline_functions(formula: Union[Func, TempFunc, IfFunc]):
     """
-    Reverse the keys and values in a dictionary.
+    Process a formula containing inline operators and convert them to proper function calls.
 
     Args:
-        d: The dictionary to reverse.
+        formula: The hierarchical formula to parse.
+    """
+    any_changes = [True]
+    processed_objects = set()
+
+    def process_formula(f: Union[Func, IfFunc, TempFunc]):
+        """
+        Process a single formula structure.
+
+        Args:
+            f: The formula to process.
+
+        Returns:
+            The processed formula.
+        """
+        obj_id = id(f)
+        if obj_id in processed_objects:
+            return f
+        processed_objects.add(obj_id)
+
+        if isinstance(f, TempFunc):
+            if any(isinstance(arg, Classifier) and arg.val_type == 'operator' for arg in f.args):
+                result = build_operator_tree(f.args)
+                any_changes[0] = True
+                return result
+
+            for i in range(len(f.args)):
+                if isinstance(f.args[i], (Func, IfFunc, TempFunc)):
+                    f.args[i] = process_formula(f.args[i])
+            return f
+
+        # Handle operators in Func
+        elif isinstance(f, Func):
+            if any(isinstance(arg, Classifier) and arg.val_type == 'operator' for arg in f.args):
+                result = build_operator_tree(f.args)
+                f.args = [result] if result else f.args
+                any_changes[0] = True
+                return f
+
+            for i in range(len(f.args)):
+                if isinstance(f.args[i], (Func, IfFunc, TempFunc)):
+                    f.args[i] = process_formula(f.args[i])
+            return f
+
+        # Handle operators in IfFunc
+        elif isinstance(f, IfFunc):
+            for cond in f.conditions:
+                if isinstance(cond.condition, (Func, IfFunc, TempFunc)):
+                    cond.condition = process_formula(cond.condition)
+                if isinstance(cond.val, (Func, IfFunc, TempFunc)):
+                    cond.val = process_formula(cond.val)
+
+            if isinstance(f.else_val, (Func, IfFunc, TempFunc)):
+                f.else_val = process_formula(f.else_val)
+
+            return f
+
+        return f
+
+    while any_changes[0]:
+        any_changes[0] = False
+        processed_objects.clear()
+        formula = process_formula(formula)
+
+    return formula
+
+
+def build_operator_tree(tokens: List[Any]) -> Func:
+    """
+    Build a tree of function calls from a list of tokens containing operators.
+
+    This function uses a recursive descent parser approach to build the tree
+    with correct operator precedence.
+
+    Args:
+        tokens: List of tokens potentially containing operators.
 
     Returns:
-        A new dictionary with keys and values swapped.
+        A Func object representing the operator tree.
     """
-    return {v: k for k, v in d.items()}
+    if not tokens:
+        return None
 
+    tokens = tokens.copy()
 
-def inline_to_prefix_formula(inline_formula: List[Union[Classifier, IfFunc, Func]]):
-    """
-    Convert an inline formula to a prefix formula.
+    def parse_expression(token_list, min_precedence=0):
+        """Recursive helper function to parse expression with operator precedence."""
+        # First get the left-hand side
+        left = parse_primary(token_list)
 
-    Args:
-        inline_formula: The list of tokens in inline formula notation.
+        while token_list and is_operator(token_list[0]) and get_precedence(token_list[0]) >= min_precedence:
+            op = token_list.pop(0)
+            op_precedence = get_precedence(op)
 
-    Returns:
-        The list of tokens in prefix notation.
-    """
-    stack = []
-    prefix_formula = []
-    for i, token in enumerate(inline_formula):
-        if not isinstance(token, Classifier):
-            prefix_formula.append(token)
-            continue
-        if token.val == '(':
-            stack.append(token)
-        elif token.val == ')':
-            while len(stack) > 0 and stack[-1].val != '(':
-                prefix_formula.append(stack.pop())
-            stack.pop()
-        elif token.val in operators:
-            while len(stack) > 0 and stack[-1].val != '(' and ((token.precedence if token.precedence is not None else 1) <= (stack[-1].precedence if stack[-1].precedence is not None else 0)):
-                prefix_formula.append(stack.pop())
-            stack.append(token)
-        else:
-            prefix_formula.append(token)
-    while stack:
-        prefix_formula.append(stack.pop())
-    return prefix_formula[::-1]
+            right = parse_expression(token_list, op_precedence + 1)
 
+            op_func = operators.get(op.val)
+            if op_func:
+                left = Func(
+                    func_ref=Classifier(op_func, val_type='function'),
+                    args=[left, right]
+                )
 
-def evaluate_prefix_formula(formula_tokens: List[Union[Classifier, IfFunc, Func]]):
-    """
-    Evaluate a prefix formula to construct the corresponding expression.
+        return left
 
-    Args:
-        formula_tokens: The list of tokens in prefix notation.
+    def parse_primary(token_list):
+        """Parse a primary expression (a value or nested expression)."""
+        if not token_list:
+            return None
 
-    Returns:
-        The evaluated expression.
-    """
-    stack = []
-    for token in reversed(formula_tokens):
-        if token != '':
-            if isinstance(token, Classifier):
-                if token in reverse_dict(operators):
-                    if len(stack) >= 2:
-                        operand1 = stack.pop()
-                        operand2 = stack.pop()
-                        result = token, Classifier('('), operand2, Classifier(','),  operand1, Classifier(')')
-                    elif len(stack) == 1:
-                        operand1 = stack.pop()
-                        result = token, Classifier('('), operand1, Classifier(')')
-                    else:
-                        result = token
-                    stack.append(result)
-                else:
-                    stack.append(token)
-            else:
-                stack.append(token)
-    return stack.pop()
+        if isinstance(token_list[0], Func) and token_list[0].func_ref.val == 'pl.lit':
+            inner_tokens = token_list.pop(0).args
+            return parse_expression(inner_tokens)
 
+        return token_list.pop(0)
 
-def parse_formula(tokens:  List[Union[Classifier, IfFunc, Func]]):
-    """
-    Parse a list of formula tokens and replace operator tokens with corresponding functions.
+    def is_operator(token):
+        """Check if token is an operator."""
+        return isinstance(token, Classifier) and token.val_type == 'operator'
 
-    Args:
-        tokens: The list of tokens to parse.
+    def get_precedence(token):
+        """Get precedence of operator token."""
+        return PRECEDENCE.get(token.val, 0) if is_operator(token) else 0
 
-    Returns:
-        The list of parsed tokens with operators replaced by functions.
-    """
-    parsed_formula = []
-    for val in tokens:
-        if isinstance(val, Classifier):
-            f = operators.get(val)
-            if f is not None:
-                parsed_formula.append(Classifier(f))
-            else:
-                parsed_formula.append(val)
-        else:
-            parsed_formula.append(val)
-    return parsed_formula
+    result = parse_expression(tokens)
 
+    if not isinstance(result, Func):
+        result = Func(
+            func_ref=Classifier("pl.lit", val_type='function'),
+            args=[result]
+        )
 
-def flatten_inline_formula(nested_classifier:  tuple[Classifier]) -> List[Classifier]:
-    """
-    Flatten a nested structure of classifier tokens into a single list.
-
-    Args:
-        nested_classifier: The nested structure of classifier tokens.
-
-    Returns:
-        A flat list of classifier tokens.
-    """
-    flat_result = []
-
-    def flatten_result(vals: List[Classifier]):
-        while len(vals)>0:
-            current_val = vals.pop(0)
-            if isinstance(current_val, (tuple, list)):
-                flatten_result(list(current_val))
-            else:
-                flat_result.append(current_val)
-
-    flatten_result(list(nested_classifier))
-    return flat_result
-
-
-def resolve_inline_formula(inline_formula_tokens: List[Classifier]):
-    """
-    Resolve an inline formula by converting it to prefix notation and evaluating it.
-
-    Args:
-        inline_formula_tokens: The list of tokens in inline formula notation.
-
-    Returns:
-        The resolved list of tokens.
-    """
-    if any(c.val_type == 'operator' for c in inline_formula_tokens):
-        prefixed_formula = inline_to_prefix_formula(inline_formula_tokens)
-        parsed_prefixed_formula = parse_formula(prefixed_formula)
-        evaluated_prefix_formula = evaluate_prefix_formula(parsed_prefixed_formula)
-        return flatten_inline_formula(evaluated_prefix_formula)
-    return inline_formula_tokens
-
-
-def parse_inline_functions(_hierarchical_formula: Func):
-    """
-    Parse inline functions within a hierarchical formula structure.
-
-    Args:
-        _hierarchical_formula: The hierarchical formula to parse.
-    """
-    run = [True]
-    def parse_inline_function_worker(_hierarchical_formula: Func):
-        if any([a.val_type == 'operator' for a in _hierarchical_formula.args if isinstance(a, Classifier)]):
-            prefixed_formula = inline_to_prefix_formula(_hierarchical_formula.args)
-            parsed_prefixed_formula = parse_formula(prefixed_formula)
-            evaluated_prefix_formula = evaluate_prefix_formula(parsed_prefixed_formula)
-            flattened_prefix_formula = flatten_inline_formula(evaluated_prefix_formula)
-            _hierarchical_formula.args = [build_hierarchy(flattened_prefix_formula)]
-            run[0] = True
-        else:
-            for arg in _hierarchical_formula.args:
-                if isinstance(arg, Func):
-                    parse_inline_function_worker(arg)
-                elif isinstance(arg, IfFunc):
-                    for condition in arg.conditions:
-                        parse_inline_function_worker(condition.condition)
-                        parse_inline_function_worker(condition.val)
-                    parse_inline_function_worker(arg.else_val)
-    while run[0]:
-        run[0] = False
-        parse_inline_function_worker(_hierarchical_formula)
+    return result

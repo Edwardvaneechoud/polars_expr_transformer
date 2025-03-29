@@ -56,7 +56,7 @@ def standardize_quotes(tokens: List[str]):
     return output_tokens
 
 
-def standardize_tokens(tokens: List[str]) -> List[Classifier]:
+def classify_tokens(tokens: List[str]) -> List[Classifier]:
     """
     Standardize the list of tokens by converting them to Classifier objects and replacing ambiguous minus signs.
 
@@ -70,4 +70,3 @@ def standardize_tokens(tokens: List[str]) -> List[Classifier]:
     toks = [Classifier(val) for val in standardized_tokens]
     toks = [t for t in toks if t.val_type != 'empty']
     return toks
-    #return replace_ambiguity_minus_sign(toks)
