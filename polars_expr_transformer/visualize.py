@@ -1,3 +1,4 @@
+import polars as pl
 from polars_expr_transformer.process.polars_expr_transformer import build_func, Func
 
 
@@ -214,6 +215,7 @@ def generate_visualization(expr):
         The visualization string
     """
     func_obj = build_func(expr)
-    func_obj.get_pl_func()
+    if isinstance(func_obj.args[0].get_pl_func(), pl.expr.Expr):
+        func_obj = func_obj.args[0]
     visualization = visualize_function_hierarchy(func_obj)
     return visualization
