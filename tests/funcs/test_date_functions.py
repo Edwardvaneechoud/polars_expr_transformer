@@ -1,12 +1,8 @@
 import pytest
 import polars as pl
-import pandas as pd
 from datetime import datetime, timedelta
 from polars_expr_transformer.funcs.date_functions import (
-    now, today, year, month, day, hour, minute, second,
-    add_days, add_years, add_hours, add_minutes, add_seconds,
-    datetime_diff_seconds, datetime_diff_nanoseconds, date_diff_days,
-    date_trim, date_truncate
+    now, today, year, month, day
 )
 
 
@@ -34,7 +30,7 @@ def test_now(mock_datetime):
 
     # Create a test dataframe to evaluate the expression
     df = pl.DataFrame({"dummy": [1]})
-    evaluated = df.select(result.alias("now")).to_pandas()
+    evaluated = df.select(result.alias("now"))
 
     assert evaluated["now"][0] == mock_datetime
 
@@ -44,7 +40,7 @@ def test_today(mock_datetime):
     assert isinstance(result, pl.Expr)
 
     df = pl.DataFrame({"dummy": [1]})
-    evaluated = df.select(result.alias("today")).to_pandas()
+    evaluated = df.select(result.alias("today"))
 
     expected_date = mock_datetime.replace(hour=0, minute=0, second=0)
     assert evaluated["today"][0] == expected_date
@@ -73,13 +69,13 @@ def test_month():
     assert isinstance(result, pl.Expr)
 
     df = pl.DataFrame({"dummy": [1]})
-    evaluated = df.select(result.alias("month")).to_pandas()
+    evaluated = df.select(result.alias("month"))
     assert evaluated["month"][0] == 5
 
     # Test with Polars expression
     df = pl.DataFrame({"date": [datetime(year=2023, month=5, day=15), datetime(year=2022, month=12, day=15)]})
     result = month(pl.col("date"))
-    evaluated = df.select(result.alias("month")).to_pandas()
+    evaluated = df.select(result.alias("month"))
     assert evaluated["month"][0] == 5
     assert evaluated["month"][1] == 12
 
@@ -90,13 +86,12 @@ def test_day():
     assert isinstance(result, pl.Expr)
 
     df = pl.DataFrame({"dummy": [1]})
-    evaluated = df.select(result.alias("day")).to_pandas()
+    evaluated = df.select(result.alias("day"))
     assert evaluated["day"][0] == 15
 
     # Test with Polars expression
     df = pl.DataFrame({"date": [datetime(year=2023, month=5, day=15), datetime(year=2022, month=12, day=31)]})
     result = day(pl.col("date"))
-    evaluated = df.select(result.alias("day")).to_pandas()
+    evaluated = df.select(result.alias("day"))
     assert evaluated["day"][0] == 15
     assert evaluated["day"][1] == 31
-
