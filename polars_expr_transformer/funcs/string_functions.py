@@ -147,11 +147,11 @@ def right(text: PlStringType, num_chars: PlIntType) -> pl.Expr:
     """
     if is_polars_expr(text):
         if is_polars_expr(num_chars):
-            return text.str.slice(-num_chars)
+            return text.str.slice(pl.Expr.mul(pl.lit(-1), num_chars))
         else:
             return text.str.slice(pl.lit(-num_chars))
     elif is_polars_expr(num_chars):
-        return pl.lit(text).str.slice(-num_chars)
+        return pl.lit(text).str.slice(pl.Expr.mul(pl.lit(-1), num_chars))
     else:
         return pl.lit(text[-num_chars:])
 
@@ -180,7 +180,7 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     """
     if not is_polars_expr(text):
         text = pl.lit(text)
-    return text.str.replace_all(find_text, replace_with, literal=True).cast(pl.Utf8)
+    return text.str.replace_many(find_text, replace_with).cast(pl.Utf8)
 
 
 def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:

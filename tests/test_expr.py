@@ -221,6 +221,14 @@ def replace_in_cols():
     assert result.equals(expected)
 
 
+def replace_by_cols():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
+                       'subnames': ['am', 'spam', 'breakfast']})
+    result = df.select(simple_function_to_expr('replace([names], [subnames], "")'))
+    expected = pl.DataFrame({'names': ['h', 'sandwich with ', 'eggs']})
+    assert result.equals(expected)
+
+
 def test_left():
     df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
                        'subnames': ['bread', 'spam', 'breakfast']})
@@ -256,6 +264,22 @@ def test_left_from_literal_and_column():
     df = pl.DataFrame({'len': [1, 2, 3]})
     result = df.select(simple_function_to_expr('left("edward", [len])'))
     expected = pl.DataFrame({'literal': ['e', 'ed', 'edw']})
+    assert result.equals(expected)
+
+
+def test_dynamic_left():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
+                       'len': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('left([names], length([names])-1)'))
+    expected = pl.DataFrame({'names': ['ha', 'sandwich with spa', 'egg']})
+    assert result.equals(expected)
+
+
+def test_dynamic_right():
+    df = pl.DataFrame({'names': ['ham', 'sandwich with spam', 'eggs'],
+                       'len': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('right([names], length([names])-1)'))
+    expected = pl.DataFrame({'names': ['am', 'andwich with spam', 'ggs']})
     assert result.equals(expected)
 
 

@@ -21,7 +21,6 @@ def to_string(value: PlStringType) -> pl.Expr:
     return pl.lit(value.__str__())
 
 
-
 def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     """
     Converts text to a date value.
