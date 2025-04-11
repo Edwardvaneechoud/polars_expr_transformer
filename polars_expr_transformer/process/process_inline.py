@@ -75,7 +75,6 @@ def parse_inline_functions(formula: Union[Func, TempFunc, IfFunc]):
 
     return formula
 
-
 def build_operator_tree(tokens: List[Any]) -> Func:
     """
     Build a tree of function calls from a list of tokens containing operators.
@@ -103,7 +102,11 @@ def build_operator_tree(tokens: List[Any]) -> Func:
             op = token_list.pop(0)
             op_precedence = get_precedence(op)
 
-            right = parse_expression(token_list, op_precedence + 1)
+            # The key fix: For operators with same precedence, use > instead of >= to ensure proper left-to-right association
+            # This prevents higher precedence operators from being incorrectly nested under lower precedence ones
+            next_min_precedence = op_precedence + 1 if op.val in ['and', 'or'] else op_precedence
+
+            right = parse_expression(token_list, next_min_precedence)
 
             op_func = operators.get(op.val)
             if op_func:
@@ -131,7 +134,10 @@ def build_operator_tree(tokens: List[Any]) -> Func:
 
     def get_precedence(token):
         """Get precedence of operator token."""
-        return PRECEDENCE.get(token.val, 0) if is_operator(token) else 0
+        if is_operator(token):
+            # Fix: Ensure all operators have a precedence, defaulting to high precedence if not specified
+            return PRECEDENCE.get(token.val, 10)
+        return 0
 
     result = parse_expression(tokens)
 
