@@ -782,10 +782,10 @@ def test_multiple_comments_same_line():
     assert result.equals(expected)
 
 
-def test_multiple_comments_same_line():
-    """Test that only the first comment marker on a line is considered."""
+def test_or_operator_with_is_empty_and_equality_comparison():
+    """Test combination of is_empty and string comparison with comments."""
     df = pl.DataFrame({'a': ['1', '', '3', None]})
-    expr = "is_empty([a]) or [a] == '' // First comment // Second comment shouldn't be parsed"
+    expr = "is_empty([a]) or [a] == '' // test"
     result = df.select(simple_function_to_expr(expr))
     expected = pl.DataFrame({'a': [False, True, False, True]})
     assert result.equals(expected)

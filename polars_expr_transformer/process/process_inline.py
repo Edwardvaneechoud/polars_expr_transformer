@@ -102,11 +102,7 @@ def build_operator_tree(tokens: List[Any]) -> Func:
             op = token_list.pop(0)
             op_precedence = get_precedence(op)
 
-            # The key fix: For operators with same precedence, use > instead of >= to ensure proper left-to-right association
-            # This prevents higher precedence operators from being incorrectly nested under lower precedence ones
-            next_min_precedence = op_precedence + 1 if op.val in ['and', 'or'] else op_precedence
-
-            right = parse_expression(token_list, next_min_precedence)
+            right = parse_expression(token_list, op_precedence + 1)
 
             op_func = operators.get(op.val)
             if op_func:
@@ -135,7 +131,6 @@ def build_operator_tree(tokens: List[Any]) -> Func:
     def get_precedence(token):
         """Get precedence of operator token."""
         if is_operator(token):
-            # Fix: Ensure all operators have a precedence, defaulting to high precedence if not specified
             return PRECEDENCE.get(token.val, 10)
         return 0
 
