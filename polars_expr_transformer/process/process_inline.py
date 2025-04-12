@@ -75,7 +75,6 @@ def parse_inline_functions(formula: Union[Func, TempFunc, IfFunc]):
 
     return formula
 
-
 def build_operator_tree(tokens: List[Any]) -> Func:
     """
     Build a tree of function calls from a list of tokens containing operators.
@@ -131,7 +130,9 @@ def build_operator_tree(tokens: List[Any]) -> Func:
 
     def get_precedence(token):
         """Get precedence of operator token."""
-        return PRECEDENCE.get(token.val, 0) if is_operator(token) else 0
+        if is_operator(token):
+            return PRECEDENCE.get(token.val, 10)
+        return 0
 
     result = parse_expression(tokens)
 
