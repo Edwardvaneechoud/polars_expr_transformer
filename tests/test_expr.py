@@ -782,7 +782,7 @@ def test_multiple_comments_same_line():
     assert result.equals(expected)
 
 
-def test_multiple_comments_same_line():
+def test_or_operator_with_is_empty_and_equality_comparison():
     """Test combination of is_empty and string comparison with comments."""
     df = pl.DataFrame({'a': ['1', '', '3', None]})
     expr = "is_empty([a]) or [a] == '' // test"
