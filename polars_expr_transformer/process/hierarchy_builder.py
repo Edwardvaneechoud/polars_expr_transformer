@@ -280,6 +280,11 @@ def build_hierarchy(tokens: List[Classifier]):
                 handle_literal(current_func, Classifier('-1'))
         else:
             handle_literal(current_func, current_val)
-        pos += 1
 
+        if current_func.parent and not isinstance(current_func.parent, TempFunc) and current_func.parent.func_ref == 'negation' and not (current_val.val_type == 'operator' and
+                        current_val.val == '-' and
+                        (len(current_func.args) == 0 or previous_val.val_type == 'operator')):
+
+            current_func, main_func = handle_closing_bracket(current_func, main_func)
+        pos += 1
     return main_func

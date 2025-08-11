@@ -822,3 +822,11 @@ def test_complex_expression_with_comments():
 
     expected = pl.DataFrame({'a': expected_values})
     assert_frame_equal(result, expected, rtol=1e-10)
+
+
+def test_negative_in_if_statement():
+    df = pl.DataFrame({'age': [30, 45, 50]})
+    expr = "if [age] > 40 then 1 else -1 endif"
+    result = df.select(simple_function_to_expr(expr))
+    expected = pl.DataFrame({"literal": [-1, 1, 1]})
+    assert_frame_equal(result, expected, check_dtypes=False)
