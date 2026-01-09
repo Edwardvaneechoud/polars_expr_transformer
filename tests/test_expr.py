@@ -824,6 +824,46 @@ def test_complex_expression_with_comments():
     assert_frame_equal(result, expected, rtol=1e-10)
 
 
+def test_uppercase_and_operator():
+    """Test that uppercase AND operator works correctly."""
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs'],
+                       'subnames': ['bread', 'sandwich', 'breakfast']})
+    expr = '''contains([names], 'a') AND contains([subnames], 'a')'''
+    result = df.select(simple_function_to_expr(expr))
+    # ham has 'a' AND bread has 'a' → True
+    # spam has 'a' AND sandwich has 'a' → True
+    # eggs has no 'a' AND breakfast has 'a' → False
+    expected = pl.DataFrame({'names': [True, True, False]})
+    assert_frame_equal(result, expected)
+
+
+def test_uppercase_or_operator():
+    """Test that uppercase OR operator works correctly."""
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs'],
+                       'subnames': ['bread', 'sandwich', 'breakfast']})
+    expr = '''contains([names], 'h') OR contains([subnames], 'fast')'''
+    result = df.select(simple_function_to_expr(expr))
+    # ham has 'h' OR bread has 'fast' → True
+    # spam has no 'h' OR sandwich has no 'fast' → False
+    # eggs has no 'h' OR breakfast has 'fast' → True
+    expected = pl.DataFrame({'names': [True, False, True]})
+    assert_frame_equal(result, expected)
+
+
+def test_mixed_case_and_or_operators():
+    """Test that mixed case AND/OR operators work correctly."""
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs'],
+                       'subnames': ['bread', 'sandwich', 'breakfast']})
+    expr = '''contains([names], 'a') AND contains([subnames], 'bread') OR [names] = 'eggs' '''
+    result = df.select(simple_function_to_expr(expr))
+    # (ham has 'a' AND subnames='bread') OR names='eggs' → True
+    # (spam has 'a' AND subnames='bread') OR names='eggs' → False
+    # (eggs has no 'a' AND subnames='bread') OR names='eggs' → True
+    expected = pl.DataFrame({'names': [True, False, True]})
+    assert_frame_equal(result, expected)
+
+
+
 def test_negative_in_if_statement():
     df = pl.DataFrame({'age': [30, 45, 50]})
     expr = "if [age] > 40 then 1 else -1 endif"
