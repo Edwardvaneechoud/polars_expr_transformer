@@ -84,7 +84,7 @@ def normalize_whitespace(input_string: str) -> str:
 def add_spaces_around_logical_operators(input_string: str) -> str:
     """
     Add spaces around logical operators (and, or) in the input string,
-    but only outside of string literals.
+    but only outside of string literals. Normalizes operators to lowercase.
 
     Args:
         input_string: The string to process.
@@ -96,8 +96,9 @@ def add_spaces_around_logical_operators(input_string: str) -> str:
 
     # Only process parts outside quotes (even indices)
     for i in range(0, len(parts), 2):
-        # Add spaces around 'and' and 'or' operators using word boundaries
-        parts[i] = re.sub(r'\b(and|or)\b', r' \1 ', parts[i])
+        # Add spaces around 'and' and 'or' operators using word boundaries (case-insensitive)
+        # and normalize to lowercase
+        parts[i] = re.sub(r'\b(and|or)\b', lambda m: f' {m.group(1).lower()} ', parts[i], flags=re.IGNORECASE)
         parts[i] = replace_double_spaces(parts[i])
 
     return ''.join(parts)
@@ -145,7 +146,7 @@ def standardize_equality_operators(input_string: str) -> str:
 def preserve_logical_operators_with_markers(input_string: str) -> str:
     """
     Replace logical operators with special markers to preserve them during
-    whitespace removal.
+    whitespace removal. Handles both uppercase and lowercase operators.
 
     Args:
         input_string: The string to process.
@@ -157,7 +158,8 @@ def preserve_logical_operators_with_markers(input_string: str) -> str:
 
     # Only process parts outside quotes (even indices)
     for i in range(0, len(parts), 2):
-        parts[i] = re.sub(r'\s+(and|or)\s+', r' __\1__ ', parts[i])
+        # Use case-insensitive matching and normalize to lowercase markers
+        parts[i] = re.sub(r'\s+(and|or)\s+', lambda m: f' __{m.group(1).lower()}__ ', parts[i], flags=re.IGNORECASE)
 
     return ''.join(parts)
 
