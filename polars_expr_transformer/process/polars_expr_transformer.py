@@ -1,3 +1,18 @@
+"""
+Polars Expression Transformer - Core transformation module.
+
+This module provides the main functions for converting string-based expressions
+into Polars DataFrame operations. It handles the complete pipeline from parsing
+to generating executable Polars expressions.
+
+Example:
+    >>> from polars_expr_transformer import simple_function_to_expr
+    >>> import polars as pl
+    >>> df = pl.DataFrame({'name': ['Alice', 'Bob'], 'age': [30, 25]})
+    >>> expr = simple_function_to_expr('concat([name], " is ", to_string([age]))')
+    >>> df.select(expr.alias('description'))
+"""
+
 from typing import List, Union
 from polars_expr_transformer.process.models import IfFunc, Func, TempFunc, Classifier
 from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
@@ -121,14 +136,26 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     Build a Func object from a function string.
 
     This function takes a string representation of a function, preprocesses it,
-    tokenizes it, standardizes the tokens, builds a hierarchical structure from
-    the tokens, parses any inline functions, and finally returns the resulting Func object.
+    tokenizes it, classifies tokens, builds a hierarchical structure, and parses
+    inline operators. The resulting Func object can be inspected or converted
+    to a Polars expression.
 
     Args:
-        func_str: The string representation of the function to build. Defaults to 'concat("1", "2")'.
+        func_str: The string expression to parse. Supports column references
+            like [column_name], functions like concat(), operators (+, -, *, /),
+            and conditional expressions (if/then/else/endif).
 
     Returns:
-        The resulting Func object built from the function string.
+        A Func object representing the parsed expression tree.
+
+    Example:
+        >>> func = build_func('concat([first_name], " ", [last_name])')
+        >>> print(func.get_readable_pl_function())
+        >>> expr = func.get_pl_func()  # Convert to Polars expression
+
+    Raises:
+        ValueError: If parentheses are unbalanced.
+        Exception: If the expression syntax is invalid.
     """
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
@@ -163,16 +190,42 @@ def test_tokenization(func_str, all_split_vals, all_functions):
 
 def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
     """
-    Convert a simple function string to a Polars expression.
+    Convert a string expression to a Polars expression.
 
-    This function takes a string representation of a function, builds a corresponding
-    Func object, and then converts that Func object to a Polars expression.
+    This is the main entry point for transforming string-based expressions
+    into executable Polars operations. The resulting expression can be used
+    directly with DataFrame.select(), DataFrame.with_columns(), etc.
 
     Args:
-        func_str: The string representation of the function to convert.
+        func_str: The string expression to convert. Supports:
+            - Column references: [column_name]
+            - Operators: +, -, *, /, %, =, !=, <, >, <=, >=, and, or
+            - Functions: concat(), uppercase(), round(), etc.
+            - Conditionals: if [col] > 0 then "positive" else "negative" endif
+            - Comments: // This is a comment
 
     Returns:
-        The resulting Polars expression (pl.expr.Expr).
+        A Polars expression (pl.Expr) that can be used in DataFrame operations.
+
+    Example:
+        >>> import polars as pl
+        >>> from polars_expr_transformer import simple_function_to_expr
+        >>>
+        >>> df = pl.DataFrame({'price': [10, 20, 30], 'qty': [2, 3, 1]})
+        >>>
+        >>> # Simple math
+        >>> df.select(simple_function_to_expr('[price] * [qty]').alias('total'))
+        >>>
+        >>> # String operations
+        >>> df.select(simple_function_to_expr('concat("$", to_string([price]))').alias('formatted'))
+        >>>
+        >>> # Conditional logic
+        >>> expr = 'if [price] > 15 then "expensive" else "cheap" endif'
+        >>> df.select(simple_function_to_expr(expr).alias('category'))
+
+    Raises:
+        ValueError: If parentheses are unbalanced.
+        Exception: If the expression syntax is invalid or function is unknown.
     """
     func = build_func(func_str)
     return func.get_pl_func()
