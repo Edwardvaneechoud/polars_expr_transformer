@@ -338,3 +338,131 @@ def string_similarity(text1: PlStringType, text2: PlStringType, method: str = 'l
     v1 = text1 if is_polars_expr(text1) else pl.lit(text1)
     v2 = text2 if is_polars_expr(text2) else pl.lit(text2)
     return similarity_method(v1, v2)
+
+
+def mid(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.Expr:
+    """
+    Extracts a portion of text from the middle starting at a specified position.
+
+    For example, mid("Hello World", 0, 5) would return "Hello".
+
+    Parameters:
+    - text: The text to extract from
+    - start: The starting position (0-based index)
+    - num_chars: How many characters to extract
+
+    Returns:
+    - The extracted text
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    s = start if is_polars_expr(start) else start
+    n = num_chars if is_polars_expr(num_chars) else num_chars
+    return t.str.slice(s, n)
+
+
+def substring(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.Expr:
+    """
+    Extracts a portion of text starting at a specified position (alias for mid).
+
+    For example, substring("Hello World", 6, 5) would return "World".
+
+    Parameters:
+    - text: The text to extract from
+    - start: The starting position (0-based index)
+    - num_chars: How many characters to extract
+
+    Returns:
+    - The extracted text
+    """
+    return mid(text, start, num_chars)
+
+
+def starts_with(text: PlStringType, prefix: PlStringType) -> pl.Expr:
+    """
+    Checks if text starts with a specific prefix.
+
+    For example, starts_with("Hello World", "Hello") would return True.
+
+    Parameters:
+    - text: The text to check
+    - prefix: The prefix to look for at the start
+
+    Returns:
+    - True if the text starts with the prefix, False otherwise
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    p = prefix if is_polars_expr(prefix) else prefix
+    return t.str.starts_with(p)
+
+
+def ends_with(text: PlStringType, suffix: PlStringType) -> pl.Expr:
+    """
+    Checks if text ends with a specific suffix.
+
+    For example, ends_with("Hello World", "World") would return True.
+
+    Parameters:
+    - text: The text to check
+    - suffix: The suffix to look for at the end
+
+    Returns:
+    - True if the text ends with the suffix, False otherwise
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    s = suffix if is_polars_expr(suffix) else suffix
+    return t.str.ends_with(s)
+
+
+def reverse(text: PlStringType) -> pl.Expr:
+    """
+    Reverses the characters in text.
+
+    For example, reverse("Hello") would return "olleH".
+
+    Parameters:
+    - text: The text to reverse
+
+    Returns:
+    - The reversed text
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    return t.str.reverse()
+
+
+def repeat(text: PlStringType, count: PlIntType) -> pl.Expr:
+    """
+    Repeats text a specified number of times.
+
+    For example, repeat("ab", 3) would return "ababab".
+
+    Parameters:
+    - text: The text to repeat
+    - count: How many times to repeat the text
+
+    Returns:
+    - The repeated text
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    # Polars doesn't have a direct repeat method, so we use a workaround
+    if is_polars_expr(count):
+        # For dynamic count, we need to use concat_str with a list
+        return pl.concat_str([t] * 100).str.slice(0, t.str.len_chars() * count)
+    else:
+        return pl.concat_str([t] * count)
+
+
+def split(text: PlStringType, delimiter: str) -> pl.Expr:
+    """
+    Splits text into a list using a delimiter.
+
+    For example, split("a,b,c", ",") would return ["a", "b", "c"].
+
+    Parameters:
+    - text: The text to split
+    - delimiter: The character(s) to split on
+
+    Returns:
+    - A list of text parts
+    """
+    t = text if is_polars_expr(text) else pl.lit(text)
+    return t.str.split(delimiter)

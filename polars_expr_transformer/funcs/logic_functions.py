@@ -144,3 +144,132 @@ def _in(value: Any, collection: PlStringType) -> pl.Expr:
     - True if the value is found in the collection, False otherwise
     """
     return contains(collection, value)
+
+
+def coalesce(*values) -> pl.Expr:
+    """
+    Returns the first non-null value from a list of values.
+
+    For example, coalesce(null, null, "default") would return "default".
+
+    Parameters:
+    - values: Multiple values to check in order
+
+    Returns:
+    - The first non-null value, or null if all values are null
+    """
+    if len(values) == 0:
+        raise ValueError("coalesce requires at least one argument")
+
+    exprs = [v if is_polars_expr(v) else pl.lit(v) for v in values]
+    return pl.coalesce(exprs)
+
+
+def ifnull(value: Any, default: Any) -> pl.Expr:
+    """
+    Returns a default value if the input is null.
+
+    For example, ifnull(null, "default") would return "default".
+
+    Parameters:
+    - value: The value to check
+    - default: The value to return if the first value is null
+
+    Returns:
+    - The original value if not null, otherwise the default value
+    """
+    value_expr = value if is_polars_expr(value) else pl.lit(value)
+    default_expr = default if is_polars_expr(default) else pl.lit(default)
+    return pl.coalesce([value_expr, default_expr])
+
+
+def nvl(value: Any, default: Any) -> pl.Expr:
+    """
+    Returns a default value if the input is null (alias for ifnull).
+
+    For example, nvl(null, "default") would return "default".
+
+    Parameters:
+    - value: The value to check
+    - default: The value to return if the first value is null
+
+    Returns:
+    - The original value if not null, otherwise the default value
+    """
+    return ifnull(value, default)
+
+
+def nullif(value1: Any, value2: Any) -> pl.Expr:
+    """
+    Returns null if the two values are equal, otherwise returns the first value.
+
+    For example, nullif(5, 5) would return null, but nullif(5, 3) would return 5.
+
+    Parameters:
+    - value1: The value to potentially return
+    - value2: The value to compare against
+
+    Returns:
+    - null if value1 equals value2, otherwise value1
+    """
+    v1 = value1 if is_polars_expr(value1) else pl.lit(value1)
+    v2 = value2 if is_polars_expr(value2) else pl.lit(value2)
+    return pl.when(v1.eq(v2)).then(pl.lit(None)).otherwise(v1)
+
+
+def between(value: Any, min_val: Any, max_val: Any) -> pl.Expr:
+    """
+    Checks if a value is between a minimum and maximum value (inclusive).
+
+    For example, between(5, 1, 10) would return True.
+
+    Parameters:
+    - value: The value to check
+    - min_val: The minimum value (inclusive)
+    - max_val: The maximum value (inclusive)
+
+    Returns:
+    - True if the value is between min and max (inclusive), False otherwise
+    """
+    v = value if is_polars_expr(value) else pl.lit(value)
+    min_v = min_val if is_polars_expr(min_val) else pl.lit(min_val)
+    max_v = max_val if is_polars_expr(max_val) else pl.lit(max_val)
+    return v.ge(min_v).and_(v.le(max_v))
+
+
+def greatest(*values) -> pl.Expr:
+    """
+    Returns the largest value from a list of values.
+
+    For example, greatest(1, 5, 3) would return 5.
+
+    Parameters:
+    - values: Multiple values to compare
+
+    Returns:
+    - The largest value
+    """
+    if len(values) == 0:
+        raise ValueError("greatest requires at least one argument")
+
+    exprs = [v if is_polars_expr(v) else pl.lit(v) for v in values]
+    return pl.max_horizontal(exprs)
+
+
+def least(*values) -> pl.Expr:
+    """
+    Returns the smallest value from a list of values.
+
+    For example, least(1, 5, 3) would return 1.
+
+    Parameters:
+    - values: Multiple values to compare
+
+    Returns:
+    - The smallest value
+    """
+    if len(values) == 0:
+        raise ValueError("least requires at least one argument")
+
+    exprs = [v if is_polars_expr(v) else pl.lit(v) for v in values]
+    return pl.min_horizontal(exprs)

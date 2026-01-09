@@ -224,6 +224,33 @@ def handle_operator(current_func: Func, current_val: Classifier):
     current_func.parent.add_arg(current_val)
     return current_func.parent
 
+def validate_bracket_balance(tokens: List[Classifier]) -> None:
+    """
+    Validate that brackets are properly balanced in the token list.
+
+    Args:
+        tokens: A list of Classifier tokens.
+
+    Raises:
+        ValueError: If brackets are not properly balanced.
+    """
+    bracket_count = 0
+
+    for token in tokens:
+        val = token.val if isinstance(token, Classifier) else str(token)
+
+        if val == '(':
+            bracket_count += 1
+        elif val == ')':
+            bracket_count -= 1
+
+        if bracket_count < 0:
+            raise ValueError("Unbalanced parentheses: found ')' without matching '('")
+
+    if bracket_count > 0:
+        raise ValueError(f"Unbalanced parentheses: {bracket_count} unclosed '(' found")
+
+
 def build_hierarchy(tokens: List[Classifier]):
     """
     Build the function hierarchy from a list of tokens.
@@ -233,7 +260,13 @@ def build_hierarchy(tokens: List[Classifier]):
 
     Returns:
         The main function with the built hierarchy.
+
+    Raises:
+        ValueError: If brackets are not properly balanced.
     """
+    # Validate bracket balance before processing
+    validate_bracket_balance(tokens)
+
     # print_classifier(tokens)
     new_tokens = deepcopy(tokens)
     if new_tokens[0].val_type == 'function':

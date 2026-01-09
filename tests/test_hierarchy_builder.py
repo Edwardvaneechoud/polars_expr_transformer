@@ -13,7 +13,8 @@ from polars_expr_transformer.process.hierarchy_builder import (
     handle_literal,
     handle_seperator,
     handle_operator,
-    build_hierarchy
+    build_hierarchy,
+    validate_bracket_balance
 )
 
 
@@ -493,3 +494,111 @@ class TestBuildHierarchy(unittest.TestCase):
         # Check arguments (should be -1)
         self.assertEqual(len(result.args), 1)
         self.assertEqual(result.args[0].val, "-1")
+
+
+class TestValidateBracketBalance(unittest.TestCase):
+
+    def test_balanced_brackets(self):
+        # Test with balanced brackets
+        tokens = [
+            Classifier("func"),
+            Classifier("("),
+            Classifier("arg"),
+            Classifier(")")
+        ]
+        # Should not raise an exception
+        validate_bracket_balance(tokens)
+
+    def test_nested_balanced_brackets(self):
+        # Test with nested balanced brackets
+        tokens = [
+            Classifier("("),
+            Classifier("("),
+            Classifier("value"),
+            Classifier(")"),
+            Classifier(")")
+        ]
+        # Should not raise an exception
+        validate_bracket_balance(tokens)
+
+    def test_unclosed_opening_bracket(self):
+        # Test with unclosed opening bracket - the ((1) case
+        tokens = [
+            Classifier("("),
+            Classifier("("),
+            Classifier("1"),
+            Classifier(")")
+        ]
+        # Should raise ValueError
+        with self.assertRaises(ValueError) as context:
+            validate_bracket_balance(tokens)
+        self.assertIn("unclosed '('", str(context.exception))
+
+    def test_extra_closing_bracket(self):
+        # Test with extra closing bracket
+        tokens = [
+            Classifier("("),
+            Classifier("1"),
+            Classifier(")"),
+            Classifier(")")
+        ]
+        # Should raise ValueError
+        with self.assertRaises(ValueError) as context:
+            validate_bracket_balance(tokens)
+        self.assertIn("without matching '('", str(context.exception))
+
+    def test_only_opening_bracket(self):
+        # Test with only opening brackets
+        tokens = [
+            Classifier("("),
+            Classifier("("),
+            Classifier("value")
+        ]
+        # Should raise ValueError
+        with self.assertRaises(ValueError) as context:
+            validate_bracket_balance(tokens)
+        self.assertIn("2 unclosed '('", str(context.exception))
+
+    def test_only_closing_bracket_first(self):
+        # Test with closing bracket before any opening
+        tokens = [
+            Classifier(")"),
+            Classifier("value")
+        ]
+        # Should raise ValueError
+        with self.assertRaises(ValueError) as context:
+            validate_bracket_balance(tokens)
+        self.assertIn("without matching '('", str(context.exception))
+
+    def test_complex_balanced_expression(self):
+        # Test with complex balanced expression
+        tokens = [
+            Classifier("func"),
+            Classifier("("),
+            Classifier("a"),
+            Classifier(","),
+            Classifier("inner"),
+            Classifier("("),
+            Classifier("b"),
+            Classifier(")"),
+            Classifier(","),
+            Classifier("("),
+            Classifier("c"),
+            Classifier(")"),
+            Classifier(")")
+        ]
+        # Should not raise an exception
+        validate_bracket_balance(tokens)
+
+    def test_build_hierarchy_rejects_unbalanced(self):
+        # Test that build_hierarchy raises an error for unbalanced brackets
+        tokens = [
+            Classifier("("),
+            Classifier("("),
+            Classifier("1"),
+            Classifier(")")
+        ]
+        # Should raise ValueError from validate_bracket_balance
+        with self.assertRaises(ValueError) as context:
+            build_hierarchy(tokens)
+        self.assertIn("unclosed '('", str(context.exception))

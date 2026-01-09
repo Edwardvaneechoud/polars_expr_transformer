@@ -830,3 +830,127 @@ def test_negative_in_if_statement():
     result = df.select(simple_function_to_expr(expr))
     expected = pl.DataFrame({"literal": [-1, 1, 1]})
     assert_frame_equal(result, expected, check_dtypes=False)
+
+
+# ============= New function tests =============
+
+def test_coalesce():
+    df = pl.DataFrame({'a': [1, None, 3], 'b': [None, 2, None]})
+    result = df.select(simple_function_to_expr('coalesce([a], [b], 0)'))
+    expected = pl.DataFrame({'a': [1, 2, 3]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_ifnull():
+    df = pl.DataFrame({'a': [1, None, 3]})
+    result = df.select(simple_function_to_expr('ifnull([a], -1)'))
+    expected = pl.DataFrame({'a': [1, -1, 3]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_nullif():
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('nullif([a], 2)'))
+    expected = pl.DataFrame({'literal': [1, None, 3]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_between():
+    df = pl.DataFrame({'a': [1, 5, 10, 15]})
+    result = df.select(simple_function_to_expr('between([a], 5, 10)'))
+    expected = pl.DataFrame({'a': [False, True, True, False]})
+    assert_frame_equal(result, expected)
+
+
+def test_greatest():
+    df = pl.DataFrame({'a': [1, 5, 3], 'b': [2, 4, 6]})
+    result = df.select(simple_function_to_expr('greatest([a], [b])'))
+    expected = pl.DataFrame({'a': [2, 5, 6]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_least():
+    df = pl.DataFrame({'a': [1, 5, 3], 'b': [2, 4, 6]})
+    result = df.select(simple_function_to_expr('least([a], [b])'))
+    expected = pl.DataFrame({'a': [1, 4, 3]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_power():
+    df = pl.DataFrame({'a': [2, 3, 4]})
+    result = df.select(simple_function_to_expr('power([a], 2)'))
+    expected = pl.DataFrame({'a': [4.0, 9.0, 16.0]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_mod():
+    df = pl.DataFrame({'a': [10, 11, 12]})
+    result = df.select(simple_function_to_expr('mod([a], 3)'))
+    expected = pl.DataFrame({'a': [1, 2, 0]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_sign():
+    df = pl.DataFrame({'a': [-5, 0, 5]})
+    result = df.select(simple_function_to_expr('sign([a])'))
+    expected = pl.DataFrame({'a': [-1, 0, 1]})
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_mid():
+    df = pl.DataFrame({'a': ['Hello World', 'Test String', 'Example']})
+    result = df.select(simple_function_to_expr('mid([a], 0, 5)'))
+    expected = pl.DataFrame({'a': ['Hello', 'Test ', 'Examp']})
+    assert_frame_equal(result, expected)
+
+
+def test_starts_with():
+    df = pl.DataFrame({'a': ['Hello World', 'Hi There', 'Hello Again']})
+    result = df.select(simple_function_to_expr('starts_with([a], "Hello")'))
+    expected = pl.DataFrame({'a': [True, False, True]})
+    assert_frame_equal(result, expected)
+
+
+def test_ends_with():
+    df = pl.DataFrame({'a': ['Hello World', 'Hello Again', 'World']})
+    result = df.select(simple_function_to_expr('ends_with([a], "World")'))
+    expected = pl.DataFrame({'a': [True, False, True]})
+    assert_frame_equal(result, expected)
+
+
+def test_reverse():
+    df = pl.DataFrame({'a': ['Hello', 'World', 'Test']})
+    result = df.select(simple_function_to_expr('reverse([a])'))
+    expected = pl.DataFrame({'a': ['olleH', 'dlroW', 'tseT']})
+    assert_frame_equal(result, expected)
+
+
+def test_week():
+    df = pl.DataFrame({'a': pl.Series(['2023-01-15', '2023-06-20', '2023-12-31']).str.to_date()})
+    result = df.select(simple_function_to_expr('week([a])'))
+    # Week numbers for these dates
+    assert result['a'][0] == 2  # January 15, 2023 is week 2
+    assert result['a'][1] == 25  # June 20, 2023 is week 25
+    assert result['a'][2] == 52  # December 31, 2023 is week 52
+
+
+def test_quarter():
+    df = pl.DataFrame({'a': pl.Series(['2023-01-15', '2023-05-20', '2023-09-10', '2023-12-31']).str.to_date()})
+    result = df.select(simple_function_to_expr('quarter([a])'))
+    expected = pl.DataFrame({'a': [1, 2, 3, 4]}).cast(pl.UInt32)
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_dayofyear():
+    df = pl.DataFrame({'a': pl.Series(['2023-01-01', '2023-02-01', '2023-12-31']).str.to_date()})
+    result = df.select(simple_function_to_expr('dayofyear([a])'))
+    expected = pl.DataFrame({'a': [1, 32, 365]}).cast(pl.UInt32)
+    assert_frame_equal(result, expected, check_dtypes=False)
+
+
+def test_unbalanced_parentheses():
+    """Test that unbalanced parentheses raise an error"""
+    import pytest
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    with pytest.raises(ValueError, match="Unbalanced parentheses"):
+        simple_function_to_expr('((1)')
