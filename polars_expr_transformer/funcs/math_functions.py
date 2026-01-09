@@ -157,7 +157,152 @@ def asin(number: PlNumericType) -> pl.Expr:
     Returns:
     - The angle in radians whose sine equals the input
     """
-    ...
+    if is_polars_expr(number):
+        return pl.Expr.arcsin(number)
+    else:
+        return pl.lit(number).arcsin()
+
+
+def acos(number: PlNumericType) -> pl.Expr:
+    """
+    Calculates the arccosine (inverse cosine) of a number.
+
+    For example, acos(1) would return 0.
+
+    Parameters:
+    - number: The number to calculate the arccosine of (between -1 and 1)
+
+    Returns:
+    - The angle in radians whose cosine equals the input
+    """
+    if is_polars_expr(number):
+        return pl.Expr.arccos(number)
+    else:
+        return pl.lit(number).arccos()
+
+
+def atan(number: PlNumericType) -> pl.Expr:
+    """
+    Calculates the arctangent (inverse tangent) of a number.
+
+    For example, atan(0) would return 0.
+
+    Parameters:
+    - number: The number to calculate the arctangent of
+
+    Returns:
+    - The angle in radians whose tangent equals the input
+    """
+    if is_polars_expr(number):
+        return pl.Expr.arctan(number)
+    else:
+        return pl.lit(number).arctan()
+
+
+def power(base: PlNumericType, exponent: PlNumericType) -> pl.Expr:
+    """
+    Raises a number to a power.
+
+    For example, power(2, 3) would return 8 (2^3 = 8).
+
+    Parameters:
+    - base: The number to raise
+    - exponent: The power to raise the base to
+
+    Returns:
+    - The result of base raised to the power of exponent
+    """
+    b = base if is_polars_expr(base) else pl.lit(base)
+    e = exponent if is_polars_expr(exponent) else pl.lit(exponent)
+    return b.pow(e)
+
+
+def pow(base: PlNumericType, exponent: PlNumericType) -> pl.Expr:
+    """
+    Raises a number to a power (alias for power).
+
+    For example, pow(2, 3) would return 8 (2^3 = 8).
+
+    Parameters:
+    - base: The number to raise
+    - exponent: The power to raise the base to
+
+    Returns:
+    - The result of base raised to the power of exponent
+    """
+    return power(base, exponent)
+
+
+def mod(dividend: PlNumericType, divisor: PlNumericType) -> pl.Expr:
+    """
+    Calculates the remainder of division (modulo).
+
+    For example, mod(10, 3) would return 1 (10 divided by 3 is 3 remainder 1).
+
+    Parameters:
+    - dividend: The number to be divided
+    - divisor: The number to divide by
+
+    Returns:
+    - The remainder of the division
+    """
+    d = dividend if is_polars_expr(dividend) else pl.lit(dividend)
+    div = divisor if is_polars_expr(divisor) else pl.lit(divisor)
+    return d.mod(div)
+
+
+def sign(number: PlNumericType) -> pl.Expr:
+    """
+    Returns the sign of a number (-1, 0, or 1).
+
+    For example, sign(-5) returns -1, sign(0) returns 0, sign(5) returns 1.
+
+    Parameters:
+    - number: The number to check
+
+    Returns:
+    - -1 if negative, 0 if zero, 1 if positive
+    """
+    if is_polars_expr(number):
+        return pl.Expr.sign(number)
+    else:
+        return pl.lit(number).sign()
+
+
+def log10(number: PlNumericType) -> pl.Expr:
+    """
+    Calculates the base-10 logarithm of a number.
+
+    For example, log10(100) would return 2.
+
+    Parameters:
+    - number: The number to calculate the logarithm for
+
+    Returns:
+    - The base-10 logarithm of the number
+    """
+    if is_polars_expr(number):
+        return pl.Expr.log(number, base=10)
+    else:
+        return pl.lit(number).log(base=10)
+
+
+def log2(number: PlNumericType) -> pl.Expr:
+    """
+    Calculates the base-2 logarithm of a number.
+
+    For example, log2(8) would return 3.
+
+    Parameters:
+    - number: The number to calculate the logarithm for
+
+    Returns:
+    - The base-2 logarithm of the number
+    """
+    if is_polars_expr(number):
+        return pl.Expr.log(number, base=2)
+    else:
+        return pl.lit(number).log(base=2)
 
 
 def ceil(number: PlNumericType) -> pl.Expr:

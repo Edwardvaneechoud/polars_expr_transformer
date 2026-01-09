@@ -328,3 +328,177 @@ def date_truncate(date_value: Any, truncate_by: str) -> pl.Expr:
     """
     date_value = date_value if isinstance(date_value, pl.Expr) else pl.col(date_value)
     return date_value.dt.truncate(truncate_by)
+
+
+def add_months(date_value: PlStringType, months: PlIntType) -> pl.Expr:
+    """
+    Adds a number of months to a date.
+
+    For example, add_months("2023-05-15", 2) would return "2023-07-15".
+
+    Parameters:
+    - date_value: The starting date
+    - months: How many months to add
+
+    Returns:
+    - The new date
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    months = months if is_polars_expr(months) else pl.lit(months)
+    return date_value.dt.offset_by(pl.concat_str([months.cast(pl.Utf8), pl.lit("mo")]))
+
+
+def add_weeks(date_value: PlStringType, weeks: PlIntType) -> pl.Expr:
+    """
+    Adds a number of weeks to a date.
+
+    For example, add_weeks("2023-05-15", 2) would return "2023-05-29".
+
+    Parameters:
+    - date_value: The starting date
+    - weeks: How many weeks to add
+
+    Returns:
+    - The new date
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    weeks = weeks if is_polars_expr(weeks) else create_fix_col(weeks)
+    return date_value + pl.duration(weeks=weeks)
+
+
+def week(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the ISO week number from a date (1-53).
+
+    For example, week("2023-01-15") would return 2.
+
+    Parameters:
+    - date_value: The date to extract the week from
+
+    Returns:
+    - The week number as a number (1-53)
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.week()
+
+
+def weekday(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the day of the week from a date (1=Monday, 7=Sunday).
+
+    For example, weekday("2023-05-15") would return 1 (Monday).
+
+    Parameters:
+    - date_value: The date to extract the weekday from
+
+    Returns:
+    - The day of the week as a number (1-7)
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.weekday() + 1  # Polars uses 0-6, we return 1-7
+
+
+def dayofweek(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the day of the week from a date (alias for weekday).
+
+    For example, dayofweek("2023-05-15") would return 1 (Monday).
+
+    Parameters:
+    - date_value: The date to extract the day of week from
+
+    Returns:
+    - The day of the week as a number (1-7)
+    """
+    return weekday(date_value)
+
+
+def quarter(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the quarter from a date (1-4).
+
+    For example, quarter("2023-05-15") would return 2 (Q2).
+
+    Parameters:
+    - date_value: The date to extract the quarter from
+
+    Returns:
+    - The quarter as a number (1-4)
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.quarter()
+
+
+def dayofyear(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the day of the year from a date (1-366).
+
+    For example, dayofyear("2023-02-01") would return 32.
+
+    Parameters:
+    - date_value: The date to extract the day of year from
+
+    Returns:
+    - The day of the year as a number (1-366)
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.ordinal_day()
+
+
+def format_date(date_value: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
+    """
+    Formats a date as text using a specified format.
+
+    For example, format_date("2023-05-15", "%B %d, %Y") would return "May 15, 2023".
+
+    Parameters:
+    - date_value: The date to format
+    - date_format: The output format string (default is year-month-day)
+      Common format codes:
+      - %Y: Four-digit year (e.g., 2023)
+      - %m: Two-digit month (01-12)
+      - %d: Two-digit day (01-31)
+      - %B: Full month name (January, February)
+      - %b: Month abbreviation (Jan, Feb)
+      - %A: Full weekday name (Monday, Tuesday)
+      - %H: Hour (00-23)
+      - %M: Minute (00-59)
+      - %S: Second (00-59)
+
+    Returns:
+    - The formatted date as text
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.to_string(date_format)
+
+
+def end_of_month(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the last day of the month for a given date.
+
+    For example, end_of_month("2023-05-15") would return "2023-05-31".
+
+    Parameters:
+    - date_value: The date to get the end of month for
+
+    Returns:
+    - The last day of the month
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.month_end()
+
+
+def start_of_month(date_value: PlStringType) -> pl.Expr:
+    """
+    Gets the first day of the month for a given date.
+
+    For example, start_of_month("2023-05-15") would return "2023-05-01".
+
+    Parameters:
+    - date_value: The date to get the start of month for
+
+    Returns:
+    - The first day of the month
+    """
+    date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
+    return date_value.dt.month_start()
