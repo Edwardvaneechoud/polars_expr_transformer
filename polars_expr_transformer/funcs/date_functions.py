@@ -300,7 +300,7 @@ def date_trim(date_value: Any, part: str) -> pl.Expr:
     elif part == 'hour':
         return date_value.dt.truncate('1h')
     elif part == 'minute':
-        return date_value.dt.truncate('1min')
+        return date_value.dt.truncate('1m')
     elif part == 'second':
         return date_value.dt.truncate('1s')
     else:
@@ -312,16 +312,16 @@ def date_truncate(date_value: Any, truncate_by: str) -> pl.Expr:
     """
     Rounds a date down to the nearest specified unit.
 
-    For example, date_truncate("2023-05-15 14:30:25", "1day") would return "2023-05-15 00:00:00".
+    For example, date_truncate("2023-05-15 14:30:25", "1d") would return "2023-05-15 00:00:00".
 
     Parameters:
     - date_value: The date and time to truncate
-    - truncate_by: The time unit to round down to (like "1day", "2hours", "15minutes")
+    - truncate_by: The time unit to round down to (like "1d", "2h", "15m")
       Some examples:
-      - "1year": Round to the start of the year
-      - "3months": Round to the nearest 3-month boundary
-      - "1week": Round to the start of the week
-      - "12hours": Round to the nearest 12-hour boundary
+      - "1y": Round to the start of the year
+      - "3mo": Round to the nearest 3-month boundary
+      - "1w": Round to the start of the week
+      - "12h": Round to the nearest 12-hour boundary
 
     Returns:
     - The truncated date and time
@@ -395,7 +395,7 @@ def weekday(date_value: PlStringType) -> pl.Expr:
     - The day of the week as a number (1-7)
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
-    return date_value.dt.weekday() + 1  # Polars uses 0-6, we return 1-7
+    return date_value.dt.weekday()
 
 
 def dayofweek(date_value: PlStringType) -> pl.Expr:
