@@ -30,10 +30,12 @@ Functions:
 
 from polars_expr_transformer.main_module import build_func, simple_function_to_expr
 from polars_expr_transformer.function_overview import get_all_expressions, get_expression_overview
+from polars_expr_transformer.interceptor import PolarsInterceptor
 
 __all__ = [
     'simple_function_to_expr',
     'build_func',
     'get_all_expressions',
     'get_expression_overview',
+    'PolarsInterceptor',
 ]
