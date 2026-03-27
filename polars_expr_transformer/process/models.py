@@ -3,6 +3,7 @@ from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, PlNumericType
 from polars_expr_transformer.configs.settings import operators, funcs
 from polars_expr_transformer.configs import logging
+from polars_expr_transformer.code_gen import OPERATOR_SYMBOLS, FUNCTION_CODE_GEN, format_pl_literal
 from dataclasses import dataclass, field
 import polars as pl
 from types import NotImplementedType
@@ -158,6 +159,10 @@ class Classifier:
     def get_readable_pl_function(self):
         return self.val
 
+    def to_polars_code(self):
+        """Generate native Polars Python code string for this token."""
+        return format_pl_literal(self.val, self.val_type)
+
 
 @dataclass
 class Func:
@@ -221,6 +226,57 @@ class Func:
         else:
             standardized_args = [arg.get_readable_pl_function() for arg in self.args]
         return f'{self.func_ref.val}({", ".join(standardized_args)})'
+
+    def to_polars_code(self):
+        """Generate native Polars Python code string for this function node."""
+        func_name = self.func_ref.val if isinstance(self.func_ref, Classifier) else str(self.func_ref)
+
+        # pl.col("column_name")
+        if func_name == 'pl.col':
+            col_name = self.args[0].val if isinstance(self.args[0], Classifier) else str(self.args[0])
+            # Strip surrounding quotes if present
+            clean_name = col_name.strip('"').strip("'")
+            return f'pl.col("{clean_name}")'
+
+        # pl.lit(value) - wrapper for literals
+        if func_name == 'pl.lit':
+            if len(self.args) == 1:
+                child = self.args[0]
+                # If child is a Func (e.g. pl.col or another expression), just delegate
+                if isinstance(child, (Func, IfFunc)):
+                    return child.to_polars_code()
+                # If child is a Classifier (raw literal), wrap with pl.lit()
+                if isinstance(child, Classifier):
+                    return format_pl_literal(child.val, child.val_type)
+            # Fallback
+            arg_codes = [arg.to_polars_code() for arg in self.args]
+            return f'pl.lit({", ".join(arg_codes)})'
+
+        # Binary operators: render as infix (left op right)
+        if func_name in OPERATOR_SYMBOLS:
+            symbol = OPERATOR_SYMBOLS[func_name]
+            if len(self.args) == 2:
+                left = self.args[0].to_polars_code()
+                right = self.args[1].to_polars_code()
+                # Add parentheses around sub-expressions that are also operators
+                if (isinstance(self.args[0], Func)
+                        and isinstance(self.args[0].func_ref, Classifier)
+                        and self.args[0].func_ref.val in OPERATOR_SYMBOLS):
+                    left = f"({left})"
+                if (isinstance(self.args[1], Func)
+                        and isinstance(self.args[1].func_ref, Classifier)
+                        and self.args[1].func_ref.val in OPERATOR_SYMBOLS):
+                    right = f"({right})"
+                return f"{left} {symbol} {right}"
+
+        # Known functions: use the code generation mapping
+        if func_name in FUNCTION_CODE_GEN:
+            arg_codes = [arg.to_polars_code() for arg in self.args]
+            return FUNCTION_CODE_GEN[func_name](arg_codes)
+
+        # Fallback: generic function call
+        arg_codes = [arg.to_polars_code() for arg in self.args]
+        return f'{func_name}({", ".join(arg_codes)})'
 
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):
         """
@@ -347,6 +403,12 @@ class ConditionVal:
         then_str = self.val.get_readable_pl_function()
         return f"pl.when({when_str}).then({then_str})"
 
+    def to_polars_code(self) -> str:
+        """Generate native Polars Python code string for this condition."""
+        when_str = self.condition.to_polars_code()
+        then_str = self.val.to_polars_code()
+        return f"pl.when({when_str}).then({then_str})"
+
 
 @dataclass
 class IfFunc:
@@ -394,6 +456,19 @@ class IfFunc:
                 full_expr_str += f'.when({when_str}).then({then_str})'
 
         full_expr_str += f'.otherwise({self.else_val.get_readable_pl_function()})'
+        return full_expr_str
+
+    def to_polars_code(self) -> str:
+        """Generate native Polars Python code string for this conditional."""
+        full_expr_str = None
+        for condition in self.conditions:
+            when_str = condition.condition.to_polars_code()
+            then_str = condition.val.to_polars_code()
+            if full_expr_str is None:
+                full_expr_str = f'pl.when({when_str}).then({then_str})'
+            else:
+                full_expr_str += f'.when({when_str}).then({then_str})'
+        full_expr_str += f'.otherwise({self.else_val.to_polars_code()})'
         return full_expr_str
 
 

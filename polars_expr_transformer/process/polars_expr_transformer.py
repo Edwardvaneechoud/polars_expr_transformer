@@ -188,6 +188,36 @@ def test_tokenization(func_str, all_split_vals, all_functions):
     return tokens
 
 
+def to_polars_code(func_str: str) -> str:
+    """
+    Convert a string expression to a native Polars Python code string.
+
+    This function parses the expression and generates the equivalent Polars
+    Python code as a string, which can be used for learning, debugging,
+    or code generation purposes.
+
+    Args:
+        func_str: The string expression to convert. Supports the same syntax
+            as simple_function_to_expr: column references [col], operators,
+            functions, and conditionals.
+
+    Returns:
+        A string containing valid Polars Python code.
+
+    Example:
+        >>> to_polars_code("[col_a] + 'test'")
+        'pl.col("col_a") + pl.lit("test")'
+
+        >>> to_polars_code("uppercase([name])")
+        'pl.col("name").str.to_uppercase()'
+
+        >>> to_polars_code("if [age] > 30 then 'Senior' else 'Junior' endif")
+        'pl.when(pl.col("age") > pl.lit(30)).then(pl.lit("Senior")).otherwise(pl.lit("Junior"))'
+    """
+    func = build_func(func_str)
+    return func.to_polars_code()
+
+
 def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
     """
     Convert a string expression to a Polars expression.
