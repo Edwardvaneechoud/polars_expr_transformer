@@ -21,7 +21,9 @@ from polars_expr_transformer.process.token_classifier import classify_tokens
 from polars_expr_transformer.process.process_inline import parse_inline_functions
 from polars_expr_transformer.process.post_process import post_process_hierarchical_formula
 from polars_expr_transformer.process.preprocess import preprocess
+from polars_expr_transformer.exceptions import PolarsCodeGenError
 import polars as pl
+import datetime
 
 
 def finalize_hierarchy(obj):
@@ -188,7 +190,23 @@ def test_tokenization(func_str, all_split_vals, all_functions):
     return tokens
 
 
-def to_polars_code(func_str: str) -> str:
+def _validate_polars_code(func_str: str, code: str) -> None:
+    """Validate generated Polars code by eval-ing it.
+
+    Builds a scope with ``pl``, ``datetime``, and optionally ``pds``
+    (polars_ds), then attempts ``eval(code, scope)``.
+
+    Raises:
+        PolarsCodeGenError: If the generated code cannot be evaluated.
+    """
+    scope = {"pl": pl, "datetime": datetime}
+    try:
+        eval(code, scope)
+    except Exception as e:
+        raise PolarsCodeGenError(func_str, code, e) from e
+
+
+def to_polars_code(func_str: str, validate: bool = True) -> str:
     """
     Convert a string expression to a native Polars Python code string.
 
@@ -200,9 +218,15 @@ def to_polars_code(func_str: str) -> str:
         func_str: The string expression to convert. Supports the same syntax
             as simple_function_to_expr: column references [col], operators,
             functions, and conditionals.
+        validate: If True (default), eval the generated code to verify it
+            is syntactically and semantically valid. Raises PolarsCodeGenError
+            on failure.
 
     Returns:
         A string containing valid Polars Python code.
+
+    Raises:
+        PolarsCodeGenError: If validate=True and the generated code fails eval.
 
     Example:
         >>> to_polars_code("[col_a] + 'test'")
@@ -215,7 +239,10 @@ def to_polars_code(func_str: str) -> str:
         'pl.when(pl.col("age") > pl.lit(30)).then(pl.lit("Senior")).otherwise(pl.lit("Junior"))'
     """
     func = build_func(func_str)
-    return func.to_polars_code()
+    code = func.to_polars_code()
+    if validate:
+        _validate_polars_code(func_str, code)
+    return code
 
 
 def simple_function_to_expr(func_str: str) -> pl.expr.Expr:

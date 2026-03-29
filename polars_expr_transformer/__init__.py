@@ -30,6 +30,7 @@ Functions:
 
 from polars_expr_transformer.main_module import build_func, simple_function_to_expr, to_polars_code
 from polars_expr_transformer.function_overview import get_all_expressions, get_expression_overview
+from polars_expr_transformer.exceptions import PolarsCodeGenError
 
 __all__ = [
     'simple_function_to_expr',
@@ -37,4 +38,5 @@ __all__ = [
     'to_polars_code',
     'get_all_expressions',
     'get_expression_overview',
+    'PolarsCodeGenError',
 ]

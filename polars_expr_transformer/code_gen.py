@@ -53,6 +53,19 @@ def _template(tmpl):
     return gen
 
 
+def _strip_pl_lit(code_str: str) -> str:
+    """Extract the raw value from a pl.lit() wrapper.
+
+    Examples:
+        'pl.lit(2)' -> '2'
+        'pl.lit("x")' -> '"x"'
+        '42' -> '42'  (no-op if not wrapped)
+    """
+    if code_str.startswith("pl.lit(") and code_str.endswith(")"):
+        return code_str[len("pl.lit("):-1]
+    return code_str
+
+
 # Maps function names to code generation functions.
 # Each function takes a list of argument code strings and returns the Polars code string.
 FUNCTION_CODE_GEN = {
@@ -79,11 +92,11 @@ FUNCTION_CODE_GEN = {
     "count_match": _template("{0}.str.count_matches({1})"),
     "split": _template("{0}.str.split({1})"),
     "contains": _template("{0}.str.contains({1})"),
-    "repeat": _template("pl.concat_str([{0}] * {1})"),
+    "repeat": lambda args: f"pl.concat_str([{args[0]}] * {_strip_pl_lit(args[1])})",
 
     # Math functions
     "abs": _method_chain("abs()"),
-    "round": _method_chain_with_args("round"),
+    "round": lambda args: f"{args[0]}.round({_strip_pl_lit(args[1])})" if len(args) > 1 else f"{args[0]}.round(0)",
     "ceil": _method_chain("ceil()"),
     "floor": _method_chain("floor()"),
     "sqrt": _method_chain("sqrt()"),
@@ -131,8 +144,8 @@ FUNCTION_CODE_GEN = {
     "start_of_month": _method_chain("dt.month_start()"),
     "date_truncate": _template("{0}.dt.truncate({1})"),
     "date_trim": _template("{0}.dt.truncate({1})"),
-    "now": lambda args: "pl.lit(datetime.now())",
-    "today": lambda args: "pl.lit(datetime.today())",
+    "now": lambda args: "pl.lit(datetime.datetime.now())",
+    "today": lambda args: "pl.lit(datetime.datetime.today())",
 
     # Logic functions
     "equals": _template("{0}.eq({1})"),
@@ -158,11 +171,10 @@ FUNCTION_CODE_GEN = {
     "to_boolean": _method_chain("cast(pl.Boolean)"),
     "to_date": _method_chain_with_args("str.to_date"),
     "to_datetime": _method_chain_with_args("str.to_datetime"),
-    "to_decimal": lambda args: f"{args[0]}.cast(pl.Float64).round({args[1]})" if len(args) > 1 else f"{args[0]}.cast(pl.Float64)",
+    "to_decimal": lambda args: f"{args[0]}.cast(pl.Float64).round({_strip_pl_lit(args[1])})" if len(args) > 1 else f"{args[0]}.cast(pl.Float64)",
 
     # Special
     "random_int": _template("pl.int_range({0}, {1}).sample(n=pl.len(), with_replacement=True)"),
-    "string_similarity": _template("pds.str_leven({0}, {1}, return_sim=True)"),
 }
 
 
