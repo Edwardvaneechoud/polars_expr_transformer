@@ -28,12 +28,13 @@ Functions:
     get_expression_overview: Get functions grouped by category with descriptions.
 """
 
-from polars_expr_transformer.main_module import build_func, simple_function_to_expr
+from polars_expr_transformer.main_module import build_func, simple_function_to_expr, to_polars_code
 from polars_expr_transformer.function_overview import get_all_expressions, get_expression_overview
 
 __all__ = [
     'simple_function_to_expr',
     'build_func',
+    'to_polars_code',
     'get_all_expressions',
     'get_expression_overview',
 ]
