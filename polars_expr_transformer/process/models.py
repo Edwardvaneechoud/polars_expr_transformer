@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 import polars as pl
 from types import NotImplementedType
 import inspect
+import warnings
 
 
 def get_types_from_func(func: Callable):
@@ -276,6 +277,11 @@ class Func:
 
         # Fallback: generic function call
         arg_codes = [arg.to_polars_code() for arg in self.args]
+        warnings.warn(
+            f"Unknown function '{func_name}' in to_polars_code(): "
+            f"generated fallback code that may not be valid Polars.",
+            stacklevel=2,
+        )
         return f'{func_name}({", ".join(arg_codes)})'
 
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):

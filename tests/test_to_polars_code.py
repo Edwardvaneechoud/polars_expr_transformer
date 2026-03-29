@@ -1,14 +1,18 @@
-from polars_expr_transformer import to_polars_code, simple_function_to_expr
+from polars_expr_transformer import to_polars_code, simple_function_to_expr, PolarsCodeGenError
+from polars_expr_transformer.process.polars_expr_transformer import _validate_polars_code
+from polars_expr_transformer.process.models import Func, Classifier
 import polars as pl
 from polars.testing import assert_frame_equal
 from pytest import fixture
 import pytest
+import warnings
+import datetime
 
 
 def eval_pl_expr(expr_func_str: str) -> pl.Expr:
     """Evaluates the polars expressions string and returns the expr"""
     try:
-        expr = eval(to_polars_code(expr_func_str), {"pl": pl})
+        expr = eval(to_polars_code(expr_func_str), {"pl": pl, "datetime": datetime})
     except Exception as e:
         raise Exception(f"Could not evaluate the polars expression:\n\n{e}")
     return expr
@@ -258,9 +262,8 @@ class TestMathFunctions:
     def test_round(self, main_df):
         expr_str = "round([price], 2)"
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("price").round(pl.lit(2))'
-        with pytest.raises(Exception, match="cannot be interpreted as an integer"):
-            validate_func_expr_str(main_df, expr_str)
+        assert result == 'pl.col("price").round(2)'
+        validate_func_expr_str(main_df, expr_str)
 
     def test_ceil(self, main_df):
         expr_str = "ceil([val])"
@@ -423,3 +426,116 @@ class TestCombinedExpressions:
         assert "pl.concat_str" in result
         assert "pl.when" in result
         assert ".otherwise" in result
+
+
+class TestCodeGenFixes:
+    """Tests verifying that previously broken code gen scenarios now produce valid code."""
+
+    def test_round_generates_plain_int(self, main_df):
+        """round() should use a plain int, not pl.lit()."""
+        result = to_polars_code("round([price], 2)")
+        assert ".round(2)" in result
+        assert "pl.lit(2)" not in result
+        validate_func_expr_str(main_df, result.replace('pl.col("price")', "[price]").replace(".round(2)", ""))
+        # Eval the generated code directly
+        expr = eval(result, {"pl": pl})
+        main_df.select(expr)
+
+    def test_to_decimal_generates_plain_int(self, main_df):
+        """to_decimal() should use a plain int for .round(), not pl.lit()."""
+        result = to_polars_code("to_decimal([val], 2)")
+        assert ".round(2)" in result
+        assert ".round(pl.lit(2))" not in result
+        expr = eval(result, {"pl": pl})
+        main_df.select(expr)
+
+    def test_repeat_generates_plain_int(self):
+        """repeat() should use a plain int for list multiplication, not pl.lit()."""
+        result = to_polars_code("repeat([name], 3)")
+        assert "* 3" in result
+        assert "* pl.lit(3)" not in result
+        expr = eval(result, {"pl": pl})
+        assert isinstance(expr, pl.Expr)
+
+    def test_now_generates_valid_datetime(self):
+        """now() should use datetime.datetime.now(), not bare datetime.now()."""
+        result = to_polars_code("now()")
+        assert "datetime.datetime.now()" in result
+        expr = eval(result, {"pl": pl, "datetime": datetime})
+        assert isinstance(expr, pl.Expr)
+
+    def test_today_generates_valid_datetime(self):
+        """today() should use datetime.datetime.today(), not bare datetime.today()."""
+        result = to_polars_code("today()")
+        assert "datetime.datetime.today()" in result
+        expr = eval(result, {"pl": pl, "datetime": datetime})
+        assert isinstance(expr, pl.Expr)
+
+
+class TestValidation:
+    """Tests for eval-based validation in to_polars_code()."""
+
+    def test_validate_polars_code_raises_on_bad_code(self):
+        """_validate_polars_code should raise PolarsCodeGenError for invalid code."""
+        with pytest.raises(PolarsCodeGenError) as exc_info:
+            _validate_polars_code("test_expr", "nonexistent_func(pl.col('x'))")
+        err = exc_info.value
+        assert err.expression == "test_expr"
+        assert err.generated_code == "nonexistent_func(pl.col('x'))"
+        assert isinstance(err.eval_error, NameError)
+
+    def test_validate_polars_code_passes_on_valid_code(self):
+        """_validate_polars_code should not raise for valid code."""
+        _validate_polars_code("test_expr", 'pl.col("x").str.to_uppercase()')
+
+    def test_validate_polars_code_datetime_in_scope(self):
+        """_validate_polars_code should have datetime in scope."""
+        _validate_polars_code("test_expr", "pl.lit(datetime.datetime.now())")
+
+    def test_valid_expressions_pass_validation(self, main_df):
+        """Normal expressions should pass validation without error."""
+        result = to_polars_code("uppercase([name])", validate=True)
+        assert result == 'pl.col("name").str.to_uppercase()'
+
+    def test_validate_false_skips_validation(self):
+        """validate=False should return code without running eval."""
+        result = to_polars_code("round([price], 2)", validate=False)
+        assert isinstance(result, str)
+        assert ".round(2)" in result
+
+    def test_string_similarity_raises_polars_code_gen_error(self):
+        """string_similarity generates code referencing pds which is not in eval scope."""
+        with pytest.raises(PolarsCodeGenError) as exc_info:
+            to_polars_code('string_similarity([names], [other], "levenshtein")')
+        err = exc_info.value
+        assert "string_similarity" in err.generated_code
+        assert isinstance(err.eval_error, NameError)
+
+    def test_polars_code_gen_error_attributes(self):
+        """PolarsCodeGenError should expose expression, generated_code, and eval_error."""
+        bad_code = "definitely_not_valid()"
+        with pytest.raises(PolarsCodeGenError) as exc_info:
+            _validate_polars_code("my_expr", bad_code)
+        err = exc_info.value
+        assert err.expression == "my_expr"
+        assert err.generated_code == bad_code
+        assert isinstance(err.eval_error, Exception)
+        assert "my_expr" in str(err)
+
+
+class TestUnknownFunctionWarning:
+    """Tests for warnings on unknown function fallback in Func.to_polars_code()."""
+
+    def test_unknown_function_emits_warning(self):
+        """The fallback code path in Func.to_polars_code() should emit a warning."""
+        # Build a Func node with a function name not in FUNCTION_CODE_GEN
+        func_ref = Classifier("unknown_test_func")
+        arg = Func(func_ref=Classifier("pl.col"), args=[Classifier('"x"')])
+        func = Func(func_ref=func_ref, args=[arg])
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = func.to_polars_code()
+            warning_messages = [str(warning.message) for warning in w]
+            assert any("unknown_test_func" in msg for msg in warning_messages)
+        assert "unknown_test_func" in result
