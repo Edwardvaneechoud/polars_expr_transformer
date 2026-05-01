@@ -19,7 +19,9 @@ from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 from polars_expr_transformer.process.tokenize import tokenize
 from polars_expr_transformer.process.token_classifier import classify_tokens
 from polars_expr_transformer.process.process_inline import parse_inline_functions
-from polars_expr_transformer.process.post_process import post_process_hierarchical_formula
+from polars_expr_transformer.process.post_process import (
+    post_process_hierarchical_formula,
+)
 from polars_expr_transformer.process.preprocess import preprocess
 from polars_expr_transformer.exceptions import PolarsCodeGenError
 import polars as pl
@@ -110,6 +112,7 @@ def finalize_hierarchy(obj):
             obj.else_val = finalize_hierarchy(obj.else_val)
 
     return obj
+
 
 # Wrapper function to handle the top-level case properly
 def remove_temp_funcs(hierarchical_formula):
@@ -243,6 +246,46 @@ def to_polars_code(func_str: str, validate: bool = True) -> str:
     if validate:
         _validate_polars_code(func_str, code)
     return code
+
+
+def to_flowframe_code(func_str: str, validate: bool = True) -> str:
+    """
+    Convert a string expression to a native FlowFrame Python code string.
+
+    This function works identically to ``to_polars_code`` but generates
+    code targeting FlowFrame (``ff.``) instead of Polars (``pl.``).
+    FlowFrame exposes the same API as Polars, so the same conversion
+    rules apply.
+
+    Validation is performed by generating and evaluating the equivalent
+    Polars code — if the Polars code is valid, the FlowFrame code is
+    guaranteed to be valid as well (since the APIs are identical).
+
+    Args:
+        func_str: The string expression to convert. Supports the same syntax
+            as ``to_polars_code``.
+        validate: If True (default), generate the equivalent Polars code and
+            eval it to verify the expression is valid. Raises
+            PolarsCodeGenError on failure.
+
+    Returns:
+        A string containing valid FlowFrame Python code.
+
+    Raises:
+        PolarsCodeGenError: If validate=True and the generated code fails eval.
+
+    Example:
+        >>> to_flowframe_code("[col_a] + 'test'")
+        'ff.col("col_a") + ff.lit("test")'
+
+        >>> to_flowframe_code("uppercase([name])")
+        'ff.col("name").str.to_uppercase()'
+    """
+    func = build_func(func_str)
+    if validate:
+        pl_code = func.to_polars_code()
+        _validate_polars_code(func_str, pl_code)
+    return func.to_polars_code(prefix="ff")
 
 
 def simple_function_to_expr(func_str: str) -> pl.expr.Expr:

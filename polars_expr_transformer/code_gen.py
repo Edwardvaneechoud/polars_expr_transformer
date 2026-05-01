@@ -3,8 +3,10 @@ Code generation module for converting AST nodes to native Polars Python code str
 
 This module provides mappings and helpers to transform the internal expression tree
 representation into valid, executable Polars Python code.
-"""
 
+The ``prefix`` parameter (default ``"pl"``) controls the library qualifier used
+in the generated code.  Pass ``"ff"`` to emit FlowFrame code instead.
+"""
 
 # Reverse mapping from internal operator names to Python operator symbols
 OPERATOR_SYMBOLS = {
@@ -26,48 +28,72 @@ OPERATOR_SYMBOLS = {
 
 def _method_chain(method):
     """Create a code gen function for simple method chaining: {0}.method()"""
-    return lambda args: f"{args[0]}.{method}"
+
+    def gen(args, prefix="pl"):
+        m = method.replace("pl.", f"{prefix}.") if prefix != "pl" else method
+        return f"{args[0]}.{m}"
+
+    return gen
 
 
 def _method_chain_with_args(method):
     """Create a code gen function for method chaining with args: {0}.method({1}, {2}, ...)"""
-    def gen(args):
+
+    def gen(args, prefix="pl"):
         receiver = args[0]
         rest = ", ".join(args[1:])
-        return f"{receiver}.{method}({rest})"
+        m = method.replace("pl.", f"{prefix}.") if prefix != "pl" else method
+        return f"{receiver}.{m}({rest})"
+
     return gen
 
 
-def _top_level_list(func_name):
-    """Create a code gen function for top-level calls with a list arg: pl.func([a, b, c])"""
-    def gen(args):
+def _top_level_list(func_name_suffix):
+    """Create a code gen function for top-level calls with a list arg: prefix.func([a, b, c])
+
+    ``func_name_suffix`` should be the part after ``pl.``, e.g. ``"concat_str"``.
+    """
+
+    def gen(args, prefix="pl"):
         items = ", ".join(args)
-        return f"{func_name}([{items}])"
+        return f"{prefix}.{func_name_suffix}([{items}])"
+
     return gen
 
 
 def _template(tmpl):
-    """Create a code gen function from a format string template using {0}, {1}, etc."""
-    def gen(args):
-        return tmpl.format(*args)
+    """Create a code gen function from a format string template using {0}, {1}, etc.
+
+    Any occurrence of ``pl.`` in the template is replaced at call time with
+    the active prefix.
+    """
+
+    def gen(args, prefix="pl"):
+        rendered = tmpl.format(*args)
+        if prefix != "pl":
+            rendered = rendered.replace("pl.", f"{prefix}.")
+        return rendered
+
     return gen
 
 
-def _strip_pl_lit(code_str: str) -> str:
-    """Extract the raw value from a pl.lit() wrapper.
+def _strip_pl_lit(code_str: str, prefix: str = "pl") -> str:
+    """Extract the raw value from a prefix.lit() wrapper.
 
     Examples:
         'pl.lit(2)' -> '2'
         'pl.lit("x")' -> '"x"'
         '42' -> '42'  (no-op if not wrapped)
     """
-    if code_str.startswith("pl.lit(") and code_str.endswith(")"):
-        return code_str[len("pl.lit("):-1]
+    wrapper = f"{prefix}.lit("
+    if code_str.startswith(wrapper) and code_str.endswith(")"):
+        return code_str[len(wrapper) : -1]
     return code_str
 
 
 # Maps function names to code generation functions.
-# Each function takes a list of argument code strings and returns the Polars code string.
+# Each function takes a list of argument code strings and an optional prefix,
+# and returns the generated code string.
 FUNCTION_CODE_GEN = {
     # String functions
     "uppercase": _method_chain("str.to_uppercase()"),
@@ -82,7 +108,7 @@ FUNCTION_CODE_GEN = {
     "mid": _template("{0}.str.slice({1}, {2})"),
     "substring": _template("{0}.str.slice({1}, {2})"),
     "replace": _template("{0}.str.replace_many({1}, {2})"),
-    "concat": _top_level_list("pl.concat_str"),
+    "concat": _top_level_list("concat_str"),
     "starts_with": _template("{0}.str.starts_with({1})"),
     "ends_with": _template("{0}.str.ends_with({1})"),
     "reverse": _method_chain("str.reverse()"),
@@ -92,11 +118,16 @@ FUNCTION_CODE_GEN = {
     "count_match": _template("{0}.str.count_matches({1})"),
     "split": _template("{0}.str.split({1})"),
     "contains": _template("{0}.str.contains({1})"),
-    "repeat": lambda args: f"pl.concat_str([{args[0]}] * {_strip_pl_lit(args[1])})",
-
+    "repeat": lambda args, prefix="pl": (
+        f"{prefix}.concat_str([{args[0]}] * {_strip_pl_lit(args[1], prefix)})"
+    ),
     # Math functions
     "abs": _method_chain("abs()"),
-    "round": lambda args: f"{args[0]}.round({_strip_pl_lit(args[1])})" if len(args) > 1 else f"{args[0]}.round(0)",
+    "round": lambda args, prefix="pl": (
+        f"{args[0]}.round({_strip_pl_lit(args[1], prefix)})"
+        if len(args) > 1
+        else f"{args[0]}.round(0)"
+    ),
     "ceil": _method_chain("ceil()"),
     "floor": _method_chain("floor()"),
     "sqrt": _method_chain("sqrt()"),
@@ -116,7 +147,6 @@ FUNCTION_CODE_GEN = {
     "acos": _method_chain("arccos()"),
     "atan": _method_chain("arctan()"),
     "tanh": _method_chain("tanh()"),
-
     # Date functions
     "year": _method_chain("dt.year()"),
     "month": _method_chain("dt.month()"),
@@ -135,7 +165,9 @@ FUNCTION_CODE_GEN = {
     "add_hours": _template("{0} + pl.duration(hours={1})"),
     "add_minutes": _template("{0} + pl.duration(minutes={1})"),
     "add_seconds": _template("{0} + pl.duration(seconds={1})"),
-    "add_months": _template("{0}.dt.offset_by(pl.concat_str([{1}.cast(pl.Utf8), pl.lit(\"mo\")]))"),
+    "add_months": _template(
+        '{0}.dt.offset_by(pl.concat_str([{1}.cast(pl.Utf8), pl.lit("mo")]))'
+    ),
     "date_diff_days": _template("({0} - {1}).dt.total_days()"),
     "datetime_diff_seconds": _template("({0} - {1}).dt.total_seconds()"),
     "datetime_diff_nanoseconds": _template("({0} - {1}).dt.total_nanoseconds()"),
@@ -144,25 +176,25 @@ FUNCTION_CODE_GEN = {
     "start_of_month": _method_chain("dt.month_start()"),
     "date_truncate": _template("{0}.dt.truncate({1})"),
     "date_trim": _template("{0}.dt.truncate({1})"),
-    "now": lambda args: "pl.lit(datetime.datetime.now())",
-    "today": lambda args: "pl.lit(datetime.datetime.today())",
-
+    "now": lambda args, prefix="pl": f"{prefix}.lit(datetime.datetime.now())",
+    "today": lambda args, prefix="pl": f"{prefix}.lit(datetime.datetime.today())",
     # Logic functions
     "equals": _template("{0}.eq({1})"),
     "is_empty": _method_chain("is_null()"),
     "is_not_empty": _method_chain("is_not_null()"),
-    "coalesce": _top_level_list("pl.coalesce"),
-    "ifnull": lambda args: f"pl.coalesce([{args[0]}, {args[1]}])",
-    "nvl": lambda args: f"pl.coalesce([{args[0]}, {args[1]}])",
+    "coalesce": _top_level_list("coalesce"),
+    "ifnull": lambda args, prefix="pl": f"{prefix}.coalesce([{args[0]}, {args[1]}])",
+    "nvl": lambda args, prefix="pl": f"{prefix}.coalesce([{args[0]}, {args[1]}])",
     "nullif": _template("pl.when({0}.eq({1})).then(pl.lit(None)).otherwise({0})"),
     "between": _template("{0}.is_between({1}, {2})"),
-    "greatest": _top_level_list("pl.max_horizontal"),
-    "least": _top_level_list("pl.min_horizontal"),
+    "greatest": _top_level_list("max_horizontal"),
+    "least": _top_level_list("min_horizontal"),
     "_not": _method_chain("not_()"),
     "not": _method_chain("not_()"),
     "_in": _template("{1}.str.contains({0})"),
-    "is_string": lambda args: f"pl.lit({args[0]}.dtype == pl.Utf8)",
-
+    "is_string": lambda args, prefix="pl": (
+        f"{prefix}.lit({args[0]}.dtype == {prefix}.Utf8)"
+    ),
     # Type conversions
     "to_string": _method_chain("cast(pl.Utf8)"),
     "to_integer": _method_chain("cast(pl.Int64)"),
@@ -171,29 +203,35 @@ FUNCTION_CODE_GEN = {
     "to_boolean": _method_chain("cast(pl.Boolean)"),
     "to_date": _method_chain_with_args("str.to_date"),
     "to_datetime": _method_chain_with_args("str.to_datetime"),
-    "to_decimal": lambda args: f"{args[0]}.cast(pl.Float64).round({_strip_pl_lit(args[1])})" if len(args) > 1 else f"{args[0]}.cast(pl.Float64)",
-
+    "to_decimal": lambda args, prefix="pl": (
+        f"{args[0]}.cast({prefix}.Float64).round({_strip_pl_lit(args[1], prefix)})"
+        if len(args) > 1
+        else f"{args[0]}.cast({prefix}.Float64)"
+    ),
     # Special
-    "random_int": _template("pl.int_range({0}, {1}).sample(n=pl.len(), with_replacement=True)"),
+    "random_int": _template(
+        "pl.int_range({0}, {1}).sample(n=pl.len(), with_replacement=True)"
+    ),
 }
 
 
-def format_pl_literal(val_str, val_type):
-    """Format a raw value string as a Polars literal code string.
+def format_pl_literal(val_str, val_type, prefix="pl"):
+    """Format a raw value string as a literal code string.
 
     Args:
         val_str: The raw value string (e.g. '"test"', '42', 'true')
         val_type: The classified type ('string', 'number', 'boolean')
+        prefix: The library prefix to use (default 'pl')
 
     Returns:
         A string like 'pl.lit("test")', 'pl.lit(42)', 'pl.lit(True)'
     """
-    if val_type == 'boolean':
-        py_val = "True" if val_str.lower() == 'true' else "False"
-        return f"pl.lit({py_val})"
-    elif val_type == 'number':
-        return f"pl.lit({val_str})"
-    elif val_type == 'string':
-        return f"pl.lit({val_str})"
+    if val_type == "boolean":
+        py_val = "True" if val_str.lower() == "true" else "False"
+        return f"{prefix}.lit({py_val})"
+    elif val_type == "number":
+        return f"{prefix}.lit({val_str})"
+    elif val_type == "string":
+        return f"{prefix}.lit({val_str})"
     else:
-        return f"pl.lit({val_str})"
+        return f"{prefix}.lit({val_str})"
