@@ -3,7 +3,11 @@ from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, PlNumericType
 from polars_expr_transformer.configs.settings import operators, funcs
 from polars_expr_transformer.configs import logging
-from polars_expr_transformer.code_gen import OPERATOR_SYMBOLS, FUNCTION_CODE_GEN, format_pl_literal
+from polars_expr_transformer.code_gen import (
+    OPERATOR_SYMBOLS,
+    FUNCTION_CODE_GEN,
+    format_pl_literal,
+)
 from dataclasses import dataclass, field
 import polars as pl
 from types import NotImplementedType
@@ -21,7 +25,7 @@ def get_types_from_func(func: Callable):
     Returns:
         A list of types of the function's parameters.
     """
-    if hasattr(func, '__name__') and str(func.__name__) == str(pl.col.__name__):
+    if hasattr(func, "__name__") and str(func.__name__) == str(pl.col.__name__):
         return [str]
     return [param.annotation for param in inspect.signature(func).parameters.values()]
 
@@ -49,7 +53,15 @@ def allow_expressions(_type):
     Returns:
         True if the type allows expressions, False otherwise.
     """
-    return _type in [PlStringType, PlIntType, pl.Expr, Any, inspect._empty, PlNumericType, "Any"]
+    return _type in [
+        PlStringType,
+        PlIntType,
+        pl.Expr,
+        Any,
+        inspect._empty,
+        PlNumericType,
+        "Any",
+    ]
 
 
 def allow_non_pl_expressions(_type):
@@ -62,11 +74,31 @@ def allow_non_pl_expressions(_type):
     Returns:
         True if the type only allows non-polars expressions, False otherwise.
     """
-    return _type in [str, int, float, bool, PlStringType, PlIntType,  "Any", PlNumericType]
+    return _type in [
+        str,
+        int,
+        float,
+        bool,
+        PlStringType,
+        PlIntType,
+        "Any",
+        PlNumericType,
+    ]
 
 
-value_type: TypeAlias = Literal['string', 'number', 'boolean', 'operator', 'function', 'column', 'empty', 'case_when',
-'prio', 'sep', 'special']
+value_type: TypeAlias = Literal[
+    "string",
+    "number",
+    "boolean",
+    "operator",
+    "function",
+    "column",
+    "empty",
+    "case_when",
+    "prio",
+    "sep",
+    "special",
+]
 
 
 def test_if_numeric(value: str):
@@ -80,7 +112,7 @@ def test_if_numeric(value: str):
     """
     if value.isdigit():
         return True
-    if value.startswith('-') and len(value) > 1 and value[1:].isdigit():
+    if value.startswith("-") and len(value) > 1 and value[1:].isdigit():
         return True
     try:
         float(value)
@@ -100,6 +132,7 @@ class Classifier:
         precedence (int): The precedence of the value in expressions.
         parent (Optional[Union["Classifier", "Func"]]): The parent of this classifier.
     """
+
     val: str
     val_type: value_type = None
     precedence: int = None
@@ -113,40 +146,40 @@ class Classifier:
         return PRECEDENCE.get(self.val)
 
     def get_val_type(self) -> value_type:
-        if self.val.lower() in ['true', 'false']:
-            return 'boolean'
+        if self.val.lower() in ["true", "false"]:
+            return "boolean"
         elif self.val in operators:
-            return 'operator'
-        elif self.val in ('(', ')'):
-            return 'prio'
-        elif self.val == '':
-            return 'empty'
+            return "operator"
+        elif self.val in ("(", ")"):
+            return "prio"
+        elif self.val == "":
+            return "empty"
         elif self.val in funcs:
-            return 'function'
-        elif self.val in ('$if$', '$then$', '$else$', '$endif$'):
-            return 'case_when'
+            return "function"
+        elif self.val in ("$if$", "$then$", "$else$", "$endif$"):
+            return "case_when"
         elif test_if_numeric(self.val):
-            return 'number'
-        elif self.val == '__negative()':
-            return 'special'
+            return "number"
+        elif self.val == "__negative()":
+            return "special"
         elif self.val.isalpha():
-            return 'string'
-        elif self.val == ',':
-            return 'sep'
+            return "string"
+        elif self.val == ",":
+            return "sep"
         else:
-            return 'string'
+            return "string"
 
     def get_pl_func(self):
-        if self.val_type == 'boolean':
-            return True if self.val.lower() == 'true' else False
-        elif self.val_type == 'function':
+        if self.val_type == "boolean":
+            return True if self.val.lower() == "true" else False
+        elif self.val_type == "function":
             return funcs[self.val]
-        elif self.val_type in ('number', 'string'):
+        elif self.val_type in ("number", "string"):
             return eval(self.val)
-        elif self.val == '__negative()':
-            return funcs['__negative']()
+        elif self.val == "__negative()":
+            return funcs["__negative"]()
         else:
-            raise Exception('Did not expect to get here')
+            raise Exception("Did not expect to get here")
 
     def get_repr(self):
         return str(self.val)
@@ -160,9 +193,9 @@ class Classifier:
     def get_readable_pl_function(self):
         return self.val
 
-    def to_polars_code(self):
+    def to_polars_code(self, prefix: str = "pl"):
         """Generate native Polars Python code string for this token."""
-        return format_pl_literal(self.val, self.val_type)
+        return format_pl_literal(self.val, self.val_type, prefix=prefix)
 
 
 @dataclass
@@ -175,6 +208,7 @@ class Func:
         args (List[Union["Func", Classifier, "IfFunc"]]): The list of arguments for the function.
         parent (Optional["Func"]): The parent function of this function.
     """
+
     func_ref: Union[Classifier, "IfFunc"]
     args: List[Union["Func", Classifier, "IfFunc"]] = field(default_factory=list)
     parent: Optional["Func"] = field(repr=False, default=None)
@@ -194,7 +228,9 @@ class Func:
         Returns:
             bool: True if standardization is needed (mixed pl.Expr types), False otherwise.
         """
-        return any(isinstance(arg, pl.Expr) for arg in args) and any(not isinstance(arg, pl.Expr) for arg in args)
+        return any(isinstance(arg, pl.Expr) for arg in args) and any(
+            not isinstance(arg, pl.Expr) for arg in args
+        )
 
     def get_readable_pl_function(self):
         """
@@ -214,75 +250,89 @@ class Func:
             Exception: If 'pl.lit' is used with an incorrect number of arguments.
         """
 
-        if self.func_ref == 'pl.lit':
+        if self.func_ref == "pl.lit":
             if len(self.args) != 1:
-                raise Exception('Expected must contain 1 argument not more not less')
+                raise Exception("Expected must contain 1 argument not more not less")
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_readable_pl_function()
         pl_args = [arg.get_pl_func() for arg in self.args]
 
         if self._check_if_standardization_of_args_is_needed(pl_args):
-            _ = self._standardize_args(self.args, get_types_from_func(funcs[self.func_ref.val]))
+            _ = self._standardize_args(
+                self.args, get_types_from_func(funcs[self.func_ref.val])
+            )
             standardized_args = [arg.get_readable_pl_function() for arg in self.args]
         else:
             standardized_args = [arg.get_readable_pl_function() for arg in self.args]
-        return f'{self.func_ref.val}({", ".join(standardized_args)})'
+        return f"{self.func_ref.val}({', '.join(standardized_args)})"
 
-    def to_polars_code(self):
+    def to_polars_code(self, prefix: str = "pl") -> str:
         """Generate native Polars Python code string for this function node."""
-        func_name = self.func_ref.val if isinstance(self.func_ref, Classifier) else str(self.func_ref)
+        func_name = (
+            self.func_ref.val
+            if isinstance(self.func_ref, Classifier)
+            else str(self.func_ref)
+        )
 
         # pl.col("column_name")
-        if func_name == 'pl.col':
-            col_name = self.args[0].val if isinstance(self.args[0], Classifier) else str(self.args[0])
+        if func_name == "pl.col":
+            col_name = (
+                self.args[0].val
+                if isinstance(self.args[0], Classifier)
+                else str(self.args[0])
+            )
             # Strip surrounding quotes if present
             clean_name = col_name.strip('"').strip("'")
-            return f'pl.col("{clean_name}")'
+            return f'{prefix}.col("{clean_name}")'
 
         # pl.lit(value) - wrapper for literals
-        if func_name == 'pl.lit':
+        if func_name == "pl.lit":
             if len(self.args) == 1:
                 child = self.args[0]
                 # If child is a Func (e.g. pl.col or another expression), just delegate
                 if isinstance(child, (Func, IfFunc)):
-                    return child.to_polars_code()
+                    return child.to_polars_code(prefix=prefix)
                 # If child is a Classifier (raw literal), wrap with pl.lit()
                 if isinstance(child, Classifier):
-                    return format_pl_literal(child.val, child.val_type)
+                    return format_pl_literal(child.val, child.val_type, prefix=prefix)
             # Fallback
-            arg_codes = [arg.to_polars_code() for arg in self.args]
-            return f'pl.lit({", ".join(arg_codes)})'
+            arg_codes = [arg.to_polars_code(prefix=prefix) for arg in self.args]
+            return f"{prefix}.lit({', '.join(arg_codes)})"
 
         # Binary operators: render as infix (left op right)
         if func_name in OPERATOR_SYMBOLS:
             symbol = OPERATOR_SYMBOLS[func_name]
             if len(self.args) == 2:
-                left = self.args[0].to_polars_code()
-                right = self.args[1].to_polars_code()
+                left = self.args[0].to_polars_code(prefix=prefix)
+                right = self.args[1].to_polars_code(prefix=prefix)
                 # Add parentheses around sub-expressions that are also operators
-                if (isinstance(self.args[0], Func)
-                        and isinstance(self.args[0].func_ref, Classifier)
-                        and self.args[0].func_ref.val in OPERATOR_SYMBOLS):
+                if (
+                    isinstance(self.args[0], Func)
+                    and isinstance(self.args[0].func_ref, Classifier)
+                    and self.args[0].func_ref.val in OPERATOR_SYMBOLS
+                ):
                     left = f"({left})"
-                if (isinstance(self.args[1], Func)
-                        and isinstance(self.args[1].func_ref, Classifier)
-                        and self.args[1].func_ref.val in OPERATOR_SYMBOLS):
+                if (
+                    isinstance(self.args[1], Func)
+                    and isinstance(self.args[1].func_ref, Classifier)
+                    and self.args[1].func_ref.val in OPERATOR_SYMBOLS
+                ):
                     right = f"({right})"
                 return f"{left} {symbol} {right}"
 
         # Known functions: use the code generation mapping
         if func_name in FUNCTION_CODE_GEN:
-            arg_codes = [arg.to_polars_code() for arg in self.args]
-            return FUNCTION_CODE_GEN[func_name](arg_codes)
+            arg_codes = [arg.to_polars_code(prefix=prefix) for arg in self.args]
+            return FUNCTION_CODE_GEN[func_name](arg_codes, prefix=prefix)
 
         # Fallback: generic function call
-        arg_codes = [arg.to_polars_code() for arg in self.args]
+        arg_codes = [arg.to_polars_code(prefix=prefix) for arg in self.args]
         warnings.warn(
             f"Unknown function '{func_name}' in to_polars_code(): "
             f"generated fallback code that may not be valid Polars.",
             stacklevel=2,
         )
-        return f'{func_name}({", ".join(arg_codes)})'
+        return f"{func_name}({', '.join(arg_codes)})"
 
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):
         """
@@ -298,7 +348,9 @@ class Func:
         self.args.append(arg)
         arg.parent = self
 
-    def _standardize_args(self, args: List[Union["Func", Classifier, "IfFunc"]], func_types: List[Any]):
+    def _standardize_args(
+        self, args: List[Union["Func", Classifier, "IfFunc"]], func_types: List[Any]
+    ):
         """
         Standardize the arguments of the function.
 
@@ -310,20 +362,24 @@ class Func:
         Returns:
             A list of standardized arguments for the function.
         """
-        pl_args = [arg.get_pl_func() if isinstance(arg, Func) else arg.get_pl_func() for arg in args]
+        pl_args = [
+            arg.get_pl_func() if isinstance(arg, Func) else arg.get_pl_func()
+            for arg in args
+        ]
         # if self._check_if_standardization_of_args_is_needed(pl_args):
         if len(func_types) == len(pl_args):
-            for i, (func_type, pl_arg, arg) in enumerate(zip(func_types, pl_args, args)):
+            for i, (func_type, pl_arg, arg) in enumerate(
+                zip(func_types, pl_args, args)
+            ):
                 if not isinstance(pl_arg, pl.Expr) and allow_expressions(func_type):
-                    tf = Func(Classifier('pl.lit'))
-                    tf.add_arg(
-                        arg)
+                    tf = Func(Classifier("pl.lit"))
+                    tf.add_arg(arg)
                     self.args[i] = tf
 
         else:
             for i, (pl_arg, arg) in enumerate(zip(pl_args, self.args)):
                 if not isinstance(pl_arg, pl.Expr):
-                    tf = Func(Classifier('pl.lit'))
+                    tf = Func(Classifier("pl.lit"))
                     tf.add_arg(arg)
                     self.args[i] = tf
         return [a.get_pl_func() for a in self.args]
@@ -347,9 +403,9 @@ class Func:
         Raises:
             Exception: If 'pl.lit' is used with an incorrect number of arguments.
         """
-        if self.func_ref == 'pl.lit':
+        if self.func_ref == "pl.lit":
             if len(self.args) != 1:
-                raise Exception('Expected must contain 1 argument not more not less')
+                raise Exception("Expected must contain 1 argument not more not less")
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_pl_func()
             return funcs[self.func_ref.val](self.args[0].get_pl_func())
@@ -365,9 +421,11 @@ class Func:
 
         if isinstance(r, NotImplementedType):
             try:
-                logging.warning(f'Not implemented type: {self.get_readable_pl_function()}')
+                logging.warning(
+                    f"Not implemented type: {self.get_readable_pl_function()}"
+                )
             except Exception as e:
-                logging.warning('Not implemented type')
+                logging.warning("Not implemented type")
                 logging.debug(e)
             return False
         return r
@@ -384,6 +442,7 @@ class ConditionVal:
         val (Func): The value function.
         parent ("IfFunc"): The parent IfFunc of this condition value.
     """
+
     func_ref: Union[Classifier, "IfFunc", "Func"] = None
     condition: Func = None
     val: Func = None
@@ -409,11 +468,11 @@ class ConditionVal:
         then_str = self.val.get_readable_pl_function()
         return f"pl.when({when_str}).then({then_str})"
 
-    def to_polars_code(self) -> str:
+    def to_polars_code(self, prefix: str = "pl") -> str:
         """Generate native Polars Python code string for this condition."""
-        when_str = self.condition.to_polars_code()
-        then_str = self.val.to_polars_code()
-        return f"pl.when({when_str}).then({then_str})"
+        when_str = self.condition.to_polars_code(prefix=prefix)
+        then_str = self.val.to_polars_code(prefix=prefix)
+        return f"{prefix}.when({when_str}).then({then_str})"
 
 
 @dataclass
@@ -427,6 +486,7 @@ class IfFunc:
         else_val (Optional[Func]): The else value function.
         parent (Optional[Func]): The parent function of this if function.
     """
+
     func_ref: Union[Classifier]
     conditions: Optional[List[ConditionVal]] = field(default_factory=list)
     else_val: Optional[Func] = None
@@ -443,12 +503,16 @@ class IfFunc:
     def get_pl_func(self):
         full_expr = None
         if len(self.conditions) == 0:
-            raise Exception('Expected at least one condition')
+            raise Exception("Expected at least one condition")
         for condition in self.conditions:
             if full_expr is None:
-                full_expr = pl.when(condition.get_pl_condition()).then(condition.get_pl_val())
+                full_expr = pl.when(condition.get_pl_condition()).then(
+                    condition.get_pl_val()
+                )
             else:
-                full_expr = full_expr.when(condition.get_pl_condition()).then(condition.get_pl_val())
+                full_expr = full_expr.when(condition.get_pl_condition()).then(
+                    condition.get_pl_val()
+                )
         return full_expr.otherwise(self.else_val.get_pl_func())
 
     def get_readable_pl_function(self) -> str:
@@ -457,24 +521,24 @@ class IfFunc:
             when_str = condition.condition.get_readable_pl_function()
             then_str = condition.val.get_readable_pl_function()
             if full_expr_str is None:
-                full_expr_str = f'pl.when({when_str}).then({then_str})'
+                full_expr_str = f"pl.when({when_str}).then({then_str})"
             else:
-                full_expr_str += f'.when({when_str}).then({then_str})'
+                full_expr_str += f".when({when_str}).then({then_str})"
 
-        full_expr_str += f'.otherwise({self.else_val.get_readable_pl_function()})'
+        full_expr_str += f".otherwise({self.else_val.get_readable_pl_function()})"
         return full_expr_str
 
-    def to_polars_code(self) -> str:
+    def to_polars_code(self, prefix: str = "pl") -> str:
         """Generate native Polars Python code string for this conditional."""
         full_expr_str = None
         for condition in self.conditions:
-            when_str = condition.condition.to_polars_code()
-            then_str = condition.val.to_polars_code()
+            when_str = condition.condition.to_polars_code(prefix=prefix)
+            then_str = condition.val.to_polars_code(prefix=prefix)
             if full_expr_str is None:
-                full_expr_str = f'pl.when({when_str}).then({then_str})'
+                full_expr_str = f"{prefix}.when({when_str}).then({then_str})"
             else:
-                full_expr_str += f'.when({when_str}).then({then_str})'
-        full_expr_str += f'.otherwise({self.else_val.to_polars_code()})'
+                full_expr_str += f".when({when_str}).then({then_str})"
+        full_expr_str += f".otherwise({self.else_val.to_polars_code(prefix=prefix)})"
         return full_expr_str
 
 
@@ -486,6 +550,7 @@ class TempFunc:
     Attributes:
         args (List[Union["Func", Classifier, "IfFunc"]]): The list of arguments for the temporary function.
     """
+
     args: List[Union["Func", Classifier, "IfFunc"]] = field(default_factory=list)
     parent: Optional[Func] = field(repr=False, default=None)
 
