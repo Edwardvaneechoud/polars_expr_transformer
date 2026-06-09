@@ -52,7 +52,7 @@ const DATASETS = {
 const EXAMPLES = [
   { label: "Full name", dataset: "employees", expr: 'concat([first_name], " ", [last_name])' },
   { label: "Seniority", dataset: "employees", expr: 'if [age] >= 45 then "Senior"\nelseif [age] >= 30 then "Mid"\nelse "Junior" endif' },
-  { label: "10% raise", dataset: "employees", expr: "round([salary] * 1.1, 2) // everyone deserves it" },
+  { label: "10% raise", dataset: "employees", expr: "round([salary] * 1.1, 2) // add 10%" },
   { label: "Email fallback", dataset: "employees", expr: 'coalesce([email], concat(lowercase([first_name]), "@acme.com"))' },
   { label: "Years employed", dataset: "employees", expr: "floor(date_diff_days(today(), [hire_date]) / 365)" },
   { label: "Order total", dataset: "orders", expr: "round([price] * [quantity] * (1 - ifnull([discount], 0)), 2)" },
@@ -410,11 +410,11 @@ function setRuntimeStatus(text, kind = "loading") {
 
 async function bootRuntime(wheelPath) {
   try {
-    setRuntimeStatus("Downloading Pyodide (Python compiled to WebAssembly)…");
+    setRuntimeStatus("Loading Pyodide…");
     const pyodide = await loadPyodide({ indexURL: PYODIDE_INDEX_URL });
     state.pyodide = pyodide;
 
-    setRuntimeStatus("Loading Polars &amp; pydantic (~15 MB, cached after first visit)…");
+    setRuntimeStatus("Loading Polars and pydantic (about 15 MB, cached by the browser)…");
     await pyodide.loadPackage(["micropip", "polars", "pydantic"]);
 
     setRuntimeStatus("Installing <code>polars-expr-transformer</code>…");
@@ -423,16 +423,16 @@ async function bootRuntime(wheelPath) {
       `import micropip\nawait micropip.install("${wheelUrl}", deps=False)`
     );
 
-    setRuntimeStatus("Starting expression engine…");
+    setRuntimeStatus("Starting…");
     const runtimeSource = await (await fetch("assets/runtime.py")).text();
     pyodide.runPython(runtimeSource);
     state.runFn = pyodide.globals.get("run_expression");
 
     state.ready = true;
-    const version = state.reference ? ` v${state.reference.version}` : "";
+    const version = state.reference ? ` ${state.reference.version}` : "";
     setRuntimeStatus(
-      `Ready — running <code>polars-expr-transformer${version}</code> on Polars ` +
-        `<code>${pyodide.runPython("import polars; polars.__version__")}</code> in your browser.`,
+      `Ready (polars-expr-transformer${version}, Polars ` +
+        `${pyodide.runPython("import polars; polars.__version__")}).`,
       "ready"
     );
     $("#run-btn").disabled = false;
@@ -440,8 +440,8 @@ async function bootRuntime(wheelPath) {
   } catch (error) {
     console.error(error);
     setRuntimeStatus(
-      `Could not start the browser runtime: ${escapeHtml(error.message || String(error))}. ` +
-        "The documentation below still works — only the live playground needs WebAssembly.",
+      `Could not start the Python runtime: ${escapeHtml(error.message || String(error))}. ` +
+        "The playground needs WebAssembly and access to cdn.jsdelivr.net; the rest of the page works without it.",
       "error"
     );
   }
@@ -512,7 +512,7 @@ function renderRunResult(result, elapsedMs) {
     errorBox.classList.add("hidden");
     $("#result-table").innerHTML = tableHtml(result.columns, result.rows, { resultColumn: "result" });
     const resultDtype = result.columns[result.columns.length - 1].dtype;
-    status.textContent = `ok — result dtype ${resultDtype} · ${elapsedMs} ms`;
+    status.textContent = `ok · ${resultDtype} · ${elapsedMs} ms`;
     status.className = "run-status ok";
   } else {
     const stageLabel = result.stage === "parse" ? "Could not parse expression" : "Expression failed while executing";

@@ -1,11 +1,10 @@
 # Documentation & playground site
 
-This directory is a fully static site — interactive documentation and a
-live playground for `polars-expr-transformer` (a.k.a. flowfile
-expressions). It runs the **real library in the browser** via
-[Pyodide](https://pyodide.org) (CPython + Polars compiled to
-WebAssembly), so every expression typed in the playground is parsed,
-compiled and executed client-side. No server is involved.
+This directory is a static site with documentation and a playground for
+`polars-expr-transformer` (also referred to as flowfile expressions).
+The playground runs the library in the browser via
+[Pyodide](https://pyodide.org), so expressions are parsed and executed
+client-side; there is no server component.
 
 ## Structure
 
