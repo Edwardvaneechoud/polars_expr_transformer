@@ -6,12 +6,12 @@ from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, 
 
 def to_string(value: PlStringType) -> pl.Expr:
     """
-    Converts any value to text.
+    Converts a column or value to text.
 
-    For example, to_string(123) would return "123".
+    For example, to_string([age]) would return "30" when [age] is 30.
 
     Parameters:
-    - value: The value to convert to text
+    - value: The column or value to convert to text
 
     Returns:
     - The text representation
@@ -23,13 +23,13 @@ def to_string(value: PlStringType) -> pl.Expr:
 
 def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     """
-    Converts text to a date value.
+    Parses a text column or value into a date.
 
-    For example, to_date("2023-01-15") would return a date value for January 15, 2023.
+    For example, to_date("2023-05-15") would return the date 2023-05-15.
 
     Parameters:
-    - text: The text to convert to a date
-    - date_format: Instructions for how to interpret the date text (default is year-month-day)
+    - text: The text column or value to parse as a date
+    - date_format: How to interpret the date text (default is "%Y-%m-%d")
       Common format codes:
       - %Y: Four-digit year (e.g., 2023)
       - %m: Two-digit month (01-12)
@@ -46,16 +46,16 @@ def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
 
 def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
     """
-    Convert a string to a datetime.
+    Parses a text column or value into a datetime.
+
+    For example, to_datetime("2023-05-15 14:30:00") would return the datetime 2023-05-15 14:30:00.
 
     Parameters:
-    - s (Any): The string to convert to a datetime. Can be a pl expression or any other value.
-    - format (str): The format of the datetime string. Default is "%Y-%m-%d %H:%M:%S".
+    - s: The text column or value to parse as a datetime
+    - date_format: How to interpret the datetime text (default is "%Y-%m-%d %H:%M:%S")
 
     Returns:
-    - pl.Expr: A pl expression representing the converted datetime.
-
-    Note: If `s` is not a pl expression, it will be converted into one.
+    - The datetime value
     """
     s = s if is_polars_expr(s) else create_fix_col(s)
     return s.str.to_datetime(date_format, strict=False)
@@ -63,12 +63,12 @@ def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.E
 
 def to_integer(value: Any) -> pl.Expr:
     """
-    Converts a value to a whole number.
+    Converts a column or value to a whole number, truncating any decimal places.
 
-    For example, to_integer("123") would return 123, and to_integer(45.67) would return 45.
+    For example, to_integer([price]) would return 19 when [price] is 19.99.
 
     Parameters:
-    - value: The value to convert to an integer
+    - value: The column or value to convert to an integer
 
     Returns:
     - The integer value (decimal places are truncated)
@@ -80,12 +80,12 @@ def to_integer(value: Any) -> pl.Expr:
 
 def to_float(value: Any) -> pl.Expr:
     """
-    Converts a value to a number with decimal places.
+    Converts a column or value to a number with decimal places.
 
-    For example, to_float("123.45") would return 123.45.
+    For example, to_float([quantity]) would return 3.0 when [quantity] is 3.
 
     Parameters:
-    - value: The value to convert to a floating-point number
+    - value: The column or value to convert to a floating-point number
 
     Returns:
     - The floating-point number
@@ -97,12 +97,12 @@ def to_float(value: Any) -> pl.Expr:
 
 def to_number(value: Any) -> pl.Expr:
     """
-    Converts a value to a number (same as to_float).
+    Converts a column or value to a number (same as to_float).
 
-    For example, to_number("123.45") would return 123.45.
+    For example, to_number([quantity]) would return 3.0 when [quantity] is 3.
 
     Parameters:
-    - value: The value to convert to a number
+    - value: The column or value to convert to a number
 
     Returns:
     - The numeric value
@@ -112,23 +112,16 @@ def to_number(value: Any) -> pl.Expr:
 
 def to_boolean(value: Any) -> pl.Expr:
     """
-    Converts a value to True or False.
+    Converts a column or value to true or false. Non-zero numbers and text like "true", "yes",
+    "t" or "y" become true; zero and text like "false", "no", "f" or "n" become false.
 
-    For example:
-    - to_boolean(1) returns True
-    - to_boolean(0) returns False
-    - to_boolean("t") returns True
-    - to_boolean("f") returns False
-    - to_boolean("true") returns True
-    - to_boolean("false") returns False
-    - to_boolean("yes") returns True
-    - to_boolean("no") returns False
+    For example, to_boolean([quantity]) would return true when [quantity] is 1.
 
     Parameters:
-    - value: The value to convert to a boolean
+    - value: The column or value to convert to a boolean
 
     Returns:
-    - A Polars expression that will evaluate to True or False
+    - The boolean value (true or false)
     """
     if is_polars_expr(value):
 
@@ -159,13 +152,13 @@ def to_boolean(value: Any) -> pl.Expr:
 
 def to_decimal(value: Any, precision: Optional[int] = None) -> pl.Expr:
     """
-    Converts a value to a decimal number with fixed precision.
+    Converts a column or value to a decimal number rounded to a fixed number of decimal places.
 
-    For example, to_decimal("123.456789", 2) would return 123.46.
+    For example, to_decimal([price], 2) would return 19.99 when [price] is 19.987.
 
     Parameters:
-    - value: The value to convert to a decimal
-    - precision: How many decimal places to keep (if None, keeps all decimal places)
+    - value: The column or value to convert to a decimal
+    - precision: How many decimal places to keep (default is None, which keeps all decimal places)
 
     Returns:
     - The decimal number
