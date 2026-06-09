@@ -5,7 +5,10 @@
 
 "use strict";
 
-const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.29.4/full/";
+// Pinned to the 0.27.x line: it is the latest Pyodide release that ships a
+// polars build (polars was removed from the 0.28/0.29 distributions, see
+// https://blog.pyodide.org/posts/0.28-release/).
+const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
 
 /* ----------------------------------------------------------------
    Sample datasets. The dtype tags are interpreted by runtime.py
@@ -410,11 +413,11 @@ function setRuntimeStatus(text, kind = "loading") {
 
 async function bootRuntime(wheelPath) {
   try {
-    setRuntimeStatus("Loading Pyodide…");
+    setRuntimeStatus("Loading the playground…");
     const pyodide = await loadPyodide({ indexURL: PYODIDE_INDEX_URL });
     state.pyodide = pyodide;
 
-    setRuntimeStatus("Loading Polars and pydantic (about 15 MB, cached by the browser)…");
+    setRuntimeStatus("Loading Polars (about 15 MB on first visit, cached afterwards)…");
     await pyodide.loadPackage(["micropip", "polars", "pydantic"]);
 
     setRuntimeStatus("Installing <code>polars-expr-transformer</code>…");
@@ -440,8 +443,8 @@ async function bootRuntime(wheelPath) {
   } catch (error) {
     console.error(error);
     setRuntimeStatus(
-      `Could not start the Python runtime: ${escapeHtml(error.message || String(error))}. ` +
-        "The playground needs WebAssembly and access to cdn.jsdelivr.net; the rest of the page works without it.",
+      `Could not start the playground: ${escapeHtml(error.message || String(error))}. ` +
+        "It needs WebAssembly and access to cdn.jsdelivr.net; the rest of the page works without it.",
       "error"
     );
   }

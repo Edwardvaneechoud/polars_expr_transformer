@@ -120,14 +120,15 @@ h1, h2, h3 { line-height: 1.25; }
   box-shadow: 0 2px 6px rgba(20, 25, 60, 0.25);
 }
 .header-inner { display: flex; align-items: center; justify-content: space-between; height: 58px; gap: 16px; }
-.brand { display: flex; align-items: baseline; gap: 10px; color: var(--header-text); }
+.brand { display: flex; align-items: baseline; gap: 10px; color: var(--header-text); min-width: 0; }
 .brand:hover { text-decoration: none; }
+.brand-text { white-space: nowrap; }
 .brand-icon {
   font-family: var(--mono); font-weight: 700; color: #ffffff;
   background: linear-gradient(135deg, var(--accent), #ffb74d);
   border-radius: 6px; padding: 2px 7px; font-size: 14px;
 }
-.brand-text { font-weight: 700; color: var(--header-text); }
+.brand-text { font-weight: 700; color: var(--header-text); white-space: nowrap; }
 .brand-sub { color: var(--header-dim); font-size: 12px; font-family: var(--mono); }
 .header-actions { display: flex; align-items: center; gap: 14px; }
 .site-nav { display: flex; gap: 18px; font-size: 14px; align-items: center; }
@@ -160,10 +161,11 @@ h1, h2, h3 { line-height: 1.25; }
 .hero-tagline { max-width: 760px; margin: 0 auto 28px; color: var(--text-dim); font-size: 1.08rem; }
 .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
 .hero-install {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
   background: var(--code-bg); border: 1px solid var(--border);
   border-radius: 8px; padding: 8px 14px; font-size: 14px;
 }
+.hero-install code { overflow-x: auto; white-space: nowrap; }
 .hero-install code { background: none; }
 
 /* ---------------- buttons ---------------- */
@@ -310,7 +312,7 @@ h1, h2, h3 { line-height: 1.25; }
 .ac-detail { color: var(--text-dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------------- output ---------------- */
-.output-tabs { display: flex; gap: 4px; }
+.output-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .output-tab {
   background: transparent; border: 1px solid transparent; color: var(--text-dim);
   border-radius: 7px; padding: 5px 13px; font-size: 13.5px; cursor: pointer; font-weight: 600;
@@ -336,7 +338,7 @@ h1, h2, h3 { line-height: 1.25; }
 .pane-note { font-size: 13px; color: var(--text-dim); margin: 10px 2px 0; }
 
 /* ---------------- syntax guide ---------------- */
-.syntax-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 18px; margin-top: 28px; }
+.syntax-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr)); gap: 18px; margin-top: 28px; }
 .syntax-card {
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
@@ -373,7 +375,7 @@ h1, h2, h3 { line-height: 1.25; }
 
 .fn-category-title { margin: 34px 0 14px; font-size: 1.25rem; color: var(--primary); }
 [data-theme="dark"] .fn-category-title { color: var(--link); }
-.fn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.fn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 16px; }
 .fn-card {
   background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow);
@@ -421,6 +423,16 @@ details.fn-more summary:hover { color: var(--text); }
 
 @media (max-width: 720px) {
   .site-nav { display: none; }
+  .brand-sub { display: none; }
+  .container { padding: 0 16px; }
   .section { padding: 48px 0; }
-  .hero { padding: 56px 0 44px; }
+  .hero { padding: 48px 0 40px; }
+  .hero h1 br { display: none; }
+  .hero-tagline { font-size: 1rem; }
+  .hero-install { font-size: 13px; }
+  .panel-head { padding: 8px 10px; }
+  .output-body { padding: 10px; }
+  .editor-footer { flex-wrap: wrap; }
+  .data-table { font-size: 12.5px; }
+  .autocomplete { max-width: calc(100vw - 48px); }
 }
