@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowfile Expressions · Polars Expression Transformer</title>
   <meta name="description" content="Interactive playground and documentation for polars-expr-transformer: write simple, SQL-like flowfile expressions and watch them compile to native Polars code — entirely in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    // Apply the stored/preferred color scheme before first paint.
+    document.documentElement.dataset.theme =
+      localStorage.getItem("fx-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
   <link rel="stylesheet" href="assets/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐻‍❄️</text></svg>">
 </head>
@@ -17,13 +26,16 @@
       <span class="brand-text">Flowfile Expressions</span>
       <span class="brand-sub">polars-expr-transformer</span>
     </a>
-    <nav class="site-nav">
-      <a href="#playground">Playground</a>
-      <a href="#syntax">Syntax</a>
-      <a href="#functions">Functions</a>
-      <a href="#how-it-works">How it works</a>
-      <a class="gh-link" href="https://github.com/edwardvaneechoud/polars_expr_transformer" target="_blank" rel="noopener">GitHub</a>
-    </nav>
+    <div class="header-actions">
+      <nav class="site-nav">
+        <a href="#playground">Playground</a>
+        <a href="#syntax">Syntax</a>
+        <a href="#functions">Functions</a>
+        <a href="#how-it-works">How it works</a>
+        <a class="gh-link" href="https://github.com/edwardvaneechoud/polars_expr_transformer" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">🌙</button>
+    </div>
   </div>
 </header>
 

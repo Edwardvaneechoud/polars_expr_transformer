@@ -676,6 +676,24 @@ function renderReference() {
   );
 }
 
+/* ----------------------------------------------------------------
+   Theme toggle (light-first, matching the Flowfile docs theme)
+   ---------------------------------------------------------------- */
+function setupThemeToggle() {
+  const root = document.documentElement;
+  const button = $("#theme-toggle");
+  const apply = (theme) => {
+    root.dataset.theme = theme;
+    button.textContent = theme === "dark" ? "☀️" : "🌙";
+  };
+  apply(root.dataset.theme || "light"); // set by the inline head script
+  button.addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("fx-theme", next);
+    apply(next);
+  });
+}
+
 function setupSearch() {
   $("#fn-search").addEventListener(
     "input",
@@ -697,6 +715,7 @@ async function init() {
   setupCopyButtons();
   setupShare();
   setupSearch();
+  setupThemeToggle();
 
   $("#run-btn").addEventListener("click", () => runExpression());
 
