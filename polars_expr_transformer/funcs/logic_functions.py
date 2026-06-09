@@ -11,14 +11,14 @@ def equals(value1: Any, value2: Any) -> pl.Expr:
     """
     Checks if two values are equal to each other.
 
-    For example, equals("apple", "apple") would return True.
+    For example, equals([status], "shipped") would return true when [status] is "shipped".
 
     Parameters:
-    - value1: The first value to compare
-    - value2: The second value to compare
+    - value1: The column or value to compare
+    - value2: The column or value to compare it against
 
     Returns:
-    - True if the values are equal, False otherwise
+    - true if both values are equal, otherwise false
     """
     s = value1 if is_polars_expr(value1) else create_fix_col(value1)
     t = value2 if is_polars_expr(value2) else create_fix_col(value2)
@@ -27,30 +27,30 @@ def equals(value1: Any, value2: Any) -> pl.Expr:
 
 def is_empty(value: pl.Expr) -> pl.Expr:
     """
-    Checks if a value is empty (null/missing).
+    Checks if a value is empty (missing).
 
-    For example, is_empty(null) would return True.
+    For example, is_empty([email]) would return true when [email] is empty.
 
     Parameters:
-    - value: The value to check
+    - value: The column to check
 
     Returns:
-    - True if the value is empty, False otherwise
+    - true if the value is empty, otherwise false
     """
     return value.is_null()
 
 
 def is_not_empty(value: pl.Expr) -> pl.Expr:
     """
-    Checks if a value contains something (is not null/missing).
+    Checks if a value contains something (is not missing).
 
-    For example, is_not_empty("apple") would return True.
+    For example, is_not_empty([discount]) would return false when [discount] is empty.
 
     Parameters:
-    - value: The value to check
+    - value: The column to check
 
     Returns:
-    - True if the value contains something, False if it's empty
+    - true if the value contains something, false if it is empty
     """
     return value.is_not_null()
 
@@ -59,14 +59,14 @@ def does_not_equal(value1: Any, value2: Any):
     """
     Checks if two values are different from each other.
 
-    For example, does_not_equal("apple", "orange") would return True.
+    For example, does_not_equal([status], "cancelled") would return true when [status] is "shipped".
 
     Parameters:
-    - value1: The first value to compare
-    - value2: The second value to compare
+    - value1: The column or value to compare
+    - value2: The column or value to compare it against
 
     Returns:
-    - True if the values are different, False if they're the same
+    - true if the values are different, false if they are the same
     """
     s = value1 if is_polars_expr(value1) else create_fix_col(value1)
     t = value2 if is_polars_expr(value2) else create_fix_col(value2)
@@ -92,15 +92,16 @@ def _not(value: Any) -> pl.Expr:
 
 def is_string(value: Any) -> pl.Expr:
     """
-    Checks if a value is text (a string).
+    Checks if a literal value is text (a string). This works on fixed values,
+    not on column references.
 
-    For example, is_string("apple") would return True, but is_string(123) would return False.
+    For example, is_string("hello") would return true.
 
     Parameters:
     - value: The value to check
 
     Returns:
-    - True if the value is text, False otherwise
+    - true if the value is text, otherwise false
     """
     if is_polars_expr(value):
         dtype = pl.select(value).dtypes[0]
@@ -112,14 +113,14 @@ def contains(text: PlStringType, search_for: Any) -> pl.Expr:
     """
     Checks if some text contains a specific pattern.
 
-    For example, contains("hello world", "world") would return True.
+    For example, contains([product], "Laptop") would return true when [product] is "Laptop Pro 15".
 
     Parameters:
-    - text: The text to search in
+    - text: The column or value to search in
     - search_for: The pattern to look for
 
     Returns:
-    - True if the pattern is found in the text, False otherwise
+    - true if the pattern is found in the text, otherwise false
     """
     if isinstance(text, pl.Expr):
         return text.str.contains(search_for)
@@ -148,15 +149,15 @@ def _in(value: Any, collection: PlStringType) -> pl.Expr:
 
 def coalesce(*values) -> pl.Expr:
     """
-    Returns the first non-null value from a list of values.
+    Returns the first non-empty value from a list of values.
 
-    For example, coalesce(null, null, "default") would return "default".
+    For example, coalesce([discount], 0) would return 0 when [discount] is empty.
 
     Parameters:
-    - values: Multiple values to check in order
+    - values: The columns or values to check in order
 
     Returns:
-    - The first non-null value, or null if all values are null
+    - The first non-empty value, or null if all values are empty
     """
     if len(values) == 0:
         raise ValueError("coalesce requires at least one argument")
@@ -167,16 +168,16 @@ def coalesce(*values) -> pl.Expr:
 
 def ifnull(value: Any, default: Any) -> pl.Expr:
     """
-    Returns a default value if the input is null.
+    Returns a default value if the input is empty.
 
-    For example, ifnull(null, "default") would return "default".
+    For example, ifnull([discount], 0) would return 0 when [discount] is empty.
 
     Parameters:
-    - value: The value to check
-    - default: The value to return if the first value is null
+    - value: The column or value to check
+    - default: The column or value to return if the first value is empty
 
     Returns:
-    - The original value if not null, otherwise the default value
+    - The original value if not empty, otherwise the default value
     """
     value_expr = value if is_polars_expr(value) else pl.lit(value)
     default_expr = default if is_polars_expr(default) else pl.lit(default)
@@ -185,16 +186,16 @@ def ifnull(value: Any, default: Any) -> pl.Expr:
 
 def nvl(value: Any, default: Any) -> pl.Expr:
     """
-    Returns a default value if the input is null (alias for ifnull).
+    Returns a default value if the input is empty (alias for ifnull).
 
-    For example, nvl(null, "default") would return "default".
+    For example, nvl([email], "no email") would return "no email" when [email] is empty.
 
     Parameters:
-    - value: The value to check
-    - default: The value to return if the first value is null
+    - value: The column or value to check
+    - default: The column or value to return if the first value is empty
 
     Returns:
-    - The original value if not null, otherwise the default value
+    - The original value if not empty, otherwise the default value
     """
     return ifnull(value, default)
 
@@ -203,14 +204,14 @@ def nullif(value1: Any, value2: Any) -> pl.Expr:
     """
     Returns null if the two values are equal, otherwise returns the first value.
 
-    For example, nullif(5, 5) would return null, but nullif(5, 3) would return 5.
+    For example, nullif([status], "cancelled") would return null when [status] is "cancelled".
 
     Parameters:
-    - value1: The value to potentially return
+    - value1: The column or value to return
     - value2: The value to compare against
 
     Returns:
-    - null if value1 equals value2, otherwise value1
+    - null if both are equal, otherwise the first value
     """
     v1 = value1 if is_polars_expr(value1) else pl.lit(value1)
     v2 = value2 if is_polars_expr(value2) else pl.lit(value2)
@@ -221,15 +222,15 @@ def between(value: Any, min_val: Any, max_val: Any) -> pl.Expr:
     """
     Checks if a value is between a minimum and maximum value (inclusive).
 
-    For example, between(5, 1, 10) would return True.
+    For example, between([age], 30, 40) would return true when [age] is 35.
 
     Parameters:
-    - value: The value to check
-    - min_val: The minimum value (inclusive)
-    - max_val: The maximum value (inclusive)
+    - value: The column or value to check
+    - min_val: The column or value used as the minimum (inclusive)
+    - max_val: The column or value used as the maximum (inclusive)
 
     Returns:
-    - True if the value is between min and max (inclusive), False otherwise
+    - true if the value is between min and max (inclusive), otherwise false
     """
     v = value if is_polars_expr(value) else pl.lit(value)
     min_v = min_val if is_polars_expr(min_val) else pl.lit(min_val)
@@ -241,10 +242,10 @@ def greatest(*values) -> pl.Expr:
     """
     Returns the largest value from a list of values.
 
-    For example, greatest(1, 5, 3) would return 5.
+    For example, greatest([price], 100) would return 100 when [price] is 79.99.
 
     Parameters:
-    - values: Multiple values to compare
+    - values: The columns or values to compare
 
     Returns:
     - The largest value
@@ -260,10 +261,10 @@ def least(*values) -> pl.Expr:
     """
     Returns the smallest value from a list of values.
 
-    For example, least(1, 5, 3) would return 1.
+    For example, least([price], 100) would return 100 when [price] is 249.99.
 
     Parameters:
-    - values: Multiple values to compare
+    - values: The columns or values to compare
 
     Returns:
     - The smallest value

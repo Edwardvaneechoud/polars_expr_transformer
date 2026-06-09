@@ -11,6 +11,7 @@ against a local interpreter for testing.
 """
 
 import json
+import math
 import sys
 import types
 
@@ -76,6 +77,8 @@ def _fmt(value):
     if value is None:
         return None
     if isinstance(value, float):
+        if not math.isfinite(value):
+            return str(value)
         value = round(value, 6)
         if value == int(value):
             return str(int(value)) + ".0"

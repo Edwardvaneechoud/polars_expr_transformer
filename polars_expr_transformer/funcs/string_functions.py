@@ -9,10 +9,10 @@ def concat(*text_parts) -> pl.Expr:
     """
     Combines multiple text values into a single text.
 
-    For example, concat("Hello", " ", "World") would return "Hello World".
+    For example, concat([first_name], " ", [last_name]) would return "John Doe" when [first_name] is "John" and [last_name] is "Doe".
 
     Parameters:
-    - text_parts: The texts you want to combine
+    - text_parts: The columns or texts you want to combine
 
     Returns:
     - The combined text
@@ -25,10 +25,10 @@ def count_match(text: PlStringType, pattern: str) -> pl.Expr:
     """
     Counts how many times a pattern appears in text.
 
-    For example, count_match("banana", "a") would return 3.
+    For example, count_match([email], ".") would return 2 when [email] is "john.doe@company.com".
 
     Parameters:
-    - text: The text to search in
+    - text: The column or text to search in
     - pattern: The pattern to search for
 
     Returns:
@@ -43,10 +43,10 @@ def length(text: PlStringType) -> pl.Expr:
     """
     Counts the number of characters in text.
 
-    For example, length("hello") would return 5.
+    For example, length([city]) would return 9 when [city] is "Amsterdam".
 
     Parameters:
-    - text: The text to measure
+    - text: The column or text to measure
 
     Returns:
     - The number of characters
@@ -61,10 +61,10 @@ def uppercase(text: PlStringType) -> pl.Expr:
     """
     Converts text to ALL UPPERCASE.
 
-    For example, uppercase("Hello World") would return "HELLO WORLD".
+    For example, uppercase([city]) would return "AMSTERDAM" when [city] is "Amsterdam".
 
     Parameters:
-    - text: The text to convert
+    - text: The column or text to convert
 
     Returns:
     - The uppercase text
@@ -78,10 +78,10 @@ def titlecase(text: PlStringType) -> pl.Expr:
     """
     Converts Text To Title Case, Where Each Word Is Capitalized.
 
-    For example, titlecase("hello world") would return "Hello World".
+    For example, titlecase([event]) would return "Tech Conference" when [event] is "tech conference".
 
     Parameters:
-    - text: The text to convert
+    - text: The column or text to convert
 
     Returns:
     - The title case text
@@ -95,10 +95,10 @@ def lowercase(text: PlStringType) -> pl.Expr:
     """
     Converts text to all lowercase.
 
-    For example, lowercase("Hello World") would return "hello world".
+    For example, lowercase([department]) would return "engineering" when [department] is "Engineering".
 
     Parameters:
-    - text: The text to convert
+    - text: The column or text to convert
 
     Returns:
     - The lowercase text
@@ -112,10 +112,10 @@ def left(text: PlStringType, num_chars: pl.Expr | int) -> pl.Expr:
     """
     Gets a specified number of characters from the beginning of text.
 
-    For example, left("Hello World", 5) would return "Hello".
+    For example, left([order_id], 3) would return "ORD" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text to extract from
+    - text: The column or text to extract from
     - num_chars: How many characters to take from the beginning
 
     Returns:
@@ -136,10 +136,10 @@ def right(text: PlStringType, num_chars: PlIntType) -> pl.Expr:
     """
     Gets a specified number of characters from the end of text.
 
-    For example, right("Hello World", 5) would return "World".
+    For example, right([order_id], 4) would return "0001" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text to extract from
+    - text: The column or text to extract from
     - num_chars: How many characters to take from the end
 
     Returns:
@@ -168,10 +168,10 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     """
     Replaces specific text with different text.
 
-    For example, replace("Hello world", "world", "friend") would return "Hello friend".
+    For example, replace([email], ".com", ".org") would return "john.doe@company.org" when [email] is "john.doe@company.com".
 
     Parameters:
-    - text: The original text where replacements will be made
+    - text: The column or text where replacements will be made
     - find_text: The text you want to find and replace
     - replace_with: The new text that will replace the found text
 
@@ -185,16 +185,16 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
 
 def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
     """
-    Find the position of a substring within a string.
+    Finds the position of a substring within text (0-based index).
+
+    For example, find_position([order_id], "-") would return 3 when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text in which to find the position of the substring. Can be an expression or any other value.
-    - sub (Any): The substring to find the position of. Can be an expression or any other value.
+    - text: The column or text to search in
+    - sub: The substring to find the position of
 
     Returns:
-    - the position of the text
-
-    Note: If `s` or `sub` is not a pl expression, it will be converted into one.
+    - The position of the substring, or null if it is not found
     """
     text = text if is_polars_expr(text) else create_fix_col(text)
     sub = sub if is_polars_expr(sub) else create_fix_col(sub)
@@ -205,10 +205,10 @@ def pad_left(text: PlStringType, length: int, pad_character: str = " ") -> pl.Ex
     """
     Adds characters to the beginning of text to reach a specific length.
 
-    For example, pad_left("123", 5, "0") would return "00123".
+    For example, pad_left([order_id], 12, "0") would return "0000ORD-0001" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text you want to pad
+    - text: The column or text you want to pad
     - length: How long you want the final text to be
     - pad_character: What character to use for padding (default is a space)
 
@@ -223,10 +223,10 @@ def pad_right(text: PlStringType, length: int, pad_character: str = " ") -> pl.E
     """
     Adds characters to the end of text to reach a specific length.
 
-    For example, pad_right("123", 5, "0") would return "12300".
+    For example, pad_right([order_id], 12, "0") would return "ORD-00010000" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text you want to pad
+    - text: The column or text you want to pad
     - length: How long you want the final text to be
     - pad_character: What character to use for padding (default is a space)
 
@@ -241,10 +241,10 @@ def trim(text: PlStringType) -> pl.Expr:
     """
     Removes spaces from both the beginning and end of text.
 
-    For example, trim("  hello world  ") would return "hello world".
+    For example, trim([city]) would return "Amsterdam" when [city] is "  Amsterdam  ".
 
     Parameters:
-    - text: The text you want to trim
+    - text: The column or text you want to trim
 
     Returns:
     - The trimmed text
@@ -257,10 +257,10 @@ def left_trim(text: PlStringType) -> pl.Expr:
     """
     Removes spaces from the beginning of text.
 
-    For example, left_trim("  hello world  ") would return "hello world  ".
+    For example, left_trim([city]) would return "Amsterdam  " when [city] is "  Amsterdam  ".
 
     Parameters:
-    - text: The text you want to trim
+    - text: The column or text you want to trim
 
     Returns:
     - The trimmed text
@@ -273,10 +273,10 @@ def right_trim(text: PlStringType) -> pl.Expr:
     """
     Removes spaces from the end of text.
 
-    For example, right_trim("hello world  ") would return "hello world".
+    For example, right_trim([city]) would return "Amsterdam" when [city] is "Amsterdam  ".
 
     Parameters:
-    - text: The text you want to trim
+    - text: The column or text you want to trim
 
     Returns:
     - The trimmed text
@@ -315,15 +315,13 @@ def __get_similarity_method(how: str) -> callable:
 
 def string_similarity(text1: PlStringType, text2: PlStringType, method: str = 'levenshtein') -> pl.Expr:
     """
-    Measures how similar two texts are to each other, on a scale of 0 to 1.
+    Measures how similar two texts are to each other, on a scale of 0 to 1. A value of 1 means the texts are identical, while 0 means they are completely different.
 
-    A value of 1 means the texts are identical, while 0 means they are completely different.
-
-    For example, string_similarity("apple", "appl") might return 0.8.
+    For example, string_similarity([first_name], [last_name], "levenshtein") would return 0.4 when [first_name] is "John" and [last_name] is "Jones".
 
     Parameters:
-    - text1: The first text to compare
-    - text2: The second text to compare
+    - text1: The first column or text to compare
+    - text2: The second column or text to compare
     - method: Which comparison method to use (default is 'levenshtein')
       Available methods include:
       - 'levenshtein': Good general-purpose similarity measure
@@ -344,10 +342,10 @@ def mid(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.Expr:
     """
     Extracts a portion of text from the middle starting at a specified position.
 
-    For example, mid("Hello World", 0, 5) would return "Hello".
+    For example, mid([order_id], 4, 4) would return "0001" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text to extract from
+    - text: The column or text to extract from
     - start: The starting position (0-based index)
     - num_chars: How many characters to extract
 
@@ -364,10 +362,10 @@ def substring(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.
     """
     Extracts a portion of text starting at a specified position (alias for mid).
 
-    For example, substring("Hello World", 6, 5) would return "World".
+    For example, substring([order_id], 0, 3) would return "ORD" when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text to extract from
+    - text: The column or text to extract from
     - start: The starting position (0-based index)
     - num_chars: How many characters to extract
 
@@ -381,10 +379,10 @@ def starts_with(text: PlStringType, prefix: PlStringType) -> pl.Expr:
     """
     Checks if text starts with a specific prefix.
 
-    For example, starts_with("Hello World", "Hello") would return True.
+    For example, starts_with([order_id], "ORD") would return true when [order_id] is "ORD-0001".
 
     Parameters:
-    - text: The text to check
+    - text: The column or text to check
     - prefix: The prefix to look for at the start
 
     Returns:
@@ -399,10 +397,10 @@ def ends_with(text: PlStringType, suffix: PlStringType) -> pl.Expr:
     """
     Checks if text ends with a specific suffix.
 
-    For example, ends_with("Hello World", "World") would return True.
+    For example, ends_with([email], ".com") would return true when [email] is "john.doe@company.com".
 
     Parameters:
-    - text: The text to check
+    - text: The column or text to check
     - suffix: The suffix to look for at the end
 
     Returns:
@@ -417,10 +415,10 @@ def reverse(text: PlStringType) -> pl.Expr:
     """
     Reverses the characters in text.
 
-    For example, reverse("Hello") would return "olleH".
+    For example, reverse([first_name]) would return "nhoJ" when [first_name] is "John".
 
     Parameters:
-    - text: The text to reverse
+    - text: The column or text to reverse
 
     Returns:
     - The reversed text
@@ -433,10 +431,10 @@ def repeat(text: PlStringType, count: PlIntType) -> pl.Expr:
     """
     Repeats text a specified number of times.
 
-    For example, repeat("ab", 3) would return "ababab".
+    For example, repeat([first_name], 2) would return "JohnJohn" when [first_name] is "John".
 
     Parameters:
-    - text: The text to repeat
+    - text: The column or text to repeat
     - count: How many times to repeat the text
 
     Returns:
@@ -455,10 +453,10 @@ def split(text: PlStringType, delimiter: str) -> pl.Expr:
     """
     Splits text into a list using a delimiter.
 
-    For example, split("a,b,c", ",") would return ["a", "b", "c"].
+    For example, split([product], " ") would return ["Laptop", "Pro"] when [product] is "Laptop Pro".
 
     Parameters:
-    - text: The text to split
+    - text: The column or text to split
     - delimiter: The character(s) to split on
 
     Returns:

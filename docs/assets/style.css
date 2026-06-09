@@ -10,9 +10,9 @@
   --primary: #4051b5;
   --primary-dark: #303fa1;
   --primary-tint: rgba(64, 81, 181, 0.08);
-  --accent: #ff9100;
-  --accent-dark: #e07c00;
-  --accent-tint: rgba(255, 145, 0, 0.10);
+  --accent: #0fa896;
+  --accent-dark: #0b8678;
+  --accent-tint: rgba(43, 217, 199, 0.14);
 
   --bg: #ffffff;
   --bg-alt: #f5f6fa;
@@ -47,9 +47,9 @@
   --primary: #5c6bc0;
   --primary-dark: #4051b5;
   --primary-tint: rgba(140, 158, 255, 0.12);
-  --accent: #ff9100;
-  --accent-dark: #ffab40;
-  --accent-tint: rgba(255, 145, 0, 0.13);
+  --accent: #2bd9c7;
+  --accent-dark: #6ce8da;
+  --accent-tint: rgba(43, 217, 199, 0.12);
 
   --bg: #2e303e;
   --bg-alt: #282a37;
@@ -124,8 +124,8 @@ h1, h2, h3 { line-height: 1.25; }
 .brand:hover { text-decoration: none; }
 .brand-text { white-space: nowrap; }
 .brand-icon {
-  font-family: var(--mono); font-weight: 700; color: #ffffff;
-  background: linear-gradient(135deg, var(--accent), #ffb74d);
+  font-family: var(--mono); font-weight: 700; color: #16245e;
+  background: #2bd9c7;
   border-radius: 6px; padding: 2px 7px; font-size: 14px;
 }
 .brand-text { font-weight: 700; color: var(--header-text); white-space: nowrap; }
@@ -146,18 +146,11 @@ h1, h2, h3 { line-height: 1.25; }
 /* ---------------- hero ---------------- */
 .hero {
   padding: 84px 0 64px;
-  background:
-    radial-gradient(ellipse 60% 50% at 20% 0%, var(--primary-tint), transparent),
-    radial-gradient(ellipse 50% 40% at 85% 10%, var(--accent-tint), transparent),
-    var(--bg-alt);
+  background: var(--bg-alt);
   border-bottom: 1px solid var(--border);
   text-align: center;
 }
 .hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); margin: 0 0 18px; font-weight: 700; }
-.hero .accent {
-  background: linear-gradient(90deg, var(--primary), var(--accent));
-  -webkit-background-clip: text; background-clip: text; color: transparent;
-}
 .hero-tagline { max-width: 760px; margin: 0 auto 28px; color: var(--text-dim); font-size: 1.08rem; }
 .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
 .hero-install {
@@ -392,10 +385,12 @@ h1, h2, h3 { line-height: 1.25; }
 .fn-desc { font-size: 13.5px; color: var(--text-dim); margin: 0; }
 .fn-example {
   background: var(--code-bg); border: 1px solid var(--border); border-radius: 7px;
-  font-family: var(--mono); font-size: 12.5px; padding: 8px 10px; overflow-x: auto; white-space: nowrap;
+  font-family: var(--mono); font-size: 12.5px; padding: 8px 10px;
+  overflow-x: auto; white-space: normal; overflow-wrap: break-word;
 }
 .fn-example .arrow { color: var(--text-dim); margin: 0 6px; }
 .fn-example .res { color: var(--str); }
+.fn-example .ctx { display: block; margin-top: 3px; color: var(--text-dim); font-size: 11.5px; }
 .fn-params { font-size: 12.5px; color: var(--text-dim); margin: 0; padding-left: 18px; }
 .fn-params code { font-size: 0.95em; }
 details.fn-more summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); user-select: none; }
@@ -410,7 +405,7 @@ details.fn-more summary:hover { color: var(--text); }
 .how-num {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 50%; font-weight: 700;
-  background: linear-gradient(135deg, var(--primary), var(--accent)); color: #ffffff;
+  background: var(--primary); color: #ffffff;
 }
 .how-step h3 { margin: 12px 0 6px; }
 .how-step p { color: var(--text-dim); font-size: 14px; margin: 0; }

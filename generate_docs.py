@@ -47,7 +47,8 @@ TYPE_ALIASES = {
 
 EXAMPLE_RE = re.compile(
     r"For example,?\s+(?P<call>.+?)\s+(?:would|will|might|returns?)\s+"
-    r"(?:return\s+)?(?P<result>.+?)\.?\s*$",
+    r"(?:return\s+)?(?P<result>.+?)"
+    r"(?:\s+when\s+(?P<context>.+?))?\.?\s*$",
     re.IGNORECASE,
 )
 
@@ -89,6 +90,12 @@ TRY_OVERRIDES = {
         "datetime_diff_nanoseconds(now(), [order_date])",
         "orders",
     ),
+    "sin": ("sin([discount])", "orders"),
+    "cos": ("cos([discount])", "orders"),
+    "tan": ("tan([discount])", "orders"),
+    "asin": ("asin([discount])", "orders"),
+    "acos": ("acos([discount])", "orders"),
+    "atan": ("atan([discount])", "orders"),
     "coalesce": ('coalesce([email], "no email")', "employees"),
     "ifnull": ("ifnull([discount], 0)", "orders"),
     "nvl": ("nvl([discount], 0)", "orders"),
@@ -125,6 +132,13 @@ _VALIDATION_FRAMES = {
         "order_date": ("datetime", ["2024-01-15 10:30:00", "2024-01-17 14:05:12"]),
         "status": ("str", ["shipped", "pending"]),
     },
+    "events": {
+        "event": ("str", ["Kickoff Meeting", "Tech Conference"]),
+        "city": ("str", ["Amsterdam", "Lisbon"]),
+        "start": ("datetime", ["2024-05-06 09:00:00", "2024-06-18 08:00:00"]),
+        "end": ("datetime", ["2024-05-06 10:30:00", "2024-06-20 18:00:00"]),
+        "attendees": ("int", [12, None]),
+    },
 }
 
 
@@ -155,6 +169,13 @@ def _expression_runs(expression: str, dataset_key: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def _find_runnable_dataset(expression: str):
+    for dataset_key in _VALIDATION_FRAMES:
+        if _expression_runs(expression, dataset_key):
+            return dataset_key
+    return None
 
 
 def _clean_annotation(annotation) -> str:
@@ -213,6 +234,7 @@ def _parse_docstring(doc: str) -> dict:
         "example_text": None,
         "example_call": None,
         "example_result": None,
+        "example_context": None,
         "params": [],
         "returns": None,
     }
@@ -261,6 +283,8 @@ def _parse_docstring(doc: str) -> dict:
         if match:
             result["example_call"] = match.group("call").strip()
             result["example_result"] = match.group("result").strip()
+            if match.group("context"):
+                result["example_context"] = match.group("context").strip()
     return result
 
 
@@ -306,14 +330,20 @@ def build_reference() -> dict:
                 continue
             parsed = _parse_docstring(func.__doc__ or "")
 
-            if name in BROWSER_UNSUPPORTED:
-                try_expression, try_dataset = None, None
-            elif name in TRY_OVERRIDES:
-                try_expression, try_dataset = TRY_OVERRIDES[name]
-            else:
-                try_expression, try_dataset = parsed["example_call"], "employees"
-            if try_expression and not _expression_runs(try_expression, try_dataset):
-                try_expression, try_dataset = None, None
+            # Prefer the docstring example as the playground "try it"
+            # expression; fall back to a curated override when the example
+            # does not run against any of the sample datasets.
+            try_expression, try_dataset = None, None
+            if name not in BROWSER_UNSUPPORTED:
+                if parsed["example_call"]:
+                    dataset = _find_runnable_dataset(parsed["example_call"])
+                    if dataset:
+                        try_expression = parsed["example_call"]
+                        try_dataset = dataset
+                if try_expression is None and name in TRY_OVERRIDES:
+                    expression, dataset = TRY_OVERRIDES[name]
+                    if _expression_runs(expression, dataset):
+                        try_expression, try_dataset = expression, dataset
 
             functions.append(
                 {
@@ -323,6 +353,7 @@ def build_reference() -> dict:
                     "example_text": parsed["example_text"],
                     "example_call": parsed["example_call"],
                     "example_result": parsed["example_result"],
+                    "example_context": parsed["example_context"],
                     "try_expression": try_expression,
                     "try_dataset": try_dataset,
                     "parameters": _parameters_for(func, parsed["params"]),

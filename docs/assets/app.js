@@ -626,6 +626,7 @@ function fnCardHtml(fn) {
   const example = fn.example_call
     ? `<div class="fn-example">${highlightExpression(fn.example_call)}` +
       (fn.example_result ? `<span class="arrow">→</span><span class="res">${escapeHtml(fn.example_result)}</span>` : "") +
+      (fn.example_context ? `<span class="ctx">when ${escapeHtml(fn.example_context)}</span>` : "") +
       "</div>"
     : "";
   const params = fn.parameters.length
