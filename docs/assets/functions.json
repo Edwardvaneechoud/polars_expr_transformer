@@ -1,0 +1,1984 @@
+{
+  "version": "0.5.4",
+  "wheel": "wheel/polars_expr_transformer-0.5.4-py3-none-any.whl",
+  "total_functions": 95,
+  "categories": [
+    {
+      "key": "logic",
+      "label": "Logic & Nulls",
+      "functions": [
+        {
+          "name": "between",
+          "signature": "between(value, min_val, max_val)",
+          "description": "Checks if a value is between a minimum and maximum value (inclusive).",
+          "example_text": "For example, between(5, 1, 10) would return True.",
+          "example_call": "between(5, 1, 10)",
+          "example_result": "True",
+          "try_expression": "between(5, 1, 10)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to check"
+            },
+            {
+              "name": "min_val",
+              "type": "any",
+              "description": "The minimum value (inclusive)"
+            },
+            {
+              "name": "max_val",
+              "type": "any",
+              "description": "The maximum value (inclusive)"
+            }
+          ],
+          "returns": "True if the value is between min and max (inclusive), False otherwise"
+        },
+        {
+          "name": "coalesce",
+          "signature": "coalesce(*values)",
+          "description": "Returns the first non-null value from a list of values.",
+          "example_text": "For example, coalesce(null, null, \"default\") would return \"default\".",
+          "example_call": "coalesce(null, null, \"default\")",
+          "example_result": "\"default\"",
+          "try_expression": "coalesce([email], \"no email\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "*values",
+              "type": "any",
+              "description": "Multiple values to check in order"
+            }
+          ],
+          "returns": "The first non-null value, or null if all values are null"
+        },
+        {
+          "name": "contains",
+          "signature": "contains(text, search_for)",
+          "description": "Checks if some text contains a specific pattern.",
+          "example_text": "For example, contains(\"hello world\", \"world\") would return True.",
+          "example_call": "contains(\"hello world\", \"world\")",
+          "example_result": "True",
+          "try_expression": "contains(\"hello world\", \"world\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to search in"
+            },
+            {
+              "name": "search_for",
+              "type": "any",
+              "description": "The pattern to look for"
+            }
+          ],
+          "returns": "True if the pattern is found in the text, False otherwise"
+        },
+        {
+          "name": "does_not_equal",
+          "signature": "does_not_equal(value1, value2)",
+          "description": "Checks if two values are different from each other.",
+          "example_text": "For example, does_not_equal(\"apple\", \"orange\") would return True.",
+          "example_call": "does_not_equal(\"apple\", \"orange\")",
+          "example_result": "True",
+          "try_expression": "does_not_equal(\"apple\", \"orange\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value1",
+              "type": "any",
+              "description": "The first value to compare"
+            },
+            {
+              "name": "value2",
+              "type": "any",
+              "description": "The second value to compare"
+            }
+          ],
+          "returns": "True if the values are different, False if they're the same"
+        },
+        {
+          "name": "equals",
+          "signature": "equals(value1, value2)",
+          "description": "Checks if two values are equal to each other.",
+          "example_text": "For example, equals(\"apple\", \"apple\") would return True.",
+          "example_call": "equals(\"apple\", \"apple\")",
+          "example_result": "True",
+          "try_expression": "equals(\"apple\", \"apple\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value1",
+              "type": "any",
+              "description": "The first value to compare"
+            },
+            {
+              "name": "value2",
+              "type": "any",
+              "description": "The second value to compare"
+            }
+          ],
+          "returns": "True if the values are equal, False otherwise"
+        },
+        {
+          "name": "greatest",
+          "signature": "greatest(*values)",
+          "description": "Returns the largest value from a list of values.",
+          "example_text": "For example, greatest(1, 5, 3) would return 5.",
+          "example_call": "greatest(1, 5, 3)",
+          "example_result": "5",
+          "try_expression": "greatest(1, 5, 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "*values",
+              "type": "any",
+              "description": "Multiple values to compare"
+            }
+          ],
+          "returns": "The largest value"
+        },
+        {
+          "name": "ifnull",
+          "signature": "ifnull(value, default)",
+          "description": "Returns a default value if the input is null.",
+          "example_text": "For example, ifnull(null, \"default\") would return \"default\".",
+          "example_call": "ifnull(null, \"default\")",
+          "example_result": "\"default\"",
+          "try_expression": "ifnull([discount], 0)",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to check"
+            },
+            {
+              "name": "default",
+              "type": "any",
+              "description": "The value to return if the first value is null"
+            }
+          ],
+          "returns": "The original value if not null, otherwise the default value"
+        },
+        {
+          "name": "is_empty",
+          "signature": "is_empty(value)",
+          "description": "Checks if a value is empty (null/missing).",
+          "example_text": "For example, is_empty(null) would return True.",
+          "example_call": "is_empty(null)",
+          "example_result": "True",
+          "try_expression": "is_empty([email])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "expression",
+              "description": "The value to check"
+            }
+          ],
+          "returns": "True if the value is empty, False otherwise"
+        },
+        {
+          "name": "is_not_empty",
+          "signature": "is_not_empty(value)",
+          "description": "Checks if a value contains something (is not null/missing).",
+          "example_text": "For example, is_not_empty(\"apple\") would return True.",
+          "example_call": "is_not_empty(\"apple\")",
+          "example_result": "True",
+          "try_expression": "is_not_empty([email])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "expression",
+              "description": "The value to check"
+            }
+          ],
+          "returns": "True if the value contains something, False if it's empty"
+        },
+        {
+          "name": "is_string",
+          "signature": "is_string(value)",
+          "description": "Checks if a value is text (a string).",
+          "example_text": "For example, is_string(\"apple\") would return True, but is_string(123) would return False.",
+          "example_call": "is_string(\"apple\")",
+          "example_result": "True, but is_string(123) would return False",
+          "try_expression": "is_string(\"apple\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to check"
+            }
+          ],
+          "returns": "True if the value is text, False otherwise"
+        },
+        {
+          "name": "least",
+          "signature": "least(*values)",
+          "description": "Returns the smallest value from a list of values.",
+          "example_text": "For example, least(1, 5, 3) would return 1.",
+          "example_call": "least(1, 5, 3)",
+          "example_result": "1",
+          "try_expression": "least(1, 5, 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "*values",
+              "type": "any",
+              "description": "Multiple values to compare"
+            }
+          ],
+          "returns": "The smallest value"
+        },
+        {
+          "name": "nullif",
+          "signature": "nullif(value1, value2)",
+          "description": "Returns null if the two values are equal, otherwise returns the first value.",
+          "example_text": "For example, nullif(5, 5) would return null, but nullif(5, 3) would return 5.",
+          "example_call": "nullif(5, 5)",
+          "example_result": "null, but nullif(5, 3) would return 5",
+          "try_expression": "nullif([status], \"cancelled\")",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "value1",
+              "type": "any",
+              "description": "The value to potentially return"
+            },
+            {
+              "name": "value2",
+              "type": "any",
+              "description": "The value to compare against"
+            }
+          ],
+          "returns": "null if value1 equals value2, otherwise value1"
+        },
+        {
+          "name": "nvl",
+          "signature": "nvl(value, default)",
+          "description": "Returns a default value if the input is null (alias for ifnull).",
+          "example_text": "For example, nvl(null, \"default\") would return \"default\".",
+          "example_call": "nvl(null, \"default\")",
+          "example_result": "\"default\"",
+          "try_expression": "nvl([discount], 0)",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to check"
+            },
+            {
+              "name": "default",
+              "type": "any",
+              "description": "The value to return if the first value is null"
+            }
+          ],
+          "returns": "The original value if not null, otherwise the default value"
+        }
+      ]
+    },
+    {
+      "key": "string",
+      "label": "String",
+      "functions": [
+        {
+          "name": "concat",
+          "signature": "concat(*text_parts)",
+          "description": "Combines multiple text values into a single text.",
+          "example_text": "For example, concat(\"Hello\", \" \", \"World\") would return \"Hello World\".",
+          "example_call": "concat(\"Hello\", \" \", \"World\")",
+          "example_result": "\"Hello World\"",
+          "try_expression": "concat(\"Hello\", \" \", \"World\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "*text_parts",
+              "type": "any",
+              "description": "The texts you want to combine"
+            }
+          ],
+          "returns": "The combined text"
+        },
+        {
+          "name": "count_match",
+          "signature": "count_match(text, pattern)",
+          "description": "Counts how many times a pattern appears in text.",
+          "example_text": "For example, count_match(\"banana\", \"a\") would return 3.",
+          "example_call": "count_match(\"banana\", \"a\")",
+          "example_result": "3",
+          "try_expression": "count_match(\"banana\", \"a\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to search in"
+            },
+            {
+              "name": "pattern",
+              "type": "text",
+              "description": "The pattern to search for"
+            }
+          ],
+          "returns": "The number of matches found"
+        },
+        {
+          "name": "ends_with",
+          "signature": "ends_with(text, suffix)",
+          "description": "Checks if text ends with a specific suffix.",
+          "example_text": "For example, ends_with(\"Hello World\", \"World\") would return True.",
+          "example_call": "ends_with(\"Hello World\", \"World\")",
+          "example_result": "True",
+          "try_expression": "ends_with(\"Hello World\", \"World\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to check"
+            },
+            {
+              "name": "suffix",
+              "type": "expression | text",
+              "description": "The suffix to look for at the end"
+            }
+          ],
+          "returns": "True if the text ends with the suffix, False otherwise"
+        },
+        {
+          "name": "find_position",
+          "signature": "find_position(text, sub)",
+          "description": "Find the position of a substring within a string.",
+          "example_text": null,
+          "example_call": null,
+          "example_result": null,
+          "try_expression": null,
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text in which to find the position of the substring. Can be an expression or any other value."
+            },
+            {
+              "name": "sub",
+              "type": "expression | text",
+              "description": ""
+            }
+          ],
+          "returns": "the position of the text"
+        },
+        {
+          "name": "left",
+          "signature": "left(text, num_chars)",
+          "description": "Gets a specified number of characters from the beginning of text.",
+          "example_text": "For example, left(\"Hello World\", 5) would return \"Hello\".",
+          "example_call": "left(\"Hello World\", 5)",
+          "example_result": "\"Hello\"",
+          "try_expression": "left(\"Hello World\", 5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to extract from"
+            },
+            {
+              "name": "num_chars",
+              "type": "expression | integer",
+              "description": "How many characters to take from the beginning"
+            }
+          ],
+          "returns": "The extracted text"
+        },
+        {
+          "name": "left_trim",
+          "signature": "left_trim(text)",
+          "description": "Removes spaces from the beginning of text.",
+          "example_text": "For example, left_trim(\"  hello world  \") would return \"hello world  \".",
+          "example_call": "left_trim(\"  hello world  \")",
+          "example_result": "\"hello world  \"",
+          "try_expression": "left_trim(\"  hello world  \")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text you want to trim"
+            }
+          ],
+          "returns": "The trimmed text"
+        },
+        {
+          "name": "length",
+          "signature": "length(text)",
+          "description": "Counts the number of characters in text.",
+          "example_text": "For example, length(\"hello\") would return 5.",
+          "example_call": "length(\"hello\")",
+          "example_result": "5",
+          "try_expression": "length(\"hello\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to measure"
+            }
+          ],
+          "returns": "The number of characters"
+        },
+        {
+          "name": "lowercase",
+          "signature": "lowercase(text)",
+          "description": "Converts text to all lowercase.",
+          "example_text": "For example, lowercase(\"Hello World\") would return \"hello world\".",
+          "example_call": "lowercase(\"Hello World\")",
+          "example_result": "\"hello world\"",
+          "try_expression": "lowercase(\"Hello World\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to convert"
+            }
+          ],
+          "returns": "The lowercase text"
+        },
+        {
+          "name": "mid",
+          "signature": "mid(text, start, num_chars)",
+          "description": "Extracts a portion of text from the middle starting at a specified position.",
+          "example_text": "For example, mid(\"Hello World\", 0, 5) would return \"Hello\".",
+          "example_call": "mid(\"Hello World\", 0, 5)",
+          "example_result": "\"Hello\"",
+          "try_expression": "mid(\"Hello World\", 0, 5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to extract from"
+            },
+            {
+              "name": "start",
+              "type": "expression | integer",
+              "description": "The starting position (0-based index)"
+            },
+            {
+              "name": "num_chars",
+              "type": "expression | integer",
+              "description": "How many characters to extract"
+            }
+          ],
+          "returns": "The extracted text"
+        },
+        {
+          "name": "pad_left",
+          "signature": "pad_left(text, length, pad_character=' ')",
+          "description": "Adds characters to the beginning of text to reach a specific length.",
+          "example_text": "For example, pad_left(\"123\", 5, \"0\") would return \"00123\".",
+          "example_call": "pad_left(\"123\", 5, \"0\")",
+          "example_result": "\"00123\"",
+          "try_expression": "pad_left(\"123\", 5, \"0\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text you want to pad"
+            },
+            {
+              "name": "length",
+              "type": "integer",
+              "description": "How long you want the final text to be"
+            },
+            {
+              "name": "pad_character",
+              "type": "text",
+              "description": "What character to use for padding (default is a space)",
+              "default": "' '"
+            }
+          ],
+          "returns": "The padded text"
+        },
+        {
+          "name": "pad_right",
+          "signature": "pad_right(text, length, pad_character=' ')",
+          "description": "Adds characters to the end of text to reach a specific length.",
+          "example_text": "For example, pad_right(\"123\", 5, \"0\") would return \"12300\".",
+          "example_call": "pad_right(\"123\", 5, \"0\")",
+          "example_result": "\"12300\"",
+          "try_expression": "pad_right(\"123\", 5, \"0\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text you want to pad"
+            },
+            {
+              "name": "length",
+              "type": "integer",
+              "description": "How long you want the final text to be"
+            },
+            {
+              "name": "pad_character",
+              "type": "text",
+              "description": "What character to use for padding (default is a space)",
+              "default": "' '"
+            }
+          ],
+          "returns": "The padded text"
+        },
+        {
+          "name": "repeat",
+          "signature": "repeat(text, count)",
+          "description": "Repeats text a specified number of times.",
+          "example_text": "For example, repeat(\"ab\", 3) would return \"ababab\".",
+          "example_call": "repeat(\"ab\", 3)",
+          "example_result": "\"ababab\"",
+          "try_expression": "repeat(\"ab\", 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to repeat"
+            },
+            {
+              "name": "count",
+              "type": "expression | integer",
+              "description": "How many times to repeat the text"
+            }
+          ],
+          "returns": "The repeated text"
+        },
+        {
+          "name": "replace",
+          "signature": "replace(text, find_text, replace_with)",
+          "description": "Replaces specific text with different text.",
+          "example_text": "For example, replace(\"Hello world\", \"world\", \"friend\") would return \"Hello friend\".",
+          "example_call": "replace(\"Hello world\", \"world\", \"friend\")",
+          "example_result": "\"Hello friend\"",
+          "try_expression": "replace(\"Hello world\", \"world\", \"friend\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The original text where replacements will be made"
+            },
+            {
+              "name": "find_text",
+              "type": "expression | text",
+              "description": "The text you want to find and replace"
+            },
+            {
+              "name": "replace_with",
+              "type": "expression | text",
+              "description": "The new text that will replace the found text"
+            }
+          ],
+          "returns": "The text after replacement"
+        },
+        {
+          "name": "reverse",
+          "signature": "reverse(text)",
+          "description": "Reverses the characters in text.",
+          "example_text": "For example, reverse(\"Hello\") would return \"olleH\".",
+          "example_call": "reverse(\"Hello\")",
+          "example_result": "\"olleH\"",
+          "try_expression": "reverse(\"Hello\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to reverse"
+            }
+          ],
+          "returns": "The reversed text"
+        },
+        {
+          "name": "right",
+          "signature": "right(text, num_chars)",
+          "description": "Gets a specified number of characters from the end of text.",
+          "example_text": "For example, right(\"Hello World\", 5) would return \"World\".",
+          "example_call": "right(\"Hello World\", 5)",
+          "example_result": "\"World\"",
+          "try_expression": "right(\"Hello World\", 5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to extract from"
+            },
+            {
+              "name": "num_chars",
+              "type": "expression | integer",
+              "description": "How many characters to take from the end"
+            }
+          ],
+          "returns": "The extracted text"
+        },
+        {
+          "name": "right_trim",
+          "signature": "right_trim(text)",
+          "description": "Removes spaces from the end of text.",
+          "example_text": "For example, right_trim(\"hello world  \") would return \"hello world\".",
+          "example_call": "right_trim(\"hello world  \")",
+          "example_result": "\"hello world\"",
+          "try_expression": "right_trim(\"hello world  \")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text you want to trim"
+            }
+          ],
+          "returns": "The trimmed text"
+        },
+        {
+          "name": "split",
+          "signature": "split(text, delimiter)",
+          "description": "Splits text into a list using a delimiter.",
+          "example_text": "For example, split(\"a,b,c\", \",\") would return [\"a\", \"b\", \"c\"].",
+          "example_call": "split(\"a,b,c\", \",\")",
+          "example_result": "[\"a\", \"b\", \"c\"]",
+          "try_expression": "split(\"a,b,c\", \",\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to split"
+            },
+            {
+              "name": "delimiter",
+              "type": "text",
+              "description": "The character(s) to split on"
+            }
+          ],
+          "returns": "A list of text parts"
+        },
+        {
+          "name": "starts_with",
+          "signature": "starts_with(text, prefix)",
+          "description": "Checks if text starts with a specific prefix.",
+          "example_text": "For example, starts_with(\"Hello World\", \"Hello\") would return True.",
+          "example_call": "starts_with(\"Hello World\", \"Hello\")",
+          "example_result": "True",
+          "try_expression": "starts_with(\"Hello World\", \"Hello\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to check"
+            },
+            {
+              "name": "prefix",
+              "type": "expression | text",
+              "description": "The prefix to look for at the start"
+            }
+          ],
+          "returns": "True if the text starts with the prefix, False otherwise"
+        },
+        {
+          "name": "string_similarity",
+          "signature": "string_similarity(text1, text2, method='levenshtein')",
+          "description": "Measures how similar two texts are to each other, on a scale of 0 to 1. A value of 1 means the texts are identical, while 0 means they are completely different.",
+          "example_text": "For example, string_similarity(\"apple\", \"appl\") might return 0.8.",
+          "example_call": "string_similarity(\"apple\", \"appl\")",
+          "example_result": "0.8",
+          "try_expression": null,
+          "try_dataset": null,
+          "parameters": [
+            {
+              "name": "text1",
+              "type": "expression | text",
+              "description": "The first text to compare"
+            },
+            {
+              "name": "text2",
+              "type": "expression | text",
+              "description": "The second text to compare"
+            },
+            {
+              "name": "method",
+              "type": "text",
+              "description": "Which comparison method to use (default is 'levenshtein')",
+              "default": "'levenshtein'"
+            }
+          ],
+          "returns": "A similarity score between 0 and 1"
+        },
+        {
+          "name": "substring",
+          "signature": "substring(text, start, num_chars)",
+          "description": "Extracts a portion of text starting at a specified position (alias for mid).",
+          "example_text": "For example, substring(\"Hello World\", 6, 5) would return \"World\".",
+          "example_call": "substring(\"Hello World\", 6, 5)",
+          "example_result": "\"World\"",
+          "try_expression": "substring(\"Hello World\", 6, 5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to extract from"
+            },
+            {
+              "name": "start",
+              "type": "expression | integer",
+              "description": "The starting position (0-based index)"
+            },
+            {
+              "name": "num_chars",
+              "type": "expression | integer",
+              "description": "How many characters to extract"
+            }
+          ],
+          "returns": "The extracted text"
+        },
+        {
+          "name": "titlecase",
+          "signature": "titlecase(text)",
+          "description": "Converts Text To Title Case, Where Each Word Is Capitalized.",
+          "example_text": "For example, titlecase(\"hello world\") would return \"Hello World\".",
+          "example_call": "titlecase(\"hello world\")",
+          "example_result": "\"Hello World\"",
+          "try_expression": "titlecase(\"hello world\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to convert"
+            }
+          ],
+          "returns": "The title case text"
+        },
+        {
+          "name": "trim",
+          "signature": "trim(text)",
+          "description": "Removes spaces from both the beginning and end of text.",
+          "example_text": "For example, trim(\"  hello world  \") would return \"hello world\".",
+          "example_call": "trim(\"  hello world  \")",
+          "example_result": "\"hello world\"",
+          "try_expression": "trim(\"  hello world  \")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text you want to trim"
+            }
+          ],
+          "returns": "The trimmed text"
+        },
+        {
+          "name": "uppercase",
+          "signature": "uppercase(text)",
+          "description": "Converts text to ALL UPPERCASE.",
+          "example_text": "For example, uppercase(\"Hello World\") would return \"HELLO WORLD\".",
+          "example_call": "uppercase(\"Hello World\")",
+          "example_result": "\"HELLO WORLD\"",
+          "try_expression": "uppercase(\"Hello World\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to convert"
+            }
+          ],
+          "returns": "The uppercase text"
+        }
+      ]
+    },
+    {
+      "key": "math",
+      "label": "Math",
+      "functions": [
+        {
+          "name": "abs",
+          "signature": "abs(number)",
+          "description": "Returns the absolute value of a number (removes negative sign).",
+          "example_text": "For example, abs(-5) would return 5, and abs(5) would still return 5.",
+          "example_call": "abs(-5)",
+          "example_result": "5, and abs(5) would still return 5",
+          "try_expression": "abs(-5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to get the absolute value of"
+            }
+          ],
+          "returns": "The positive version of the number"
+        },
+        {
+          "name": "acos",
+          "signature": "acos(number)",
+          "description": "Calculates the arccosine (inverse cosine) of a number.",
+          "example_text": "For example, acos(1) would return 0.",
+          "example_call": "acos(1)",
+          "example_result": "0",
+          "try_expression": "acos(1)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the arccosine of (between -1 and 1)"
+            }
+          ],
+          "returns": "The angle in radians whose cosine equals the input"
+        },
+        {
+          "name": "asin",
+          "signature": "asin(number)",
+          "description": "Calculates the arcsine (inverse sine) of a number.",
+          "example_text": "For example, asin(0) would return 0.",
+          "example_call": "asin(0)",
+          "example_result": "0",
+          "try_expression": "asin(0)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the arcsine of (between -1 and 1)"
+            }
+          ],
+          "returns": "The angle in radians whose sine equals the input"
+        },
+        {
+          "name": "atan",
+          "signature": "atan(number)",
+          "description": "Calculates the arctangent (inverse tangent) of a number.",
+          "example_text": "For example, atan(0) would return 0.",
+          "example_call": "atan(0)",
+          "example_result": "0",
+          "try_expression": "atan(0)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the arctangent of"
+            }
+          ],
+          "returns": "The angle in radians whose tangent equals the input"
+        },
+        {
+          "name": "ceil",
+          "signature": "ceil(number)",
+          "description": "Rounds a number up to the nearest whole number.",
+          "example_text": "For example, ceil(4.2) would return 5, and ceil(4.9) would also return 5.",
+          "example_call": "ceil(4.2)",
+          "example_result": "5, and ceil(4.9) would also return 5",
+          "try_expression": "ceil(4.2)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to round up"
+            }
+          ],
+          "returns": "The rounded up number"
+        },
+        {
+          "name": "cos",
+          "signature": "cos(angle)",
+          "description": "Calculates the cosine of an angle (in radians).",
+          "example_text": "For example, cos(0) would return 1.",
+          "example_call": "cos(0)",
+          "example_result": "1",
+          "try_expression": "cos(0)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "angle",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The angle in radians"
+            }
+          ],
+          "returns": "The cosine of the angle"
+        },
+        {
+          "name": "exp",
+          "signature": "exp(number)",
+          "description": "Calculates e raised to the power of a number.",
+          "example_text": "For example, exp(1) would return approximately 2.718.",
+          "example_call": "exp(1)",
+          "example_result": "approximately 2.718",
+          "try_expression": "exp(1)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The power to raise e to"
+            }
+          ],
+          "returns": "The result of e^number"
+        },
+        {
+          "name": "floor",
+          "signature": "floor(number)",
+          "description": "Rounds a number down to the nearest whole number.",
+          "example_text": "For example, floor(4.7) would return 4, and floor(4.2) would also return 4.",
+          "example_call": "floor(4.7)",
+          "example_result": "4, and floor(4.2) would also return 4",
+          "try_expression": "floor(4.7)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to round down"
+            }
+          ],
+          "returns": "The rounded down number"
+        },
+        {
+          "name": "log",
+          "signature": "log(number)",
+          "description": "Calculates the natural logarithm of a number.",
+          "example_text": "For example, log(2.718) would return approximately 1.",
+          "example_call": "log(2.718)",
+          "example_result": "approximately 1",
+          "try_expression": "log(2.718)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the logarithm for"
+            }
+          ],
+          "returns": "The natural logarithm of the number"
+        },
+        {
+          "name": "log10",
+          "signature": "log10(number)",
+          "description": "Calculates the base-10 logarithm of a number.",
+          "example_text": "For example, log10(100) would return 2.",
+          "example_call": "log10(100)",
+          "example_result": "2",
+          "try_expression": "log10(100)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the logarithm for"
+            }
+          ],
+          "returns": "The base-10 logarithm of the number"
+        },
+        {
+          "name": "log2",
+          "signature": "log2(number)",
+          "description": "Calculates the base-2 logarithm of a number.",
+          "example_text": "For example, log2(8) would return 3.",
+          "example_call": "log2(8)",
+          "example_result": "3",
+          "try_expression": "log2(8)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the logarithm for"
+            }
+          ],
+          "returns": "The base-2 logarithm of the number"
+        },
+        {
+          "name": "mod",
+          "signature": "mod(dividend, divisor)",
+          "description": "Calculates the remainder of division (modulo).",
+          "example_text": "For example, mod(10, 3) would return 1 (10 divided by 3 is 3 remainder 1).",
+          "example_call": "mod(10, 3)",
+          "example_result": "1 (10 divided by 3 is 3 remainder 1)",
+          "try_expression": "mod(10, 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "dividend",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to be divided"
+            },
+            {
+              "name": "divisor",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to divide by"
+            }
+          ],
+          "returns": "The remainder of the division"
+        },
+        {
+          "name": "negation",
+          "signature": "negation(number)",
+          "description": "Changes the sign of a number (positive becomes negative, negative becomes positive).",
+          "example_text": "For example, negation(5) would return -5, and negation(-3) would return 3.",
+          "example_call": "negation(5)",
+          "example_result": "-5, and negation(-3) would return 3",
+          "try_expression": null,
+          "try_dataset": null,
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to change the sign of"
+            }
+          ],
+          "returns": "The number with its sign flipped"
+        },
+        {
+          "name": "negative",
+          "signature": "negative()",
+          "description": "Returns the value -1. This is a simple utility function that always returns negative one.",
+          "example_text": null,
+          "example_call": null,
+          "example_result": null,
+          "try_expression": null,
+          "try_dataset": "employees",
+          "parameters": [],
+          "returns": "The value -1"
+        },
+        {
+          "name": "pow",
+          "signature": "pow(base, exponent)",
+          "description": "Raises a number to a power (alias for power).",
+          "example_text": "For example, pow(2, 3) would return 8 (2^3 = 8).",
+          "example_call": "pow(2, 3)",
+          "example_result": "8 (2^3 = 8)",
+          "try_expression": "pow(2, 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "base",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to raise"
+            },
+            {
+              "name": "exponent",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The power to raise the base to"
+            }
+          ],
+          "returns": "The result of base raised to the power of exponent"
+        },
+        {
+          "name": "power",
+          "signature": "power(base, exponent)",
+          "description": "Raises a number to a power.",
+          "example_text": "For example, power(2, 3) would return 8 (2^3 = 8).",
+          "example_call": "power(2, 3)",
+          "example_result": "8 (2^3 = 8)",
+          "try_expression": "power(2, 3)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "base",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to raise"
+            },
+            {
+              "name": "exponent",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The power to raise the base to"
+            }
+          ],
+          "returns": "The result of base raised to the power of exponent"
+        },
+        {
+          "name": "random_int",
+          "signature": "random_int(min_value=0, max_value=2)",
+          "description": "Generates a random whole number between two values.",
+          "example_text": "For example, random_int(1, 6) might return 4 (like rolling a die).",
+          "example_call": "random_int(1, 6)",
+          "example_result": "4 (like rolling a die)",
+          "try_expression": "random_int(1, 6)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "min_value",
+              "type": "integer",
+              "description": "The smallest possible number to generate (default is 0)",
+              "default": "0"
+            },
+            {
+              "name": "max_value",
+              "type": "integer",
+              "description": "The largest possible number to generate (default is 2)",
+              "default": "2"
+            }
+          ],
+          "returns": "A random number between min_value and max_value"
+        },
+        {
+          "name": "round",
+          "signature": "round(number, decimal_places=None)",
+          "description": "Rounds a number to a specified number of decimal places.",
+          "example_text": "For example, round(3.14159, 2) would return 3.14.",
+          "example_call": "round(3.14159, 2)",
+          "example_result": "3.14",
+          "try_expression": "round(3.14159, 2)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to round"
+            },
+            {
+              "name": "decimal_places",
+              "type": "integer",
+              "description": "How many decimal places to keep (default is 0)",
+              "default": "None"
+            }
+          ],
+          "returns": "The rounded number"
+        },
+        {
+          "name": "sign",
+          "signature": "sign(number)",
+          "description": "Returns the sign of a number (-1, 0, or 1).",
+          "example_text": "For example, sign(-5) returns -1, sign(0) returns 0, sign(5) returns 1.",
+          "example_call": "sign(-5)",
+          "example_result": "-1, sign(0) returns 0, sign(5) returns 1",
+          "try_expression": "sign(-5)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to check"
+            }
+          ],
+          "returns": "1 if negative, 0 if zero, 1 if positive"
+        },
+        {
+          "name": "sin",
+          "signature": "sin(angle)",
+          "description": "Calculates the sine of an angle (in radians).",
+          "example_text": "For example, sin(0) would return 0.",
+          "example_call": "sin(0)",
+          "example_result": "0",
+          "try_expression": "sin(0)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "angle",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The angle in radians"
+            }
+          ],
+          "returns": "The sine of the angle"
+        },
+        {
+          "name": "sqrt",
+          "signature": "sqrt(number)",
+          "description": "Calculates the square root of a number.",
+          "example_text": "For example, sqrt(9) would return 3.",
+          "example_call": "sqrt(9)",
+          "example_result": "3",
+          "try_expression": "sqrt(9)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the square root of"
+            }
+          ],
+          "returns": "The square root of the number"
+        },
+        {
+          "name": "tan",
+          "signature": "tan(angle)",
+          "description": "Calculates the tangent of an angle (in radians).",
+          "example_text": "For example, tan(0) would return 0.",
+          "example_call": "tan(0)",
+          "example_result": "0",
+          "try_expression": "tan(0)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "angle",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The angle in radians"
+            }
+          ],
+          "returns": "The tangent of the angle"
+        },
+        {
+          "name": "tanh",
+          "signature": "tanh(number)",
+          "description": "Calculates the hyperbolic tangent of a number. The result is always between -1 and 1.",
+          "example_text": null,
+          "example_call": null,
+          "example_result": null,
+          "try_expression": null,
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "number",
+              "type": "DataTypeGroup({Float32, Int64, UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128})",
+              "description": "The number to calculate the hyperbolic tangent of"
+            }
+          ],
+          "returns": "The hyperbolic tangent of the number"
+        }
+      ]
+    },
+    {
+      "key": "date",
+      "label": "Date & Time",
+      "functions": [
+        {
+          "name": "add_days",
+          "signature": "add_days(date_value, days)",
+          "description": "Adds a number of days to a date.",
+          "example_text": "For example, add_days(\"2023-05-15\", 5) would return \"2023-05-20\".",
+          "example_call": "add_days(\"2023-05-15\", 5)",
+          "example_result": "\"2023-05-20\"",
+          "try_expression": "add_days([hire_date], 30)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date"
+            },
+            {
+              "name": "days",
+              "type": "expression | integer",
+              "description": "How many days to add"
+            }
+          ],
+          "returns": "The new date"
+        },
+        {
+          "name": "add_hours",
+          "signature": "add_hours(date_value, hours)",
+          "description": "Adds a number of hours to a date and time.",
+          "example_text": "For example, add_hours(\"2023-05-15 14:30:00\", 3) would return \"2023-05-15 17:30:00\".",
+          "example_call": "add_hours(\"2023-05-15 14:30:00\", 3)",
+          "example_result": "\"2023-05-15 17:30:00\"",
+          "try_expression": "add_hours([order_date], 3)",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date and time"
+            },
+            {
+              "name": "hours",
+              "type": "expression | integer",
+              "description": "How many hours to add"
+            }
+          ],
+          "returns": "The new date and time"
+        },
+        {
+          "name": "add_minutes",
+          "signature": "add_minutes(date_value, minutes)",
+          "description": "Adds a number of minutes to a date and time.",
+          "example_text": "For example, add_minutes(\"2023-05-15 14:30:00\", 15) would return \"2023-05-15 14:45:00\".",
+          "example_call": "add_minutes(\"2023-05-15 14:30:00\", 15)",
+          "example_result": "\"2023-05-15 14:45:00\"",
+          "try_expression": "add_minutes([order_date], 30)",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date and time"
+            },
+            {
+              "name": "minutes",
+              "type": "expression | integer",
+              "description": "How many minutes to add"
+            }
+          ],
+          "returns": "The new date and time"
+        },
+        {
+          "name": "add_months",
+          "signature": "add_months(date_value, months)",
+          "description": "Adds a number of months to a date.",
+          "example_text": "For example, add_months(\"2023-05-15\", 2) would return \"2023-07-15\".",
+          "example_call": "add_months(\"2023-05-15\", 2)",
+          "example_result": "\"2023-07-15\"",
+          "try_expression": "add_months([hire_date], 6)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date"
+            },
+            {
+              "name": "months",
+              "type": "expression | integer",
+              "description": "How many months to add"
+            }
+          ],
+          "returns": "The new date"
+        },
+        {
+          "name": "add_seconds",
+          "signature": "add_seconds(date_value, seconds)",
+          "description": "Adds a number of seconds to a date and time.",
+          "example_text": "For example, add_seconds(\"2023-05-15 14:30:00\", 30) would return \"2023-05-15 14:30:30\".",
+          "example_call": "add_seconds(\"2023-05-15 14:30:00\", 30)",
+          "example_result": "\"2023-05-15 14:30:30\"",
+          "try_expression": "add_seconds([order_date], 45)",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date and time"
+            },
+            {
+              "name": "seconds",
+              "type": "expression | integer",
+              "description": "How many seconds to add"
+            }
+          ],
+          "returns": "The new date and time"
+        },
+        {
+          "name": "add_weeks",
+          "signature": "add_weeks(date_value, weeks)",
+          "description": "Adds a number of weeks to a date.",
+          "example_text": "For example, add_weeks(\"2023-05-15\", 2) would return \"2023-05-29\".",
+          "example_call": "add_weeks(\"2023-05-15\", 2)",
+          "example_result": "\"2023-05-29\"",
+          "try_expression": "add_weeks([hire_date], 2)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date"
+            },
+            {
+              "name": "weeks",
+              "type": "expression | integer",
+              "description": "How many weeks to add"
+            }
+          ],
+          "returns": "The new date"
+        },
+        {
+          "name": "add_years",
+          "signature": "add_years(date_value, years)",
+          "description": "Adds a number of years to a date.",
+          "example_text": "For example, add_years(\"2023-05-15\", 1) would return \"2024-05-15\".",
+          "example_call": "add_years(\"2023-05-15\", 1)",
+          "example_result": "\"2024-05-15\"",
+          "try_expression": "add_years([hire_date], 1)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The starting date"
+            },
+            {
+              "name": "years",
+              "type": "expression | integer",
+              "description": "How many years to add"
+            }
+          ],
+          "returns": "The new date"
+        },
+        {
+          "name": "date_diff_days",
+          "signature": "date_diff_days(date1, date2)",
+          "description": "Calculates the number of days between two dates.",
+          "example_text": "For example, date_diff_days(\"2023-05-15\", \"2023-05-10\") would return 5.",
+          "example_call": "date_diff_days(\"2023-05-15\", \"2023-05-10\")",
+          "example_result": "5",
+          "try_expression": "date_diff_days(today(), [hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date1",
+              "type": "expression | text",
+              "description": "The first date"
+            },
+            {
+              "name": "date2",
+              "type": "expression | text",
+              "description": "The second date"
+            }
+          ],
+          "returns": "The number of days between the two dates"
+        },
+        {
+          "name": "date_trim",
+          "signature": "date_trim(date_value, part)",
+          "description": "Removes the smaller parts of a date or time.",
+          "example_text": "For example, date_trim(\"2023-05-15 14:30:25\", \"day\") would return \"2023-05-15 00:00:00\".",
+          "example_call": "date_trim(\"2023-05-15 14:30:25\", \"day\")",
+          "example_result": "\"2023-05-15 00:00:00\"",
+          "try_expression": "date_trim([order_date], \"day\")",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "any",
+              "description": "The date and time to trim"
+            },
+            {
+              "name": "part",
+              "type": "text",
+              "description": "Which part to keep ('year', 'month', 'day', 'hour', 'minute', or 'second')"
+            }
+          ],
+          "returns": "The trimmed date and time"
+        },
+        {
+          "name": "date_truncate",
+          "signature": "date_truncate(date_value, truncate_by)",
+          "description": "Rounds a date down to the nearest specified unit.",
+          "example_text": "For example, date_truncate(\"2023-05-15 14:30:25\", \"1d\") would return \"2023-05-15 00:00:00\".",
+          "example_call": "date_truncate(\"2023-05-15 14:30:25\", \"1d\")",
+          "example_result": "\"2023-05-15 00:00:00\"",
+          "try_expression": "date_truncate([order_date], \"1d\")",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "any",
+              "description": "The date and time to truncate"
+            },
+            {
+              "name": "truncate_by",
+              "type": "text",
+              "description": "The time unit to round down to (like \"1d\", \"2h\", \"15m\")"
+            }
+          ],
+          "returns": "The truncated date and time"
+        },
+        {
+          "name": "datetime_diff_nanoseconds",
+          "signature": "datetime_diff_nanoseconds(date1, date2)",
+          "description": "Calculates the number of nanoseconds between two dates and times. For very precise time measurements, this function shows the exact difference down to billionths of a second.",
+          "example_text": null,
+          "example_call": null,
+          "example_result": null,
+          "try_expression": "datetime_diff_nanoseconds(now(), [order_date])",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date1",
+              "type": "expression | text",
+              "description": "The first date and time"
+            },
+            {
+              "name": "date2",
+              "type": "expression | text",
+              "description": "The second date and time"
+            }
+          ],
+          "returns": "The number of nanoseconds between the two dates and times"
+        },
+        {
+          "name": "datetime_diff_seconds",
+          "signature": "datetime_diff_seconds(date1, date2)",
+          "description": "Calculates the number of seconds between two dates and times.",
+          "example_text": "For example, datetime_diff_seconds(\"2023-05-15 14:30:00\", \"2023-05-15 14:29:00\") would return 60.",
+          "example_call": "datetime_diff_seconds(\"2023-05-15 14:30:00\", \"2023-05-15 14:29:00\")",
+          "example_result": "60",
+          "try_expression": "datetime_diff_seconds(now(), [order_date])",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date1",
+              "type": "expression | text",
+              "description": "The first date and time"
+            },
+            {
+              "name": "date2",
+              "type": "expression | text",
+              "description": "The second date and time"
+            }
+          ],
+          "returns": "The number of seconds between the two dates and times"
+        },
+        {
+          "name": "day",
+          "signature": "day(date_value)",
+          "description": "Gets the day from a date.",
+          "example_text": "For example, day(\"2023-05-15\") would return 15.",
+          "example_call": "day(\"2023-05-15\")",
+          "example_result": "15",
+          "try_expression": "day([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the day from"
+            }
+          ],
+          "returns": "The day of the month as a number (1-31)"
+        },
+        {
+          "name": "dayofweek",
+          "signature": "dayofweek(date_value)",
+          "description": "Gets the day of the week from a date (alias for weekday).",
+          "example_text": "For example, dayofweek(\"2023-05-15\") would return 1 (Monday).",
+          "example_call": "dayofweek(\"2023-05-15\")",
+          "example_result": "1 (Monday)",
+          "try_expression": "dayofweek([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the day of week from"
+            }
+          ],
+          "returns": "The day of the week as a number (1-7)"
+        },
+        {
+          "name": "dayofyear",
+          "signature": "dayofyear(date_value)",
+          "description": "Gets the day of the year from a date (1-366).",
+          "example_text": "For example, dayofyear(\"2023-02-01\") would return 32.",
+          "example_call": "dayofyear(\"2023-02-01\")",
+          "example_result": "32",
+          "try_expression": "dayofyear([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the day of year from"
+            }
+          ],
+          "returns": "The day of the year as a number (1-366)"
+        },
+        {
+          "name": "end_of_month",
+          "signature": "end_of_month(date_value)",
+          "description": "Gets the last day of the month for a given date.",
+          "example_text": "For example, end_of_month(\"2023-05-15\") would return \"2023-05-31\".",
+          "example_call": "end_of_month(\"2023-05-15\")",
+          "example_result": "\"2023-05-31\"",
+          "try_expression": "end_of_month([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to get the end of month for"
+            }
+          ],
+          "returns": "The last day of the month"
+        },
+        {
+          "name": "format_date",
+          "signature": "format_date(date_value, date_format='%Y-%m-%d')",
+          "description": "Formats a date as text using a specified format.",
+          "example_text": "For example, format_date(\"2023-05-15\", \"%B %d, %Y\") would return \"May 15, 2023\".",
+          "example_call": "format_date(\"2023-05-15\", \"%B %d, %Y\")",
+          "example_result": "\"May 15, 2023\"",
+          "try_expression": "format_date([hire_date], \"%B %d, %Y\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to format"
+            },
+            {
+              "name": "date_format",
+              "type": "text",
+              "description": "The output format string (default is year-month-day)",
+              "default": "'%Y-%m-%d'"
+            }
+          ],
+          "returns": "The formatted date as text"
+        },
+        {
+          "name": "hour",
+          "signature": "hour(date_value)",
+          "description": "Gets the hour from a time.",
+          "example_text": "For example, hour(\"2023-05-15 14:30:25\") would return 14.",
+          "example_call": "hour(\"2023-05-15 14:30:25\")",
+          "example_result": "14",
+          "try_expression": "hour([order_date])",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date and time to extract the hour from"
+            }
+          ],
+          "returns": "The hour as a number (0-23)"
+        },
+        {
+          "name": "minute",
+          "signature": "minute(date_value)",
+          "description": "Gets the minute from a time.",
+          "example_text": "For example, minute(\"2023-05-15 14:30:25\") would return 30.",
+          "example_call": "minute(\"2023-05-15 14:30:25\")",
+          "example_result": "30",
+          "try_expression": "minute([order_date])",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date and time to extract the minute from"
+            }
+          ],
+          "returns": "The minute as a number (0-59)"
+        },
+        {
+          "name": "month",
+          "signature": "month(date_value)",
+          "description": "month(date_value: Any) Gets the month from a date.",
+          "example_text": "For example, month(\"2023-05-15\") would return 5.",
+          "example_call": "month(\"2023-05-15\")",
+          "example_result": "5",
+          "try_expression": "month([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "any",
+              "description": "The date to extract the month from"
+            }
+          ],
+          "returns": "The month as a number (1-12)"
+        },
+        {
+          "name": "now",
+          "signature": "now()",
+          "description": "Gets the current date and time.",
+          "example_text": "For example, now() might return \"2023-05-15 14:30:25\".",
+          "example_call": "now()",
+          "example_result": "\"2023-05-15 14:30:25\"",
+          "try_expression": "now()",
+          "try_dataset": "employees",
+          "parameters": [],
+          "returns": "The current date and time"
+        },
+        {
+          "name": "quarter",
+          "signature": "quarter(date_value)",
+          "description": "Gets the quarter from a date (1-4).",
+          "example_text": "For example, quarter(\"2023-05-15\") would return 2 (Q2).",
+          "example_call": "quarter(\"2023-05-15\")",
+          "example_result": "2 (Q2)",
+          "try_expression": "quarter([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the quarter from"
+            }
+          ],
+          "returns": "The quarter as a number (1-4)"
+        },
+        {
+          "name": "second",
+          "signature": "second(date_value)",
+          "description": "Gets the second from a time.",
+          "example_text": "For example, second(\"2023-05-15 14:30:25\") would return 25.",
+          "example_call": "second(\"2023-05-15 14:30:25\")",
+          "example_result": "25",
+          "try_expression": "second([order_date])",
+          "try_dataset": "orders",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date and time to extract the second from"
+            }
+          ],
+          "returns": "The second as a number (0-59)"
+        },
+        {
+          "name": "start_of_month",
+          "signature": "start_of_month(date_value)",
+          "description": "Gets the first day of the month for a given date.",
+          "example_text": "For example, start_of_month(\"2023-05-15\") would return \"2023-05-01\".",
+          "example_call": "start_of_month(\"2023-05-15\")",
+          "example_result": "\"2023-05-01\"",
+          "try_expression": "start_of_month([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to get the start of month for"
+            }
+          ],
+          "returns": "The first day of the month"
+        },
+        {
+          "name": "today",
+          "signature": "today()",
+          "description": "Gets the current date.",
+          "example_text": "For example, today() might return \"2023-05-15\".",
+          "example_call": "today()",
+          "example_result": "\"2023-05-15\"",
+          "try_expression": "today()",
+          "try_dataset": "employees",
+          "parameters": [],
+          "returns": "The current date"
+        },
+        {
+          "name": "week",
+          "signature": "week(date_value)",
+          "description": "Gets the ISO week number from a date (1-53).",
+          "example_text": "For example, week(\"2023-01-15\") would return 2.",
+          "example_call": "week(\"2023-01-15\")",
+          "example_result": "2",
+          "try_expression": "week([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the week from"
+            }
+          ],
+          "returns": "The week number as a number (1-53)"
+        },
+        {
+          "name": "weekday",
+          "signature": "weekday(date_value)",
+          "description": "Gets the day of the week from a date (1=Monday, 7=Sunday).",
+          "example_text": "For example, weekday(\"2023-05-15\") would return 1 (Monday).",
+          "example_call": "weekday(\"2023-05-15\")",
+          "example_result": "1 (Monday)",
+          "try_expression": "weekday([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "expression | text",
+              "description": "The date to extract the weekday from"
+            }
+          ],
+          "returns": "The day of the week as a number (1-7)"
+        },
+        {
+          "name": "year",
+          "signature": "year(date_value)",
+          "description": "Gets the year from a date.",
+          "example_text": "For example, year(\"2023-05-15\") would return 2023.",
+          "example_call": "year(\"2023-05-15\")",
+          "example_result": "2023",
+          "try_expression": "year([hire_date])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "date_value",
+              "type": "any",
+              "description": "The date to extract the year from"
+            }
+          ],
+          "returns": "The year as a number"
+        }
+      ]
+    },
+    {
+      "key": "type_conversions",
+      "label": "Type Conversion",
+      "functions": [
+        {
+          "name": "to_boolean",
+          "signature": "to_boolean(value)",
+          "description": "Converts a value to True or False.",
+          "example_text": "For example: - to_boolean(1) returns True - to_boolean(0) returns False - to_boolean(\"t\") returns True - to_boolean(\"f\") returns False - to_boolean(\"true\") returns True - to_boolean(\"false\") returns False - to_boolean(\"yes\") returns True - to_boolean(\"no\") returns False",
+          "example_call": null,
+          "example_result": null,
+          "try_expression": "to_boolean(1)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to convert to a boolean"
+            }
+          ],
+          "returns": "A Polars expression that will evaluate to True or False"
+        },
+        {
+          "name": "to_date",
+          "signature": "to_date(text, date_format='%Y-%m-%d')",
+          "description": "Converts text to a date value.",
+          "example_text": "For example, to_date(\"2023-01-15\") would return a date value for January 15, 2023.",
+          "example_call": "to_date(\"2023-01-15\")",
+          "example_result": "a date value for January 15, 2023",
+          "try_expression": "to_date(\"2023-01-15\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The text to convert to a date"
+            },
+            {
+              "name": "date_format",
+              "type": "text",
+              "description": "Instructions for how to interpret the date text (default is year-month-day)",
+              "default": "'%Y-%m-%d'"
+            }
+          ],
+          "returns": "The date value"
+        },
+        {
+          "name": "to_datetime",
+          "signature": "to_datetime(s, date_format='%Y-%m-%d %H:%M:%S')",
+          "description": "Convert a string to a datetime.",
+          "example_text": null,
+          "example_call": null,
+          "example_result": null,
+          "try_expression": "to_datetime(\"2023-05-15 14:30:00\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "s",
+              "type": "expression | text",
+              "description": ""
+            },
+            {
+              "name": "date_format",
+              "type": "text",
+              "description": "",
+              "default": "'%Y-%m-%d %H:%M:%S'"
+            }
+          ],
+          "returns": "pl.Expr: A pl expression representing the converted datetime."
+        },
+        {
+          "name": "to_decimal",
+          "signature": "to_decimal(value, precision=None)",
+          "description": "Converts a value to a decimal number with fixed precision.",
+          "example_text": "For example, to_decimal(\"123.456789\", 2) would return 123.46.",
+          "example_call": "to_decimal(\"123.456789\", 2)",
+          "example_result": "123.46",
+          "try_expression": "to_decimal(\"123.456789\", 2)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to convert to a decimal"
+            },
+            {
+              "name": "precision",
+              "type": "Optional",
+              "description": "How many decimal places to keep (if None, keeps all decimal places)",
+              "default": "None"
+            }
+          ],
+          "returns": "The decimal number"
+        },
+        {
+          "name": "to_float",
+          "signature": "to_float(value)",
+          "description": "Converts a value to a number with decimal places.",
+          "example_text": "For example, to_float(\"123.45\") would return 123.45.",
+          "example_call": "to_float(\"123.45\")",
+          "example_result": "123.45",
+          "try_expression": "to_float(\"123.45\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to convert to a floating-point number"
+            }
+          ],
+          "returns": "The floating-point number"
+        },
+        {
+          "name": "to_integer",
+          "signature": "to_integer(value)",
+          "description": "Converts a value to a whole number.",
+          "example_text": "For example, to_integer(\"123\") would return 123, and to_integer(45.67) would return 45.",
+          "example_call": "to_integer(\"123\")",
+          "example_result": "123, and to_integer(45.67) would return 45",
+          "try_expression": "to_integer(\"123\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to convert to an integer"
+            }
+          ],
+          "returns": "The integer value (decimal places are truncated)"
+        },
+        {
+          "name": "to_number",
+          "signature": "to_number(value)",
+          "description": "Converts a value to a number (same as to_float).",
+          "example_text": "For example, to_number(\"123.45\") would return 123.45.",
+          "example_call": "to_number(\"123.45\")",
+          "example_result": "123.45",
+          "try_expression": "to_number(\"123.45\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The value to convert to a number"
+            }
+          ],
+          "returns": "The numeric value"
+        },
+        {
+          "name": "to_string",
+          "signature": "to_string(value)",
+          "description": "Converts any value to text.",
+          "example_text": "For example, to_string(123) would return \"123\".",
+          "example_call": "to_string(123)",
+          "example_result": "\"123\"",
+          "try_expression": "to_string(123)",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "expression | text",
+              "description": "The value to convert to text"
+            }
+          ],
+          "returns": "The text representation"
+        }
+      ]
+    }
+  ]
+}
