@@ -392,10 +392,12 @@ h1, h2, h3 { line-height: 1.25; }
 .fn-desc { font-size: 13.5px; color: var(--text-dim); margin: 0; }
 .fn-example {
   background: var(--code-bg); border: 1px solid var(--border); border-radius: 7px;
-  font-family: var(--mono); font-size: 12.5px; padding: 8px 10px; overflow-x: auto; white-space: nowrap;
+  font-family: var(--mono); font-size: 12.5px; padding: 8px 10px;
+  overflow-x: auto; white-space: normal; overflow-wrap: break-word;
 }
 .fn-example .arrow { color: var(--text-dim); margin: 0 6px; }
 .fn-example .res { color: var(--str); }
+.fn-example .ctx { display: block; margin-top: 3px; color: var(--text-dim); font-size: 11.5px; }
 .fn-params { font-size: 12.5px; color: var(--text-dim); margin: 0; padding-left: 18px; }
 .fn-params code { font-size: 0.95em; }
 details.fn-more summary { cursor: pointer; font-size: 12.5px; color: var(--text-dim); user-select: none; }
