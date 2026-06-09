@@ -92,12 +92,13 @@ def _not(value: Any) -> pl.Expr:
 
 def is_string(value: Any) -> pl.Expr:
     """
-    Checks if a value is text (a string).
+    Checks if a literal value is text (a string). This works on fixed values,
+    not on column references.
 
-    For example, is_string([product]) would return true when [product] is a text column.
+    For example, is_string("hello") would return true.
 
     Parameters:
-    - value: The column or value to check
+    - value: The value to check
 
     Returns:
     - true if the value is text, otherwise false
