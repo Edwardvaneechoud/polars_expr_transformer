@@ -43,5 +43,6 @@ docstring.
 
 `.github/workflows/deploy-docs.yml` regenerates `functions.json`,
 rebuilds the wheel and publishes this directory to GitHub Pages on every
-push to `main`. Enable Pages with the "GitHub Actions" source in the
-repository settings.
+push to `main` (it can also be started manually from the Actions tab).
+The workflow tries to enable Pages on its first run; if that fails, set
+Settings → Pages → Source to "GitHub Actions" once and re-run it.
