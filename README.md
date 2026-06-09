@@ -6,6 +6,12 @@
 
 Transform string-based expressions into [Polars](https://pola.rs/) DataFrame operations. Write simple, SQL-like expressions and let the library convert them to optimized Polars code.
 
+## Playground & docs
+
+There is an [interactive playground and function reference](https://edwardvaneechoud.github.io/polars_expr_transformer/) that runs the library in the browser through Pyodide. You can try expressions on sample data and see the generated Polars and FlowFrame code without installing anything.
+
+The site lives in [`docs/`](docs/); the function reference is generated from the docstrings with `python generate_docs.py`.
+
 ## Quick Start
 
 ```python

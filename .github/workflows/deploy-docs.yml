@@ -1,0 +1,50 @@
+name: Deploy docs to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install polars polars-ds pydantic
+
+      - name: Generate function reference data
+        run: python generate_docs.py
+
+      - name: Build the wheel served to the browser playground
+        run: pip wheel . --no-deps -w docs/assets/wheel/
+
+      - uses: actions/configure-pages@v5
+        with:
+          # Enable GitHub Pages for the repository on first run, so no
+          # manual setup is needed in the repository settings.
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flowfile Expressions · Polars Expression Transformer</title>
+  <meta name="description" content="Documentation and an interactive playground for polars-expr-transformer, a string expression language for Polars. Runs in the browser with Pyodide.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    // Apply the stored/preferred color scheme before first paint.
+    document.documentElement.dataset.theme =
+      localStorage.getItem("fx-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐻‍❄️</text></svg>">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="#top">
+      <span class="brand-icon">ƒx</span>
+      <span class="brand-text">Flowfile Expressions</span>
+      <span class="brand-sub">polars-expr-transformer</span>
+    </a>
+    <div class="header-actions">
+      <nav class="site-nav">
+        <a href="#playground">Playground</a>
+        <a href="#syntax">Syntax</a>
+        <a href="#functions">Functions</a>
+        <a href="#how-it-works">How it works</a>
+        <a class="gh-link" href="https://github.com/edwardvaneechoud/polars_expr_transformer" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+      <button id="theme-toggle" class="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle light/dark theme">🌙</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================ HERO ============================ -->
+  <section class="hero">
+    <div class="container">
+      <h1>An expression language<br><span class="accent">for Polars</span></h1>
+      <p class="hero-tagline">
+        <strong>polars-expr-transformer</strong> turns formulas like
+        <code>if [age] &gt; 30 then "Senior" else "Junior" endif</code>
+        into <a href="https://pola.rs" target="_blank" rel="noopener">Polars</a> expressions.
+        The playground on this page runs the library in your browser through
+        <a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>,
+        so you can try it without installing anything.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#playground">Open the playground</a>
+        <a class="btn btn-ghost" href="#functions">Function reference (<span id="hero-fn-count">95</span>)</a>
+      </div>
+      <div class="hero-install">
+        <code>pip install polars-expr-transformer</code>
+        <button class="copy-btn" data-copy="pip install polars-expr-transformer" title="Copy">⧉</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= PLAYGROUND ========================= -->
+  <section id="playground" class="section">
+    <div class="container">
+      <h2>Playground</h2>
+      <p class="section-intro">
+        Pick a dataset and type an expression. The result and the generated
+        Polars and FlowFrame code update as you type. Everything runs in your
+        browser.
+      </p>
+
+      <div id="runtime-status" class="runtime-status loading">
+        <span class="spinner"></span>
+        <span id="runtime-status-text">Loading Python runtime…</span>
+      </div>
+
+      <div class="playground-grid">
+        <div class="pg-left">
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">Input data</span>
+              <div class="dataset-tabs" id="dataset-tabs"></div>
+            </div>
+            <div class="table-wrap" id="input-table"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <span class="panel-title">Expression</span>
+              <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+            </div>
+            <div class="editor-shell">
+              <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"></pre>
+              <textarea id="expression-input" class="editor-input" spellcheck="false"
+                autocomplete="off" autocapitalize="off"
+                placeholder='concat([first_name], " ", [last_name])'></textarea>
+              <div id="autocomplete" class="autocomplete hidden"></div>
+            </div>
+            <div class="editor-footer">
+              <button id="run-btn" class="btn btn-primary btn-sm" disabled>Run ▸</button>
+              <button id="share-btn" class="btn btn-ghost btn-sm" title="Copy a shareable link to this expression">Share link</button>
+              <span id="run-status" class="run-status"></span>
+            </div>
+            <div class="examples-row">
+              <span class="examples-label">Examples:</span>
+              <span id="example-chips"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pg-right">
+          <div class="panel output-panel">
+            <div class="panel-head">
+              <div class="output-tabs" role="tablist">
+                <button class="output-tab active" data-tab="result">Result</button>
+                <button class="output-tab" data-tab="polars">Polars code</button>
+                <button class="output-tab" data-tab="flowframe">FlowFrame code</button>
+              </div>
+            </div>
+            <div class="output-body">
+              <div id="error-box" class="error-box hidden"></div>
+              <div class="output-pane" data-pane="result">
+                <div class="table-wrap" id="result-table">
+                  <div class="placeholder">Results will appear here once the runtime is ready.</div>
+                </div>
+              </div>
+              <div class="output-pane hidden" data-pane="polars">
+                <div class="code-block">
+                  <button class="copy-btn code-copy" data-copy-target="polars-code" title="Copy">⧉</button>
+                  <pre id="polars-code"><span class="placeholder">pl.…</span></pre>
+                </div>
+                <p class="pane-note">The equivalent Polars code, generated by <code>to_polars_code()</code>.</p>
+              </div>
+              <div class="output-pane hidden" data-pane="flowframe">
+                <div class="code-block">
+                  <button class="copy-btn code-copy" data-copy-target="flowframe-code" title="Copy">⧉</button>
+                  <pre id="flowframe-code"><span class="placeholder">ff.…</span></pre>
+                </div>
+                <p class="pane-note">The same expression for <a href="https://github.com/edwardvaneechoud/Flowfile" target="_blank" rel="noopener">Flowfile</a>'s FlowFrame API, generated by <code>to_flowframe_code()</code>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= SYNTAX GUIDE ========================= -->
+  <section id="syntax" class="section section-alt">
+    <div class="container">
+      <h2>Syntax</h2>
+      <p class="section-intro">
+        The syntax is close to what you would write in a spreadsheet formula or
+        a SQL <code>CASE</code> statement.
+      </p>
+
+      <div class="syntax-grid">
+        <div class="syntax-card">
+          <h3>Column references</h3>
+          <p>Wrap column names in square brackets. Spaces are fine.</p>
+          <pre class="mini-code">[salary]
+[Order Date]
+[first_name]</pre>
+        </div>
+
+        <div class="syntax-card">
+          <h3>Literals</h3>
+          <p>Strings use single or double quotes; numbers and booleans are bare.</p>
+          <pre class="mini-code">"hello"   'world'
+42   3.14   -7
+true   false</pre>
+        </div>
+
+        <div class="syntax-card">
+          <h3>Conditionals</h3>
+          <p><code>if … then … else … endif</code>, with optional <code>elseif</code> branches. Becomes <code>pl.when().then().otherwise()</code>.</p>
+          <pre class="mini-code">if [score] >= 90 then "A"
+elseif [score] >= 80 then "B"
+else "C" endif</pre>
+        </div>
+
+        <div class="syntax-card">
+          <h3>Functions</h3>
+          <p>There are <span class="fn-count">95</span> built-in functions, listed in the reference below. Calls can be nested.</p>
+          <pre class="mini-code">uppercase(left([last_name], 3))
+round([price] * [qty], 2)
+coalesce([nick], [name], "n/a")</pre>
+        </div>
+
+        <div class="syntax-card">
+          <h3>Comments</h3>
+          <p>Everything after <code>//</code> on a line is ignored.</p>
+          <pre class="mini-code">[price] * [quantity] // subtotal
+  - ifnull([discount], 0) // minus discount</pre>
+        </div>
+
+        <div class="syntax-card">
+          <h3>Operators</h3>
+          <table class="op-table">
+            <tr><td><code>+ - * / %</code></td><td>arithmetic (and string <code>+</code> concat)</td></tr>
+            <tr><td><code>= == !=</code></td><td>equality</td></tr>
+            <tr><td><code>&gt; &gt;= &lt; &lt;=</code></td><td>comparison</td></tr>
+            <tr><td><code>and or</code></td><td>boolean logic</td></tr>
+            <tr><td><code>( )</code></td><td>grouping</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== FUNCTION REFERENCE ====================== -->
+  <section id="functions" class="section">
+    <div class="container">
+      <h2>Function reference</h2>
+      <p class="section-intro">
+        This reference is generated from the library's docstrings. Click
+        <em>Try it ▸</em> to load an example into the playground.
+      </p>
+
+      <div class="ref-controls">
+        <input type="search" id="fn-search" placeholder="Search functions… (e.g. 'date', 'trim', 'null')" aria-label="Search functions">
+        <div id="category-pills" class="category-pills"></div>
+      </div>
+
+      <div id="fn-list"></div>
+      <p id="fn-empty" class="placeholder hidden">No functions match your search.</p>
+    </div>
+  </section>
+
+  <!-- ========================= HOW IT WORKS ========================= -->
+  <section id="how-it-works" class="section section-alt">
+    <div class="container">
+      <h2>How it works</h2>
+      <div class="how-grid">
+        <div class="how-step">
+          <span class="how-num">1</span>
+          <h3>Parse</h3>
+          <p>The expression is tokenized and each token is classified: columns, literals, operators, functions and <code>if/then</code> keywords.</p>
+        </div>
+        <div class="how-step">
+          <span class="how-num">2</span>
+          <h3>Build</h3>
+          <p>The tokens are arranged into a function tree, applying operator precedence.</p>
+        </div>
+        <div class="how-step">
+          <span class="how-num">3</span>
+          <h3>Convert</h3>
+          <p>The tree is turned into a <code>pl.Expr</code>, or into source code via <code>to_polars_code()</code> and <code>to_flowframe_code()</code>. Execution is handled by Polars itself.</p>
+        </div>
+      </div>
+
+      <div class="api-snippet">
+        <h3>Use it in Python</h3>
+        <div class="code-block">
+          <button class="copy-btn code-copy" data-copy-target="api-code" title="Copy">⧉</button>
+          <pre id="api-code">import polars as pl
+from polars_expr_transformer import simple_function_to_expr, to_polars_code
+
+df = pl.DataFrame({"name": ["Alice", "Bob"], "age": [30, 25]})
+
+# Run an expression directly
+df = df.with_columns(
+    simple_function_to_expr('if [age] >= 30 then "Senior" else "Junior" endif').alias("level")
+)
+
+# …or generate the equivalent Polars source code
+print(to_polars_code('uppercase([name])'))
+# pl.col("name").str.to_uppercase()</pre>
+        </div>
+      </div>
+
+      <p class="how-note">
+        About this page: the playground loads
+        <a href="https://pyodide.org" target="_blank" rel="noopener">Pyodide</a>,
+        the Polars WebAssembly build and the <code>polars-expr-transformer</code>
+        wheel built from this repository. Expressions are evaluated by the
+        library itself, in the browser.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>
+      <strong>polars-expr-transformer</strong> · Apache 2.0 License ·
+      <a href="https://github.com/edwardvaneechoud/polars_expr_transformer" target="_blank" rel="noopener">GitHub</a> ·
+      <a href="https://pypi.org/project/polars-expr-transformer/" target="_blank" rel="noopener">PyPI</a> ·
+      Built on <a href="https://pola.rs" target="_blank" rel="noopener">Polars</a> ·
+      Used by <a href="https://github.com/edwardvaneechoud/Flowfile" target="_blank" rel="noopener">Flowfile</a>
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.29.4/full/pyodide.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
