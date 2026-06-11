@@ -1,4 +1,5 @@
 from polars_expr_transformer.configs.settings import PRECEDENCE
+from polars_expr_transformer.exceptions import ExpressionSyntaxError
 from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, PlNumericType
 from polars_expr_transformer.configs.settings import operators, funcs
@@ -179,7 +180,7 @@ class Classifier:
         elif self.val == "__negative()":
             return funcs["__negative"]()
         else:
-            raise Exception("Did not expect to get here")
+            raise ExpressionSyntaxError(f"Unexpected token '{self.val}' in expression.")
 
     def get_repr(self):
         return str(self.val)
@@ -252,7 +253,11 @@ class Func:
 
         if self.func_ref == "pl.lit":
             if len(self.args) != 1:
-                raise Exception("Expected must contain 1 argument not more not less")
+                raise ExpressionSyntaxError(
+                    f"Expected a single value, but found {len(self.args)}. "
+                    "This usually means a function name is misspelled or unknown, "
+                    "or an operator is missing between two values."
+                )
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_readable_pl_function()
         pl_args = [arg.get_pl_func() for arg in self.args]
@@ -405,7 +410,11 @@ class Func:
         """
         if self.func_ref == "pl.lit":
             if len(self.args) != 1:
-                raise Exception("Expected must contain 1 argument not more not less")
+                raise ExpressionSyntaxError(
+                    f"Expected a single value, but found {len(self.args)}. "
+                    "This usually means a function name is misspelled or unknown, "
+                    "or an operator is missing between two values."
+                )
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_pl_func()
             return funcs[self.func_ref.val](self.args[0].get_pl_func())
@@ -503,7 +512,10 @@ class IfFunc:
     def get_pl_func(self):
         full_expr = None
         if len(self.conditions) == 0:
-            raise Exception("Expected at least one condition")
+            raise ExpressionSyntaxError(
+                "Conditional has no conditions: expected at least one "
+                "'if <condition> then <value>'."
+            )
         for condition in self.conditions:
             if full_expr is None:
                 full_expr = pl.when(condition.get_pl_condition()).then(

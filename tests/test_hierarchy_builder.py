@@ -63,7 +63,7 @@ class TestHandleIf(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_if(current_func, current_val, next_val, pos)
 
-        self.assertTrue('Expected opening bracket' in str(context.exception))
+        self.assertTrue("Expected '(' after 'if'" in str(context.exception))
 
 
 class TestHandleThen(unittest.TestCase):
@@ -97,7 +97,7 @@ class TestHandleThen(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_then(condition_val, current_val, next_val, pos)
 
-        self.assertTrue('Expected opening bracket' in str(context.exception))
+        self.assertTrue("Expected '(' after 'then'" in str(context.exception))
 
     def test_handle_then_not_in_condition_val(self):
         # Test handling 'then' not in a ConditionVal context
@@ -110,7 +110,7 @@ class TestHandleThen(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_then(current_func, current_val, next_val, pos)
 
-        self.assertTrue('Expected to be in a condition val' in str(context.exception))
+        self.assertTrue("'then' must directly follow" in str(context.exception))
 
 
 class TestHandleElse(unittest.TestCase):
@@ -145,7 +145,7 @@ class TestHandleElse(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_else(current_func, next_val, pos)
 
-        self.assertTrue('Expected if' in str(context.exception))
+        self.assertTrue("Found 'else' outside of an if-block" in str(context.exception))
 
 
 class TestHandleElseIf(unittest.TestCase):
@@ -199,7 +199,7 @@ class TestHandleElseIf(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_elseif(current_func, current_val, next_val, pos)
 
-        self.assertTrue('Expected if' in str(context.exception))
+        self.assertTrue("Found 'elseif' outside of an if-block" in str(context.exception))
 
 
 class TestHandleEndIf(unittest.TestCase):
@@ -223,7 +223,7 @@ class TestHandleEndIf(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_endif(current_func)
 
-        self.assertTrue('Expected if' in str(context.exception))
+        self.assertTrue("Found 'endif' without a matching open 'if'" in str(context.exception))
 
 
 class TestHandleClosingBracket(unittest.TestCase):
@@ -261,7 +261,7 @@ class TestHandleClosingBracket(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_closing_bracket(current_func, other_func)
 
-        self.assertTrue('Expected parent' in str(context.exception))
+        self.assertTrue('no open expression to close' in str(context.exception))
 
 
 class TestHandleFunction(unittest.TestCase):
@@ -292,7 +292,7 @@ class TestHandleFunction(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             handle_function(current_func, current_val, next_val, pos)
 
-        self.assertTrue('Expected opening bracket' in str(context.exception))
+        self.assertTrue('must be called with parentheses' in str(context.exception))
 
     def test_handle_function_negation(self):
         # Test handling a negation function without bracket

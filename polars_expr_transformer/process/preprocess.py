@@ -2,6 +2,8 @@ import re
 from copy import deepcopy
 from typing import List, Tuple
 
+from polars_expr_transformer.process.expression_validator import validate_expression_syntax
+
 
 def replace_double_spaces(func_string: str) -> str:
     """
@@ -360,22 +362,29 @@ def preprocess(input_function: str) -> str:
     to standardize its format for further processing.
 
     This function performs the following steps:
-    1. Removes comments (text starting with // to the end of line)
-    2. Normalizes whitespace (replaces newlines with spaces, removes double spaces)
-    3. Adds spaces around logical operators (and, or)
-    4. Marks and formats special tokens (if, else, endif, elseif, then)
-    5. Standardizes equality operators (== becomes =)
-    6. Converts column references ([column]) to Polars expressions
-    7. Preserves logical operators during whitespace removal
-    8. Removes unwanted whitespace and characters
-    9. Restores logical operators with proper spacing
+    1. Validates parentheses and if/then/else/endif structure on the raw input
+    2. Removes comments (text starting with // to the end of line)
+    3. Normalizes whitespace (replaces newlines with spaces, removes double spaces)
+    4. Adds spaces around logical operators (and, or)
+    5. Marks and formats special tokens (if, else, endif, elseif, then)
+    6. Standardizes equality operators (== becomes =)
+    7. Converts column references ([column]) to Polars expressions
+    8. Preserves logical operators during whitespace removal
+    9. Removes unwanted whitespace and characters
+    10. Restores logical operators with proper spacing
 
     Args:
         input_function: The function string to preprocess.
 
     Returns:
         The preprocessed function string ready for tokenization and parsing.
+
+    Raises:
+        ExpressionSyntaxError: If parentheses are unbalanced or conditional
+            keywords (if/then/else/elseif/endif) are misplaced or missing.
     """
+    validate_expression_syntax(input_function)
+
     input_function = remove_comments(input_function)
 
     input_function = normalize_whitespace(input_function)

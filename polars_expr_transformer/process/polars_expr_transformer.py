@@ -159,8 +159,9 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
         >>> expr = func.get_pl_func()  # Convert to Polars expression
 
     Raises:
-        ValueError: If parentheses are unbalanced.
-        Exception: If the expression syntax is invalid.
+        ExpressionSyntaxError: If the expression syntax is invalid, e.g.
+            unbalanced parentheses or misplaced/missing conditional keywords
+            (if/then/else/elseif/endif). Subclasses ValueError.
     """
     formula = preprocess(func_str)
     raw_tokens = tokenize(formula)
@@ -324,8 +325,9 @@ def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
         >>> df.select(simple_function_to_expr(expr).alias('category'))
 
     Raises:
-        ValueError: If parentheses are unbalanced.
-        Exception: If the expression syntax is invalid or function is unknown.
+        ExpressionSyntaxError: If the expression syntax is invalid, e.g.
+            unbalanced parentheses or misplaced/missing conditional keywords
+            (if/then/else/elseif/endif). Subclasses ValueError.
     """
     func = build_func(func_str)
     return func.get_pl_func()

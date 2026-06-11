@@ -4,4 +4,4 @@ from polars_expr_transformer.process.polars_expr_transformer import (
     to_polars_code,
     to_flowframe_code,
 )
-from polars_expr_transformer.exceptions import PolarsCodeGenError
+from polars_expr_transformer.exceptions import ExpressionSyntaxError, PolarsCodeGenError

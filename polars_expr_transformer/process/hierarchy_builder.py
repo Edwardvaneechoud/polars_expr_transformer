@@ -1,4 +1,5 @@
 from typing import Optional, List, Tuple
+from polars_expr_transformer.exceptions import ExpressionSyntaxError
 from polars_expr_transformer.process.models import Classifier, Func, IfFunc, TempFunc, ConditionVal
 from copy import deepcopy
 
@@ -42,7 +43,7 @@ def handle_if(current_func: Func, current_val: Classifier, next_val: Classifier,
     if next_val and next_val.val == '(':
         pos += 1
     else:
-        raise Exception('Expected opening bracket')
+        raise ExpressionSyntaxError("Expected '(' after 'if'.")
     condition = Func(Classifier('pl.lit'))
     val = Func(Classifier('pl.lit'))
     condition_val = ConditionVal(condition=condition, val=val)
@@ -69,14 +70,17 @@ def handle_then(current_func: Func, current_val: Classifier, next_val: Optional[
         if next_val and next_val.val == '(':
             pos += 1
         else:
-            raise Exception('Expected opening bracket')
+            raise ExpressionSyntaxError("Expected '(' after 'then'.")
     # elif isinstance(current_func.parent, ConditionVal):
     #     current_func.parent.func_ref = current_val
     #     current_func = current_func.parent.val
     #     if next_val and next_val.val == '(':
     #         pos += 1
     else:
-        raise Exception('Expected to be in a condition val')
+        raise ExpressionSyntaxError(
+            "Found 'then' in an unexpected position: 'then' must directly follow "
+            "an 'if' or 'elseif' condition."
+        )
     return current_func, pos
 
 
@@ -98,7 +102,7 @@ def handle_else(current_func: Func, next_val: Optional[Classifier], pos: int) ->
         if next_val and next_val.val == '(':
             pos += 1
     else:
-        raise Exception('Expected if')
+        raise ExpressionSyntaxError("Found 'else' outside of an if-block.")
     return current_func, pos
 
 
@@ -116,7 +120,7 @@ def handle_elseif(current_func: Func, current_val: Classifier, next_val: Optiona
         The updated current function as IfFunc or Func.
     """
     if not isinstance(current_func.parent, IfFunc):
-        raise Exception('Expected if')
+        raise ExpressionSyntaxError("Found 'elseif' outside of an if-block.")
     if_func = current_func.parent
     condition = Func(Classifier('pl.lit'))
     val = Func(Classifier('pl.lit'))
@@ -143,7 +147,7 @@ def handle_endif(current_func: Func) -> Func:
     if isinstance(current_func, IfFunc):
         current_func = current_func.parent
     else:
-        raise Exception('Expected if')
+        raise ExpressionSyntaxError("Found 'endif' without a matching open 'if'.")
     return current_func
 
 
@@ -169,7 +173,7 @@ def handle_closing_bracket(current_func: Func, main_func: Func) -> (Func, Func):
     elif current_func.parent is not None:
         current_func = current_func.parent
     else:
-        raise Exception('Expected parent')
+        raise ExpressionSyntaxError("Unexpected ')': there is no open expression to close.")
     return current_func, main_func
 
 
@@ -191,7 +195,11 @@ def handle_function(current_func: Func, current_val: Classifier, next_val: Class
     elif current_val.val == 'negation':
         pass
     else:
-        raise Exception('Expected opening bracket')
+        found = f"'{next_val.val}'" if next_val else 'end of expression'
+        raise ExpressionSyntaxError(
+            f"Function '{current_val.val}' must be called with parentheses, "
+            f"e.g. {current_val.val}(...). Found {found} instead."
+        )
     current_func.add_arg(new_function)
     first_arg = TempFunc()
     new_function.add_arg(first_arg)
@@ -213,7 +221,10 @@ def handle_seperator(current_func: Func) -> Func:
     # find opening of current function
     parent_func = current_func.parent
     if not isinstance(parent_func, Func):
-        raise Exception('Expected parent to be a function')
+        raise ExpressionSyntaxError(
+            "Found ',' outside of a function call. Commas can only separate "
+            "arguments inside a function, e.g. concat(a, b)."
+        )
 
     new_arg = TempFunc()
     parent_func.add_arg(new_arg)
