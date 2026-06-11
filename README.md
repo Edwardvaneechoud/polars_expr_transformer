@@ -271,17 +271,35 @@ for category in get_expression_overview():
 
 ## Error Handling
 
-The library validates expressions and provides helpful error messages:
+The library validates expressions before parsing and raises `ExpressionSyntaxError`
+(a subclass of `ValueError`) with the exact position of the problem and a hint:
 
 ```python
+# Misspelled keyword
+simple_function_to_expr('f [age] > 30 then "Senior" else "Junior" endif')
+# ExpressionSyntaxError:
+# Found 'then' at position 14, but there is no 'if' before it.
+# f [age] > 30 then "Senior" else "Junior" endif
+#              ^
+# Hint: Every condition starts with 'if': if <condition> then <value> else <value> endif.
+# Check that 'if' is present and spelled correctly.
+
 # Unbalanced parentheses
 simple_function_to_expr('((1)')
-# ValueError: Unbalanced parentheses: 1 unclosed '(' found
+# ExpressionSyntaxError:
+# Unbalanced parentheses: '(' at position 1 is never closed.
+# ((1)
+# ^
+# Hint: Add a matching ')'.
 
 # Unknown function
 simple_function_to_expr('unknown_func([col])')
-# Raises error with available functions
+# ExpressionSyntaxError: Expected a single value, but found 2. This usually means
+# a function name is misspelled or unknown, or an operator is missing between two values.
 ```
+
+Catch errors with `except ExpressionSyntaxError` (importable from the package root)
+or simply `except ValueError`.
 
 ## Built on Polars
 

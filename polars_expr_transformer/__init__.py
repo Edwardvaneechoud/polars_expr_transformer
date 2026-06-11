@@ -38,7 +38,7 @@ from polars_expr_transformer.function_overview import (
     get_all_expressions,
     get_expression_overview,
 )
-from polars_expr_transformer.exceptions import PolarsCodeGenError
+from polars_expr_transformer.exceptions import ExpressionSyntaxError, PolarsCodeGenError
 
 __all__ = [
     "simple_function_to_expr",
@@ -47,5 +47,6 @@ __all__ = [
     "to_flowframe_code",
     "get_all_expressions",
     "get_expression_overview",
+    "ExpressionSyntaxError",
     "PolarsCodeGenError",
 ]

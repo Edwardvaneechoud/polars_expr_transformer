@@ -1,6 +1,6 @@
 {
-  "version": "0.5.4",
-  "wheel": "wheel/polars_expr_transformer-0.5.4-py3-none-any.whl",
+  "version": "0.5.5",
+  "wheel": "wheel/polars_expr_transformer-0.5.5-py3-none-any.whl",
   "total_functions": 95,
   "categories": [
     {
@@ -859,7 +859,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to get the absolute value of"
             }
           ],
@@ -878,7 +878,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the arccosine of (values between -1 and 1)"
             }
           ],
@@ -897,7 +897,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the arcsine of (values between -1 and 1)"
             }
           ],
@@ -916,7 +916,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the arctangent of"
             }
           ],
@@ -935,7 +935,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to round up"
             }
           ],
@@ -954,7 +954,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -973,7 +973,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to use as the exponent of e"
             }
           ],
@@ -992,7 +992,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to round down"
             }
           ],
@@ -1011,7 +1011,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the natural logarithm of"
             }
           ],
@@ -1030,7 +1030,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the base-10 logarithm of"
             }
           ],
@@ -1049,7 +1049,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the base-2 logarithm of"
             }
           ],
@@ -1068,12 +1068,12 @@
           "parameters": [
             {
               "name": "dividend",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to be divided"
             },
             {
               "name": "divisor",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The number to divide by"
             }
           ],
@@ -1092,7 +1092,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to flip the sign of"
             }
           ],
@@ -1124,12 +1124,12 @@
           "parameters": [
             {
               "name": "base",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to raise"
             },
             {
               "name": "exponent",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The power to raise the base to"
             }
           ],
@@ -1148,12 +1148,12 @@
           "parameters": [
             {
               "name": "base",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to raise"
             },
             {
               "name": "exponent",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The power to raise the base to"
             }
           ],
@@ -1198,7 +1198,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to round"
             },
             {
@@ -1223,7 +1223,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to check"
             }
           ],
@@ -1242,7 +1242,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -1261,7 +1261,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the square root of"
             }
           ],
@@ -1280,7 +1280,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -1299,7 +1299,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({UInt128, Int16, UInt32, UInt8, Float64, Float16, Int32, UInt64, Int8, UInt16, Decimal, Int128, Float32, Int64})",
+              "type": "DataTypeGroup({UInt8, Decimal, Int8, UInt64, Int64, UInt16, Float32, Int16, Int128, UInt32, Float64, Int32})",
               "description": "The column or value to take the hyperbolic tangent of"
             }
           ],

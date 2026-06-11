@@ -2,6 +2,11 @@ import re
 from copy import deepcopy
 from typing import List, Tuple
 
+from polars_expr_transformer.process.expression_validator import (
+    find_comment_spans,
+    validate_expression_syntax,
+)
+
 
 def replace_double_spaces(func_string: str) -> str:
     """
@@ -29,37 +34,13 @@ def remove_comments(input_string: str) -> str:
     Returns:
         A string with all comments removed, preserving the rest of the content.
     """
-    lines = input_string.split('\n')
-    lines_without_comments = []
-
-    for line in lines:
-        # Find position of // but only if it's not inside a string
-        pos = 0
-        inside_single_quote = False
-        inside_double_quote = False
-        comment_pos = -1
-
-        while pos < len(line):
-            char = line[pos]
-
-            if char == "'" and not inside_double_quote:
-                inside_single_quote = not inside_single_quote
-            elif char == '"' and not inside_single_quote:
-                inside_double_quote = not inside_double_quote
-            elif char == '/' and pos + 1 < len(line) and line[
-                pos + 1] == '/' and not inside_single_quote and not inside_double_quote:
-                comment_pos = pos
-                break
-
-            pos += 1
-
-        # Remove comment part if found
-        if comment_pos != -1:
-            line = line[:comment_pos]
-
-        lines_without_comments.append(line)
-
-    return '\n'.join(lines_without_comments)
+    parts = []
+    last = 0
+    for start, end in find_comment_spans(input_string):
+        parts.append(input_string[last:start])
+        last = end
+    parts.append(input_string[last:])
+    return ''.join(parts)
 
 
 def normalize_whitespace(input_string: str) -> str:
@@ -360,22 +341,29 @@ def preprocess(input_function: str) -> str:
     to standardize its format for further processing.
 
     This function performs the following steps:
-    1. Removes comments (text starting with // to the end of line)
-    2. Normalizes whitespace (replaces newlines with spaces, removes double spaces)
-    3. Adds spaces around logical operators (and, or)
-    4. Marks and formats special tokens (if, else, endif, elseif, then)
-    5. Standardizes equality operators (== becomes =)
-    6. Converts column references ([column]) to Polars expressions
-    7. Preserves logical operators during whitespace removal
-    8. Removes unwanted whitespace and characters
-    9. Restores logical operators with proper spacing
+    1. Validates parentheses and if/then/else/endif structure on the raw input
+    2. Removes comments (text starting with // to the end of line)
+    3. Normalizes whitespace (replaces newlines with spaces, removes double spaces)
+    4. Adds spaces around logical operators (and, or)
+    5. Marks and formats special tokens (if, else, endif, elseif, then)
+    6. Standardizes equality operators (== becomes =)
+    7. Converts column references ([column]) to Polars expressions
+    8. Preserves logical operators during whitespace removal
+    9. Removes unwanted whitespace and characters
+    10. Restores logical operators with proper spacing
 
     Args:
         input_function: The function string to preprocess.
 
     Returns:
         The preprocessed function string ready for tokenization and parsing.
+
+    Raises:
+        ExpressionSyntaxError: If parentheses are unbalanced or conditional
+            keywords (if/then/else/elseif/endif) are misplaced or missing.
     """
+    validate_expression_syntax(input_function)
+
     input_function = remove_comments(input_function)
 
     input_function = normalize_whitespace(input_function)
