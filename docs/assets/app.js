@@ -746,7 +746,7 @@ async function init() {
     setExpression(EXAMPLES[0].expr, { run: false });
   }
 
-  let wheelPath = "wheel/polars_expr_transformer-0.5.4-py3-none-any.whl";
+  let wheelPath = "wheel/polars_expr_transformer-0.5.5-py3-none-any.whl";
   try {
     const reference = await (await fetch("assets/functions.json")).json();
     state.reference = reference;

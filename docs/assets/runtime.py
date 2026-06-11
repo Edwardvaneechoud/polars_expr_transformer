@@ -10,6 +10,7 @@ The module is plain Python on purpose: the exact same file can be executed
 against a local interpreter for testing.
 """
 
+import difflib
 import json
 import math
 import sys
@@ -86,6 +87,33 @@ def _fmt(value):
     return str(value)
 
 
+def _suggest_column(name, available):
+    """Best replacement candidate for a misspelled column name, or None."""
+    lower_map = {c.lower(): c for c in available}
+    if name.lower() in lower_map:
+        return lower_map[name.lower()]
+    close = difflib.get_close_matches(name, available, n=1, cutoff=0.6)
+    return close[0] if close else None
+
+
+def _missing_columns_error(missing, available):
+    if len(missing) == 1:
+        lines = [f"Column [{missing[0]}] does not exist in this dataset."]
+    else:
+        listed = ", ".join(f"[{name}]" for name in missing)
+        lines = [f"Columns {listed} do not exist in this dataset."]
+    suggestions = []
+    for name in missing:
+        candidate = _suggest_column(name, available)
+        if candidate:
+            suggestions.append(f"[{candidate}]")
+    if suggestions:
+        unique = list(dict.fromkeys(suggestions))
+        lines[0] += f" Did you mean {' or '.join(unique)}?"
+    lines.append("Available columns: " + ", ".join(f"[{c}]" for c in available))
+    return "\n".join(lines)
+
+
 def _clean_error(exc):
     message = str(exc).strip() or type(exc).__name__
     # Polars appends a resolved-plan dump that is noise in this context.
@@ -120,6 +148,13 @@ def run_expression(payload_json: str) -> str:
 
     try:
         df = _build_df(payload["dataset"])
+        # Report missing columns up front: polars' own ColumnNotFoundError
+        # message is just the bare column name, which reads as noise.
+        missing = [c for c in expr.meta.root_names() if c not in df.columns]
+        if missing:
+            out["error"] = _missing_columns_error(missing, df.columns)
+            out["stage"] = "execute"
+            return json.dumps(out)
         result = df.with_columns(expr.alias(RESULT_COLUMN))
         out["columns"] = [
             {"name": name, "dtype": str(dtype)}

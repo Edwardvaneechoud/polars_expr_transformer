@@ -252,6 +252,12 @@ class Func:
         """
 
         if self.func_ref == "pl.lit":
+            if len(self.args) == 0:
+                raise ExpressionSyntaxError(
+                    "Expected a value, but found nothing. A value is missing — "
+                    "for example an empty branch between 'then' and 'else'/'endif', "
+                    "or empty parentheses '()'."
+                )
             if len(self.args) != 1:
                 raise ExpressionSyntaxError(
                     f"Expected a single value, but found {len(self.args)}. "
@@ -409,6 +415,12 @@ class Func:
             Exception: If 'pl.lit' is used with an incorrect number of arguments.
         """
         if self.func_ref == "pl.lit":
+            if len(self.args) == 0:
+                raise ExpressionSyntaxError(
+                    "Expected a value, but found nothing. A value is missing — "
+                    "for example an empty branch between 'then' and 'else'/'endif', "
+                    "or empty parentheses '()'."
+                )
             if len(self.args) != 1:
                 raise ExpressionSyntaxError(
                     f"Expected a single value, but found {len(self.args)}. "

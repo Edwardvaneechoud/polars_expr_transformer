@@ -126,6 +126,38 @@ class TestValidExpressionsDoNotRaise:
         # The validator must not treat [then] (a column reference) as a keyword.
         validate_expression_syntax('[then] = 5')
 
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            # A quoted ']' or '(' inside a column name must not terminate the
+            # reference (parse_pl_cols is quote-aware in the same way).
+            "[a'b]then'c] = 5",
+            "[a'b](c'] = 5",
+        ],
+    )
+    def test_quoted_brackets_in_column_names(self, expr):
+        validate_expression_syntax(expr)
+        simple_function_to_expr(expr)
+
+    def test_multiline_string_with_comment_marker(self):
+        # remove_comments works per line, so it strips '// " then' from the
+        # middle of this multi-line string; the validator must agree with it
+        # instead of treating the stripped content as code.
+        validate_expression_syntax('"a\nb // " then\nc"')
+        validate_expression_syntax('"a\nb // " ) (\nc"')
+
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            "if [a]>1 then 'x' else 2 endif",
+            "if [a]>1 then [b] else 2 endif",
+        ],
+    )
+    def test_string_or_column_only_branches(self, expr):
+        # Branch values that produce no scanner events (string/column only)
+        # must still validate.
+        validate_expression_syntax(expr)
+
 
 class TestErrorFormatting:
     def test_caret_snippet_shows_only_offending_line(self):
@@ -136,6 +168,15 @@ class TestErrorFormatting:
         assert '+ then' in lines
         caret_line = lines[lines.index('+ then') + 1]
         assert caret_line == '  ^'
+
+    def test_caret_aligns_when_expression_contains_tabs(self):
+        expr = 'if [x] > 1\tthen 1 then 2 else 3 endif'
+        with pytest.raises(ExpressionSyntaxError) as exc_info:
+            validate_expression_syntax(expr)
+        exc = exc_info.value
+        lines = str(exc).split('\n')
+        assert '\t' not in lines[1]
+        assert lines[2].index('^') == len(expr[: exc.position].expandtabs())
 
     def test_catchable_as_value_error(self):
         try:
@@ -150,3 +191,17 @@ class TestSeparatorOutsideFunction:
     def test_top_level_comma(self):
         with pytest.raises(ExpressionSyntaxError, match="outside of a function call"):
             simple_function_to_expr('1, 2')
+
+
+class TestEmptyValues:
+    @pytest.mark.parametrize(
+        "expr",
+        [
+            'if [a]>1 then else 2 endif',
+            'if [a]>1 then 1 else endif',
+            '()',
+        ],
+    )
+    def test_missing_value(self, expr):
+        with pytest.raises(ExpressionSyntaxError, match="found nothing"):
+            simple_function_to_expr(expr)

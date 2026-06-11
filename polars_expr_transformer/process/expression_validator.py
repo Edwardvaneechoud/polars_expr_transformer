@@ -7,12 +7,22 @@ confusing error about parentheses the user never typed. This module validates
 the expression exactly as the user wrote it — before any rewriting — so errors
 can report precise character positions into the original input.
 
-Scanning skips string literals, ``[column]`` references and ``//`` comments.
-Quote handling mirrors the ``("[^"]*"|'[^']*')`` regexes used throughout
-``preprocess.py``: a quote runs to the next identical quote character, with no
-escape handling, and the state persists across newlines. (``remove_comments``
-processes quotes per line instead; the divergence only matters for inputs with
-unterminated quotes, which fail downstream anyway.)
+Scanning skips ``//`` comments, string literals and ``[column]`` references,
+mirroring the pipeline's own handling so the validator never rejects an
+expression the pipeline would have accepted:
+
+- Comments are located with :func:`find_comment_spans`, the exact per-line
+  algorithm of ``preprocess.remove_comments`` (which also calls it).
+- String literals mirror the ``("[^"]*"|'[^']*')`` regexes used throughout
+  ``preprocess.py``: a quote runs to the next identical quote character, with
+  no escape handling, and the state persists across newlines.
+- ``[column]`` references are quote-aware like ``preprocess.parse_pl_cols``:
+  a ``]`` inside a quoted run does not terminate the reference.
+
+The case-sensitivity check (rejecting e.g. ``IF``/``Then``) is intentionally
+stricter than the old pipeline, which never recognized mixed-case keywords and
+in some positions silently dropped them from the parsed expression. A clear
+error is preferable to silently ignoring part of the user's input.
 
 Known pre-existing quirk, intentionally untouched here: keyword rewriting in
 ``preprocess.py`` does not protect ``[column]`` references, so a column literally
@@ -38,16 +48,58 @@ def _is_word_char(ch: str) -> bool:
     return ch.isalnum() or ch == "_"
 
 
+def find_comment_spans(expression: str) -> List[Tuple[int, int]]:
+    """Find the (start, end) spans of // comments in the expression.
+
+    This is the single source of truth for comment detection: it implements
+    the per-line scan of ``preprocess.remove_comments`` (which calls it), so
+    the validator and the pipeline can never disagree about what is a comment.
+    Quote state resets on every line; a // inside a quoted run on its line is
+    not a comment. Spans run to the end of the line, excluding the newline.
+    """
+    spans = []
+    offset = 0
+    for line in expression.split("\n"):
+        inside_single_quote = False
+        inside_double_quote = False
+        pos = 0
+        while pos < len(line):
+            char = line[pos]
+            if char == "'" and not inside_double_quote:
+                inside_single_quote = not inside_single_quote
+            elif char == '"' and not inside_single_quote:
+                inside_double_quote = not inside_double_quote
+            elif (
+                char == "/"
+                and pos + 1 < len(line)
+                and line[pos + 1] == "/"
+                and not inside_single_quote
+                and not inside_double_quote
+            ):
+                spans.append((offset + pos, offset + len(line)))
+                break
+            pos += 1
+        offset += len(line) + 1
+    return spans
+
+
 def _scan_events(expression: str) -> List[Tuple[str, int, str]]:
     """Scan the raw expression into ordered ('paren'|'word', index, value) events.
 
-    Content inside string literals, [column] references and // comments is
-    skipped entirely.
+    Content inside // comments, string literals and [column] references is
+    skipped entirely. Comments are masked first (using the same per-line
+    algorithm as preprocess.remove_comments), matching the pipeline, where
+    comment removal runs before everything else.
     """
     events = []
     word_start = None
     i = 0
     n = len(expression)
+
+    masked = bytearray(n)
+    for start, end in find_comment_spans(expression):
+        for k in range(start, end):
+            masked[k] = 1
 
     def flush_word(end: int):
         nonlocal word_start
@@ -56,19 +108,36 @@ def _scan_events(expression: str) -> List[Tuple[str, int, str]]:
             word_start = None
 
     while i < n:
+        if masked[i]:
+            flush_word(i)
+            i += 1
+            continue
         ch = expression[i]
         if ch in ('"', "'"):
             flush_word(i)
-            closing = expression.find(ch, i + 1)
-            i = n if closing == -1 else closing + 1
+            j = i + 1
+            while j < n and (masked[j] or expression[j] != ch):
+                j += 1
+            i = n if j >= n else j + 1
         elif ch == "[":
             flush_word(i)
-            closing = expression.find("]", i + 1)
-            i = n if closing == -1 else closing + 1
-        elif ch == "/" and i + 1 < n and expression[i + 1] == "/":
-            flush_word(i)
-            newline = expression.find("\n", i)
-            i = n if newline == -1 else newline + 1
+            # Quote-aware like parse_pl_cols: a ']' inside a quoted run does
+            # not terminate the column reference.
+            j = i + 1
+            quote = None
+            while j < n:
+                c = expression[j]
+                if masked[j]:
+                    pass
+                elif quote is not None:
+                    if c == quote:
+                        quote = None
+                elif c in ('"', "'"):
+                    quote = c
+                elif c == "]":
+                    break
+                j += 1
+            i = n if j >= n else j + 1
         elif ch in ("(", ")"):
             flush_word(i)
             events.append(("paren", i, ch))

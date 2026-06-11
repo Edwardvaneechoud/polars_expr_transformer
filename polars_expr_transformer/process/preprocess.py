@@ -2,7 +2,10 @@ import re
 from copy import deepcopy
 from typing import List, Tuple
 
-from polars_expr_transformer.process.expression_validator import validate_expression_syntax
+from polars_expr_transformer.process.expression_validator import (
+    find_comment_spans,
+    validate_expression_syntax,
+)
 
 
 def replace_double_spaces(func_string: str) -> str:
@@ -31,37 +34,13 @@ def remove_comments(input_string: str) -> str:
     Returns:
         A string with all comments removed, preserving the rest of the content.
     """
-    lines = input_string.split('\n')
-    lines_without_comments = []
-
-    for line in lines:
-        # Find position of // but only if it's not inside a string
-        pos = 0
-        inside_single_quote = False
-        inside_double_quote = False
-        comment_pos = -1
-
-        while pos < len(line):
-            char = line[pos]
-
-            if char == "'" and not inside_double_quote:
-                inside_single_quote = not inside_single_quote
-            elif char == '"' and not inside_single_quote:
-                inside_double_quote = not inside_double_quote
-            elif char == '/' and pos + 1 < len(line) and line[
-                pos + 1] == '/' and not inside_single_quote and not inside_double_quote:
-                comment_pos = pos
-                break
-
-            pos += 1
-
-        # Remove comment part if found
-        if comment_pos != -1:
-            line = line[:comment_pos]
-
-        lines_without_comments.append(line)
-
-    return '\n'.join(lines_without_comments)
+    parts = []
+    last = 0
+    for start, end in find_comment_spans(input_string):
+        parts.append(input_string[last:start])
+        last = end
+    parts.append(input_string[last:])
+    return ''.join(parts)
 
 
 def normalize_whitespace(input_string: str) -> str:

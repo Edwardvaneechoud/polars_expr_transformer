@@ -34,8 +34,12 @@ class ExpressionSyntaxError(ValueError):
             line_end = self.expression.find("\n", self.position)
             if line_end == -1:
                 line_end = len(self.expression)
-            parts.append(self.expression[line_start:line_end])
-            parts.append(" " * (self.position - line_start) + "^")
+            snippet = self.expression[line_start:line_end]
+            # Expand tabs in both the snippet and the caret offset so the
+            # caret stays aligned regardless of the display's tab width.
+            caret_col = len(snippet[: self.position - line_start].expandtabs())
+            parts.append(snippet.expandtabs())
+            parts.append(" " * caret_col + "^")
         if self.hint:
             parts.append(f"Hint: {self.hint}")
         return "\n".join(parts)
