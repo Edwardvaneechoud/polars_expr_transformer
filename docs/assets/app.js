@@ -533,14 +533,29 @@ function renderRunResult(result, elapsedMs) {
    Output tabs / copy / share
    ---------------------------------------------------------------- */
 function setupOutputTabs() {
-  $$(".output-tab").forEach((tab) =>
-    tab.addEventListener("click", () => {
-      $$(".output-tab").forEach((t) => t.classList.toggle("active", t === tab));
-      $$(".output-pane").forEach((pane) =>
-        pane.classList.toggle("hidden", pane.dataset.pane !== tab.dataset.tab)
-      );
-    })
-  );
+  const tabs = $$(".output-tab");
+  const activate = (tab) => {
+    tabs.forEach((t) => {
+      const selected = t === tab;
+      t.classList.toggle("active", selected);
+      t.setAttribute("aria-selected", String(selected));
+      t.tabIndex = selected ? 0 : -1;
+    });
+    $$(".output-pane").forEach((pane) =>
+      pane.classList.toggle("hidden", pane.dataset.pane !== tab.dataset.tab)
+    );
+  };
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => activate(tab));
+    tab.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+      event.preventDefault();
+      const step = event.key === "ArrowRight" ? 1 : tabs.length - 1;
+      const next = tabs[(index + step) % tabs.length];
+      next.focus();
+      activate(next);
+    });
+  });
 }
 
 function setupCopyButtons() {

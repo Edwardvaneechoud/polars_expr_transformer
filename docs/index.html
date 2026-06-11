@@ -79,70 +79,64 @@
         <span id="runtime-status-text">Loading Python runtime…</span>
       </div>
 
-      <div class="playground-grid">
-        <div class="pg-left">
-          <div class="panel">
-            <div class="panel-head">
-              <span class="panel-title">Input data</span>
-              <div class="dataset-tabs" id="dataset-tabs"></div>
-            </div>
-            <div class="table-wrap" id="input-table"></div>
+      <div class="playground-stack">
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-title">Input data</span>
+            <div class="dataset-tabs" id="dataset-tabs"></div>
           </div>
+          <div class="table-wrap" id="input-table"></div>
+        </div>
 
-          <div class="panel">
-            <div class="panel-head">
-              <span class="panel-title">Expression</span>
-              <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
-            </div>
-            <div class="editor-shell">
-              <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"></pre>
-              <textarea id="expression-input" class="editor-input" spellcheck="false"
-                autocomplete="off" autocapitalize="off"
-                placeholder='concat([first_name], " ", [last_name])'></textarea>
-              <div id="autocomplete" class="autocomplete hidden"></div>
-            </div>
-            <div class="editor-footer">
-              <button id="run-btn" class="btn btn-primary btn-sm" disabled>Run ▸</button>
-              <button id="share-btn" class="btn btn-ghost btn-sm" title="Copy a shareable link to this expression">Share link</button>
-              <span id="run-status" class="run-status"></span>
-            </div>
+        <div class="panel workbench">
+          <div class="panel-head">
+            <span class="panel-title">Expression</span>
+            <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+          </div>
+          <div class="editor-shell">
+            <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"></pre>
+            <textarea id="expression-input" class="editor-input" spellcheck="false"
+              autocomplete="off" autocapitalize="off"
+              placeholder='concat([first_name], " ", [last_name])'></textarea>
+            <div id="autocomplete" class="autocomplete hidden"></div>
+          </div>
+          <div class="editor-footer">
+            <button id="run-btn" class="btn btn-primary btn-sm" disabled>Run ▸</button>
+            <button id="share-btn" class="btn btn-ghost btn-sm" title="Copy a shareable link to this expression">Share link</button>
+            <span id="run-status" class="run-status"></span>
             <div class="examples-row">
               <span class="examples-label">Examples:</span>
               <span id="example-chips"></span>
             </div>
           </div>
-        </div>
 
-        <div class="pg-right">
-          <div class="panel output-panel">
-            <div class="panel-head">
-              <div class="output-tabs" role="tablist">
-                <button class="output-tab active" data-tab="result">Result</button>
-                <button class="output-tab" data-tab="polars">Polars code</button>
-                <button class="output-tab" data-tab="flowframe">FlowFrame code</button>
+          <div class="workbench-divider">
+            <div class="output-tabs" role="tablist" aria-label="Output">
+              <button class="output-tab active" id="tab-result" role="tab" aria-selected="true" aria-controls="pane-result" data-tab="result">Result</button>
+              <button class="output-tab" id="tab-polars" role="tab" aria-selected="false" aria-controls="pane-polars" tabindex="-1" data-tab="polars">Polars code</button>
+              <button class="output-tab" id="tab-flowframe" role="tab" aria-selected="false" aria-controls="pane-flowframe" tabindex="-1" data-tab="flowframe">FlowFrame code</button>
+            </div>
+          </div>
+          <div class="output-body">
+            <div id="error-box" class="error-box hidden"></div>
+            <div class="output-pane" id="pane-result" role="tabpanel" aria-labelledby="tab-result" data-pane="result">
+              <div class="table-wrap" id="result-table">
+                <div class="placeholder">Results will appear here once the runtime is ready.</div>
               </div>
             </div>
-            <div class="output-body">
-              <div id="error-box" class="error-box hidden"></div>
-              <div class="output-pane" data-pane="result">
-                <div class="table-wrap" id="result-table">
-                  <div class="placeholder">Results will appear here once the runtime is ready.</div>
-                </div>
+            <div class="output-pane hidden" id="pane-polars" role="tabpanel" aria-labelledby="tab-polars" data-pane="polars">
+              <div class="code-block">
+                <button class="copy-btn code-copy" data-copy-target="polars-code" title="Copy">⧉</button>
+                <pre id="polars-code"><span class="placeholder">pl.…</span></pre>
               </div>
-              <div class="output-pane hidden" data-pane="polars">
-                <div class="code-block">
-                  <button class="copy-btn code-copy" data-copy-target="polars-code" title="Copy">⧉</button>
-                  <pre id="polars-code"><span class="placeholder">pl.…</span></pre>
-                </div>
-                <p class="pane-note">The equivalent Polars code, generated by <code>to_polars_code()</code>.</p>
+              <p class="pane-note">The equivalent Polars code, generated by <code>to_polars_code()</code>.</p>
+            </div>
+            <div class="output-pane hidden" id="pane-flowframe" role="tabpanel" aria-labelledby="tab-flowframe" data-pane="flowframe">
+              <div class="code-block">
+                <button class="copy-btn code-copy" data-copy-target="flowframe-code" title="Copy">⧉</button>
+                <pre id="flowframe-code"><span class="placeholder">ff.…</span></pre>
               </div>
-              <div class="output-pane hidden" data-pane="flowframe">
-                <div class="code-block">
-                  <button class="copy-btn code-copy" data-copy-target="flowframe-code" title="Copy">⧉</button>
-                  <pre id="flowframe-code"><span class="placeholder">ff.…</span></pre>
-                </div>
-                <p class="pane-note">The same expression for <a href="https://github.com/edwardvaneechoud/Flowfile" target="_blank" rel="noopener">Flowfile</a>'s FlowFrame API, generated by <code>to_flowframe_code()</code>.</p>
-              </div>
+              <p class="pane-note">The same expression for <a href="https://github.com/edwardvaneechoud/Flowfile" target="_blank" rel="noopener">Flowfile</a>'s FlowFrame API, generated by <code>to_flowframe_code()</code>.</p>
             </div>
           </div>
         </div>
