@@ -17,6 +17,24 @@ client-side; there is no server component.
 | `assets/functions.json` | Function reference data, generated from the library's docstrings by `../generate_docs.py`. |
 | `assets/wheel/*.whl` | The library wheel installed into Pyodide, built from this repository. |
 
+## Natural-language input (optional)
+
+The Expression panel has a **✨ Describe in words** toggle that drafts an
+expression from a plain-English description. A small instruction-tuned
+model ([Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen)) runs entirely
+client-side on WebGPU via [WebLLM](https://github.com/mlc-ai/web-llm),
+loaded on demand from the `esm.run` CDN — the model (~1 GB) is only
+downloaded when a visitor first uses the feature, so the default page load
+is unchanged. It needs a WebGPU browser (desktop Chrome or Edge).
+
+The system prompt is built at runtime from the function reference plus the
+active dataset's column names, so it stays in sync with the catalog. Each
+draft is run through the same `run_expression` parser the playground uses;
+if it fails, the parser's error is fed back to the model for one repair
+attempt before the result is shown. The model id and quantization are set
+by `WEBLLM_MODEL` near the top of the natural-language section in
+`assets/app.js` (swap in the `0.5B` id for a ~350 MB download).
+
 ## Developing locally
 
 ```bash

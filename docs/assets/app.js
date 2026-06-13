@@ -530,6 +530,200 @@ function renderRunResult(result, elapsedMs) {
 }
 
 /* ----------------------------------------------------------------
+   Natural language → expression (optional, in-browser via WebLLM)
+
+   A small instruction-tuned model runs fully client-side on WebGPU and
+   drafts an expression from a plain-English description. The model is
+   only downloaded when the user first asks for it, so the default
+   playground load is unaffected. Whatever the model produces is checked
+   by the same parser the playground already runs (run_expression); on a
+   failure its error is fed back for one repair attempt.
+   ---------------------------------------------------------------- */
+// q4f16_1 keeps the download ~1 GB; swap to "…-q4f32_1-MLC" for GPUs
+// without shader-f16 support, or to "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
+// for a ~350 MB download with a small quality trade-off.
+const WEBLLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+const WEBLLM_ESM = "https://esm.run/@mlc-ai/web-llm";
+
+const ai = { engine: null, loading: false, ready: false, busy: false };
+
+function aiStatus(html, kind = "") {
+  const el = $("#ai-status");
+  el.className = `ai-status ${kind}`;
+  el.innerHTML = html;
+}
+
+/* Build the system prompt from the live function reference plus the
+   columns of the active dataset. Mirrors the catalog shown in the
+   reference, so it stays in sync as functions change. */
+function buildAiSystemPrompt() {
+  const catalog = [];
+  for (const category of state.reference.categories) {
+    catalog.push(`\n[${category.label}]`);
+    for (const fn of category.functions) {
+      const desc = (fn.description || "").replace(/\s+/g, " ").split(". ")[0].replace(/\.$/, "");
+      catalog.push(`- ${fn.signature} — ${desc}`);
+    }
+  }
+  const columns = DATASETS[state.dataset].columns.map((c) => `[${c.name}]`).join(", ");
+  return [
+    "You translate a user's natural-language request into a SINGLE polars-expr-transformer expression.",
+    "",
+    "Output rules:",
+    "- Reply with ONLY the expression, on one line. No explanation, no markdown, no code fences.",
+    "- Use only the functions listed below. Never invent function names. If no function fits, build the result from operators and conditionals.",
+    "- Reference columns with square brackets, e.g. [first_name]. Spaces are allowed: [Order Date].",
+    "",
+    "Syntax:",
+    `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false.`,
+    "- Conditionals: if <condition> then <value> elseif <condition> then <value> else <value> endif (elseif may repeat or be omitted; else is required).",
+    "- Operators: + - * / % (arithmetic; + also concatenates text) | = == != (equality) | > >= < <= (comparison) | and or (boolean) | ( ) for grouping.",
+    "- Functions may be nested: uppercase(left([last_name], 3)).",
+    "- For missing/null values use is_empty, is_not_empty, coalesce or ifnull.",
+    "",
+    `Columns in the current dataset: ${columns}. Prefer these names; only use a different [name] if the request clearly refers to one.`,
+    "",
+    "Available functions:",
+    catalog.join("\n"),
+    "",
+    "Examples (request -> expression):",
+    `"Combine first and last name with a space between them" -> concat([first_name], " ", [last_name])`,
+    `"Label anyone older than 30 as Senior, everyone else Junior" -> if [age] > 30 then "Senior" else "Junior" endif`,
+    `"Multiply price by quantity and round to 2 decimals" -> round([price] * [quantity], 2)`,
+    `"Uppercase the first three letters of the last name" -> uppercase(left([last_name], 3))`,
+    `"Use the nickname, or the full name when there is no nickname" -> coalesce([nickname], [name])`,
+    `"Grade: A for 90 or above, B for 80 or above, otherwise C" -> if [score] >= 90 then "A" elseif [score] >= 80 then "B" else "C" endif`,
+    "",
+    "Reply with only the expression.",
+  ].join("\n");
+}
+
+/* Pull a bare expression out of whatever the model returned. */
+function cleanModelOutput(text) {
+  let out = (text || "").trim();
+  const fenced = out.match(/```[a-zA-Z]*\n?([\s\S]*?)```/);
+  if (fenced) out = fenced[1].trim();
+  out = out.split(/\n\s*\n/)[0].trim();              // first paragraph only
+  out = out.replace(/^(?:->|=|expression:)\s*/i, "").trim();
+  out = out.replace(/^`+|`+$/g, "").trim();          // stray inline backticks
+  return out;
+}
+
+/* Run a candidate through the existing runtime; return null if it parses
+   and executes on the active dataset, otherwise the error message. */
+function checkExpression(expr) {
+  if (!state.ready || !state.runFn) return null;     // runtime not up yet: skip
+  try {
+    const result = JSON.parse(
+      state.runFn(JSON.stringify({ expression: expr, dataset: DATASETS[state.dataset] }))
+    );
+    return result.ok ? null : result.error || "unknown error";
+  } catch {
+    return null;                                      // never block on a harness hiccup
+  }
+}
+
+async function ensureAiEngine() {
+  if (ai.ready) return ai.engine;
+  if (ai.loading) return null;
+  if (!navigator.gpu) {
+    aiStatus(
+      "This feature needs WebGPU, which this browser doesn't expose. Try the latest desktop Chrome or Edge.",
+      "err"
+    );
+    return null;
+  }
+  ai.loading = true;
+  try {
+    aiStatus("Loading WebLLM…");
+    const webllm = await import(WEBLLM_ESM);
+    ai.engine = await webllm.CreateMLCEngine(WEBLLM_MODEL, {
+      initProgressCallback: (report) => {
+        const pct = report.progress ? ` (${Math.round(report.progress * 100)}%)` : "";
+        aiStatus(`${escapeHtml(report.text || "Loading model…")}${pct}`);
+      },
+    });
+    ai.ready = true;
+    return ai.engine;
+  } catch (error) {
+    console.error(error);
+    aiStatus(`Could not load the model: ${escapeHtml(error.message || String(error))}`, "err");
+    return null;
+  } finally {
+    ai.loading = false;
+  }
+}
+
+async function generateFromNl() {
+  const nl = $("#ai-input").value.trim();
+  if (!nl) return $("#ai-input").focus();
+  if (ai.busy) return;
+  if (!state.reference) {
+    return aiStatus("The function reference hasn't loaded yet — try again in a moment.", "err");
+  }
+
+  const engine = await ensureAiEngine();
+  if (!engine) return;
+
+  ai.busy = true;
+  $("#ai-generate").disabled = true;
+  try {
+    const messages = [
+      { role: "system", content: buildAiSystemPrompt() },
+      { role: "user", content: nl },
+    ];
+    let expr = "";
+    for (let attempt = 0; attempt < 2; attempt++) {
+      aiStatus(attempt === 0 ? "Thinking…" : "Fixing the expression…");
+      const reply = await engine.chat.completions.create({
+        messages,
+        temperature: 0.2,
+        max_tokens: 256,
+      });
+      expr = cleanModelOutput(reply.choices?.[0]?.message?.content);
+      const problem = expr ? checkExpression(expr) : "empty response";
+      if (!problem) break;
+      // Hand the parser's own error back for a single repair attempt.
+      messages.push({ role: "assistant", content: expr });
+      messages.push({
+        role: "user",
+        content: `That expression failed with this error:\n${problem}\nReturn a corrected expression. Reply with only the expression.`,
+      });
+    }
+    if (!expr) {
+      return aiStatus("The model didn't return an expression — try rephrasing.", "err");
+    }
+    setExpression(expr);                              // fills the editor and runs it
+    aiStatus(`Generated from “${escapeHtml(nl)}”. Review it above and tweak as needed.`, "ok");
+  } catch (error) {
+    console.error(error);
+    aiStatus(`Generation failed: ${escapeHtml(error.message || String(error))}`, "err");
+  } finally {
+    ai.busy = false;
+    $("#ai-generate").disabled = false;
+  }
+}
+
+function setupAi() {
+  const toggle = $("#ai-toggle");
+  const panel = $("#ai-panel");
+  if (!toggle || !panel) return;
+  toggle.addEventListener("click", () => {
+    const open = !panel.classList.toggle("hidden");
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.classList.toggle("active", open);
+    if (open) $("#ai-input").focus();
+  });
+  $("#ai-generate").addEventListener("click", generateFromNl);
+  $("#ai-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      generateFromNl();
+    }
+  });
+}
+
+/* ----------------------------------------------------------------
    Output tabs / copy / share
    ---------------------------------------------------------------- */
 function setupOutputTabs() {
@@ -735,6 +929,7 @@ async function init() {
   setupShare();
   setupSearch();
   setupThemeToggle();
+  setupAi();
 
   $("#run-btn").addEventListener("click", () => runExpression());
 

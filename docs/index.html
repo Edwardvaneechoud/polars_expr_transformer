@@ -71,7 +71,8 @@
       <p class="section-intro">
         Pick a dataset and type an expression. The result and the generated
         Polars and FlowFrame code update as you type. Everything runs in your
-        browser.
+        browser. Not sure of the syntax? Hit <strong>✨ Describe in words</strong>
+        to draft an expression from a plain-English description.
       </p>
 
       <div id="runtime-status" class="runtime-status loading">
@@ -91,7 +92,23 @@
         <div class="panel workbench">
           <div class="panel-head">
             <span class="panel-title">Expression</span>
-            <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+            <div class="head-tools">
+              <button id="ai-toggle" class="ai-toggle" type="button" aria-expanded="false" aria-controls="ai-panel" title="Draft an expression from a plain-English description">✨ Describe in words</button>
+              <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+            </div>
+          </div>
+          <div class="ai-panel hidden" id="ai-panel">
+            <div class="ai-row">
+              <input type="text" id="ai-input" class="ai-input" autocomplete="off" spellcheck="false"
+                placeholder="Describe the column you want — e.g. combine first and last name with a space">
+              <button id="ai-generate" class="btn btn-primary btn-sm" type="button">Generate ▸</button>
+            </div>
+            <p class="ai-status" id="ai-status">
+              Runs a small language model (Qwen2.5&nbsp;1.5B) entirely in your browser via
+              <a href="https://github.com/mlc-ai/web-llm" target="_blank" rel="noopener">WebLLM</a>.
+              The first use downloads it (~1&nbsp;GB, then cached) and needs a WebGPU browser
+              (desktop Chrome or Edge). The draft is checked by the parser and shown below for you to review.
+            </p>
           </div>
           <div class="editor-shell">
             <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"></pre>
