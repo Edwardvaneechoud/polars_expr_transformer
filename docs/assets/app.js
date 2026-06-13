@@ -530,6 +530,299 @@ function renderRunResult(result, elapsedMs) {
 }
 
 /* ----------------------------------------------------------------
+   Natural language → expression (optional, in-browser via WebLLM)
+
+   A small instruction-tuned model runs fully client-side on WebGPU and
+   drafts an expression from a plain-English description. The model is
+   only downloaded when the user first asks for it, so the default
+   playground load is unaffected. Whatever the model produces is checked
+   by the same parser the playground already runs (run_expression); on a
+   failure its error is fed back for one repair attempt.
+   ---------------------------------------------------------------- */
+// Default model; users switch sizes via the #ai-model picker. q4f16_1 needs
+// shader-f16 support (most modern GPUs) — swap the ids in index.html to the
+// "…-q4f32_1-MLC" variants for GPUs without it.
+const WEBLLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+const WEBLLM_ESM = "https://esm.run/@mlc-ai/web-llm";
+
+const ai = {
+  engine: null,
+  loading: false,
+  ready: false,
+  busy: false,
+  lessons: [],
+  model: WEBLLM_MODEL,   // currently selected model id
+  loadedModel: null,     // model id actually loaded into the engine
+  useGrammar: true,      // constrain decoding to the formula grammar (XGrammar)
+};
+
+function aiStatus(html, kind = "") {
+  const el = $("#ai-status");
+  el.className = `ai-status ${kind}`;
+  el.innerHTML = html;
+}
+
+/* Remember formulas the parser rejected so later prompts can avoid
+   repeating them. Kept bounded so the prompt stays small. */
+function rememberLesson(expr, error) {
+  const note = `${expr} — ${String(error).split("\n")[0]}`;
+  if (ai.lessons.includes(note)) return;
+  ai.lessons.push(note);
+  if (ai.lessons.length > 6) ai.lessons.shift();
+}
+
+/* Build the system prompt from the live function reference plus the
+   columns of the active dataset. Mirrors the catalog shown in the
+   reference, so it stays in sync as functions change. */
+function buildAiSystemPrompt() {
+  const catalog = [];
+  for (const category of state.reference.categories) {
+    catalog.push(`\n[${category.label}]`);
+    for (const fn of category.functions) {
+      const desc = (fn.description || "").replace(/\s+/g, " ").split(". ")[0].replace(/\.$/, "");
+      catalog.push(`- ${fn.signature} — ${desc}`);
+    }
+  }
+  const columns = DATASETS[state.dataset].columns.map((c) => `[${c.name}]`).join(", ");
+  const parts = [
+    "You translate a user's natural-language request into a SINGLE polars-expr-transformer formula.",
+    "",
+    "Output rules:",
+    "- Reply with ONLY the formula, on one line. No explanation, no markdown, no code fences.",
+    "- Use the functions listed below with their names spelled exactly as shown (for example uppercase, not upper; lowercase, not lower). Never invent function names.",
+    "- If no function fits, build the result from operators and conditionals.",
+    "- Reference columns with square brackets, e.g. [first_name]. Spaces are allowed: [Order Date].",
+    "",
+    "Syntax:",
+    `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false.`,
+    "- Conditionals: if <condition> then <value> elseif <condition> then <value> else <value> endif (elseif may repeat or be omitted; else is required).",
+    "- Operators: + - * / % (arithmetic; + also concatenates text) | = == != (equality) | > >= < <= (comparison) | and or (boolean) | ( ) for grouping.",
+    "- There is no [..] indexing or slicing. For the last character of text use right([col], 1); for the first, left([col], 1); for the middle, mid([col], start, length).",
+    "- Functions may be nested: uppercase(left([last_name], 3)).",
+    "- For missing/null values use is_empty, is_not_empty, coalesce or ifnull.",
+    "- To read a part of a date use year([col]), month([col]), day([col]), hour([col]), weekday([col]), etc. to_date / to_datetime only convert text into a date — never use them to extract a part.",
+    "",
+    `Columns in the current dataset: ${columns}. Prefer these names; only use a different [name] if the request clearly refers to one.`,
+    "",
+    "Available functions:",
+    catalog.join("\n"),
+    "",
+    "Examples (request -> formula):",
+    `"Combine first and last name with a space between them" -> concat([first_name], " ", [last_name])`,
+    `"Label anyone older than 30 as Senior, everyone else Junior" -> if [age] > 30 then "Senior" else "Junior" endif`,
+    `"Multiply price by quantity and round to 2 decimals" -> round([price] * [quantity], 2)`,
+    `"Uppercase the first three letters of the last name" -> uppercase(left([last_name], 3))`,
+    `"Last letter of the first name" -> right([first_name], 1)`,
+    `"Get the year from the start date" -> year([start])`,
+    `"Use the nickname, or the full name when there is no nickname" -> coalesce([nickname], [name])`,
+    `"Grade: A for 90 or above, B for 80 or above, otherwise C" -> if [score] >= 90 then "A" elseif [score] >= 80 then "B" else "C" endif`,
+  ];
+  if (ai.lessons.length) {
+    parts.push("", "Avoid these formulas the parser rejected earlier in this session:");
+    for (const lesson of ai.lessons) parts.push(`- ${lesson}`);
+  }
+  parts.push("", "Reply with only the formula.");
+  return parts.join("\n");
+}
+
+/* Build an EBNF grammar for the formula language from the live function
+   list and the active dataset's columns. Passed to WebLLM as a grammar
+   response_format so the model can only emit a syntactically valid formula
+   that uses real function and column names — hallucinated names, [..]
+   indexing and the like become impossible at decode time. Validated with
+   XGrammar; the downstream parser remains the semantic backstop. */
+function buildFormulaGrammar() {
+  const esc = (s) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const fnames = state.reference.categories.flatMap((c) => c.functions.map((f) => f.name));
+  const cols = DATASETS[state.dataset].columns.map((c) => c.name);
+  return [
+    "root ::= ws expr ws",
+    "expr ::= term (ws op ws term)*",
+    "term ::= call | cond | group | col | str | num | bool",
+    'group ::= "(" ws expr ws ")"',
+    'call ::= fname ws "(" ws arglist? ws ")"',
+    'arglist ::= expr (ws "," ws expr)*',
+    'cond ::= "if" ws expr ws "then" ws expr ws elseifs "else" ws expr ws "endif"',
+    'elseifs ::= ("elseif" ws expr ws "then" ws expr ws)*',
+    'col ::= "[" colname "]"',
+    'str ::= "\\"" dqchar* "\\"" | "\'" sqchar* "\'"',
+    'dqchar ::= [^"\\n]',
+    "sqchar ::= [^'\\n]",
+    'num ::= "-"? digit+ ("." digit+)?',
+    "digit ::= [0-9]",
+    'bool ::= "true" | "false"',
+    'op ::= "==" | "!=" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "and" | "or"',
+    "fname ::= " + fnames.map((n) => `"${esc(n)}"`).join(" | "),
+    "colname ::= " + cols.map((c) => `"${esc(c)}"`).join(" | "),
+    "ws ::= [ \\t\\n]*",
+  ].join("\n");
+}
+
+/* One model call, grammar-constrained when supported. Falls back to plain
+   generation (prompt rules + parser repair loop) if the engine rejects the
+   grammar response_format, and remembers that for the session. */
+async function aiComplete(messages) {
+  const base = { messages, temperature: 0.1, max_tokens: 256 };
+  if (ai.useGrammar) {
+    try {
+      return await ai.engine.chat.completions.create({
+        ...base,
+        response_format: { type: "grammar", grammar: buildFormulaGrammar() },
+      });
+    } catch (error) {
+      console.warn("Grammar-constrained generation unavailable; using the prompt only.", error);
+      ai.useGrammar = false;
+    }
+  }
+  return await ai.engine.chat.completions.create(base);
+}
+
+/* Pull a bare expression out of whatever the model returned. */
+function cleanModelOutput(text) {
+  let out = (text || "").trim();
+  const fenced = out.match(/```[a-zA-Z]*\n?([\s\S]*?)```/);
+  if (fenced) out = fenced[1].trim();
+  out = out.split(/\n\s*\n/)[0].trim();              // first paragraph only
+  out = out.replace(/^(?:->|=|expression:)\s*/i, "").trim();
+  out = out.replace(/^`+|`+$/g, "").trim();          // stray inline backticks
+  return out;
+}
+
+/* Run a candidate through the existing runtime; return null if it parses
+   and executes on the active dataset, otherwise the error message. */
+function checkExpression(expr) {
+  if (!state.ready || !state.runFn) return null;     // runtime not up yet: skip
+  try {
+    const result = JSON.parse(
+      state.runFn(JSON.stringify({ expression: expr, dataset: DATASETS[state.dataset] }))
+    );
+    return result.ok ? null : result.error || "unknown error";
+  } catch {
+    return null;                                      // never block on a harness hiccup
+  }
+}
+
+async function ensureAiEngine() {
+  if (ai.ready && ai.loadedModel === ai.model) return ai.engine;  // already loaded
+  if (ai.loading) return null;
+  if (!navigator.gpu) {
+    aiStatus(
+      "This feature needs WebGPU, which this browser doesn't expose. Try the latest desktop Chrome or Edge.",
+      "err"
+    );
+    return null;
+  }
+  ai.loading = true;
+  try {
+    if (ai.engine && typeof ai.engine.unload === "function") {
+      await ai.engine.unload();        // free the previous model before switching
+    }
+    ai.ready = false;
+    aiStatus("Loading WebLLM…");
+    const webllm = await import(WEBLLM_ESM);
+    ai.engine = await webllm.CreateMLCEngine(ai.model, {
+      initProgressCallback: (report) => {
+        const pct = report.progress ? ` (${Math.round(report.progress * 100)}%)` : "";
+        aiStatus(`${escapeHtml(report.text || "Loading model…")}${pct}`);
+      },
+    });
+    ai.ready = true;
+    ai.loadedModel = ai.model;
+    return ai.engine;
+  } catch (error) {
+    console.error(error);
+    aiStatus(`Could not load the model: ${escapeHtml(error.message || String(error))}`, "err");
+    return null;
+  } finally {
+    ai.loading = false;
+  }
+}
+
+async function generateFromNl() {
+  const nl = $("#ai-input").value.trim();
+  if (!nl) return $("#ai-input").focus();
+  if (ai.busy) return;
+  if (!state.reference) {
+    return aiStatus("The function reference hasn't loaded yet — try again in a moment.", "err");
+  }
+
+  const engine = await ensureAiEngine();
+  if (!engine) return;
+
+  ai.busy = true;
+  $("#ai-generate").disabled = true;
+  try {
+    if (typeof engine.resetChat === "function") await engine.resetChat();  // fresh session each generation
+
+    const messages = [
+      { role: "system", content: buildAiSystemPrompt() },
+      { role: "user", content: nl },
+    ];
+    let expr = "";
+    let problem = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      aiStatus(attempt === 0 ? "Generating…" : "Adjusting the formula…");
+      const reply = await aiComplete(messages);
+      expr = cleanModelOutput(reply.choices?.[0]?.message?.content);
+      problem = expr ? checkExpression(expr) : "empty response";
+      if (!problem) break;
+      rememberLesson(expr, problem);                  // carry the mistake into later prompts
+      // Hand the parser's own error back so the model can correct itself.
+      messages.push({ role: "assistant", content: expr });
+      messages.push({
+        role: "user",
+        content: `That formula is not valid. The parser said:\n${problem}\nReturn a corrected formula. Reply with only the formula.`,
+      });
+    }
+    if (!expr) {
+      return aiStatus("The model didn't return a formula — try rephrasing.", "err");
+    }
+    setExpression(expr);                              // fills the editor and runs it
+    aiStatus(
+      problem
+        ? "Generated a formula, but it didn't pass the parser — review and fix it below."
+        : `Generated from “${escapeHtml(nl)}”. Review it above and tweak as needed.`,
+      problem ? "err" : "ok"
+    );
+  } catch (error) {
+    console.error(error);
+    aiStatus(`Generation failed: ${escapeHtml(error.message || String(error))}`, "err");
+  } finally {
+    ai.busy = false;
+    $("#ai-generate").disabled = false;
+  }
+}
+
+function setupAi() {
+  const toggle = $("#ai-toggle");
+  const panel = $("#ai-panel");
+  if (!toggle || !panel) return;
+  toggle.addEventListener("click", () => {
+    const open = !panel.classList.toggle("hidden");
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.classList.toggle("active", open);
+    if (open) $("#ai-input").focus();
+  });
+  const modelSelect = $("#ai-model");
+  if (modelSelect) {
+    modelSelect.value = ai.model;
+    modelSelect.addEventListener("change", () => {
+      ai.model = modelSelect.value;
+      if (ai.loadedModel && ai.loadedModel !== ai.model) {
+        aiStatus("Model changed — it will download on the next generate.");
+      }
+    });
+  }
+  $("#ai-generate").addEventListener("click", generateFromNl);
+  $("#ai-input").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      generateFromNl();
+    }
+  });
+}
+
+/* ----------------------------------------------------------------
    Output tabs / copy / share
    ---------------------------------------------------------------- */
 function setupOutputTabs() {
@@ -735,6 +1028,7 @@ async function init() {
   setupShare();
   setupSearch();
   setupThemeToggle();
+  setupAi();
 
   $("#run-btn").addEventListener("click", () => runExpression());
 

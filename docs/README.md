@@ -17,6 +17,34 @@ client-side; there is no server component.
 | `assets/functions.json` | Function reference data, generated from the library's docstrings by `../generate_docs.py`. |
 | `assets/wheel/*.whl` | The library wheel installed into Pyodide, built from this repository. |
 
+## Natural-language input (optional)
+
+The Expression panel has a **Generate flowfile formula** button that drafts a
+formula from a plain-English description. A small instruction-tuned
+[Qwen2.5](https://huggingface.co/Qwen) model runs entirely client-side on
+WebGPU via [WebLLM](https://github.com/mlc-ai/web-llm), loaded on demand
+from the `esm.run` CDN — nothing is downloaded until a visitor first uses
+the feature, so the default page load is unchanged. A picker offers 0.5B
+(~0.4 GB), 1.5B (~1 GB, default) and 3B (~2 GB); switching reloads on the
+next generate. It needs a WebGPU browser (desktop Chrome or Edge).
+
+Generation is constrained by an EBNF grammar built at runtime from the
+function list and the active dataset's columns and enforced in the browser
+by WebLLM/[XGrammar](https://xgrammar.mlc.ai) (`response_format: { type:
+"grammar" }`). The model can therefore only emit a syntactically valid
+formula that uses real function and column names — hallucinated names,
+`[..]` indexing and the like are impossible at decode time; if a model or
+engine can't honour the grammar the code falls back to plain generation.
+The system prompt is built from the same catalog so it stays in sync.
+
+As a semantic backstop each draft is still run through the
+`run_expression` parser; if it fails to execute, the error is fed back for
+a repair attempt (up to three), and formulas the parser rejects are
+remembered to steer later prompts in the session. The default model is
+`WEBLLM_MODEL` in `assets/app.js`; the picker's options (and their
+`q4f16_1` quantization) are the `#ai-model` `<option>`s in `index.html`;
+the grammar itself is `buildFormulaGrammar()`.
+
 ## Developing locally
 
 ```bash

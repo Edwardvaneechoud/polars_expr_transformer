@@ -71,7 +71,8 @@
       <p class="section-intro">
         Pick a dataset and type an expression. The result and the generated
         Polars and FlowFrame code update as you type. Everything runs in your
-        browser.
+        browser. Not sure of the syntax? Describe what you want in plain
+        English and <strong>generate a flowfile formula</strong>.
       </p>
 
       <div id="runtime-status" class="runtime-status loading">
@@ -91,7 +92,26 @@
         <div class="panel workbench">
           <div class="panel-head">
             <span class="panel-title">Expression</span>
-            <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+            <div class="head-tools">
+              <button id="ai-toggle" class="ai-toggle" type="button" aria-expanded="false" aria-controls="ai-panel" title="Describe what you want and generate a flowfile formula">Generate flowfile formula</button>
+              <span class="kbd-hint">Ctrl/⌘ + Enter to run</span>
+            </div>
+          </div>
+          <div class="ai-panel hidden" id="ai-panel">
+            <div class="ai-row">
+              <input type="text" id="ai-input" class="ai-input" autocomplete="off" spellcheck="false"
+                placeholder="Describe the column you want — e.g. combine first and last name with a space">
+              <button id="ai-generate" class="btn btn-primary btn-sm" type="button">Generate ▸</button>
+            </div>
+            <div class="ai-row ai-row-sub">
+              <label class="ai-model-label" for="ai-model">Model</label>
+              <select id="ai-model" class="ai-model" title="Larger models are more accurate but download more on first use">
+                <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">0.5B · fastest (~0.4 GB)</option>
+                <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC" selected>1.5B · balanced (~1 GB)</option>
+                <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC">3B · most accurate (~2 GB)</option>
+              </select>
+            </div>
+            <p class="ai-status" id="ai-status"></p>
           </div>
           <div class="editor-shell">
             <pre class="editor-highlight" id="editor-highlight" aria-hidden="true"></pre>
