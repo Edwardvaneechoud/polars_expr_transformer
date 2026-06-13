@@ -322,6 +322,14 @@ h1, h2, h3 { line-height: 1.25; }
   border-bottom: 1px solid var(--border);
 }
 .ai-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-row-sub { margin-top: 8px; align-items: center; }
+.ai-model-label { font-size: 12.5px; font-weight: 600; color: var(--text-dim); }
+.ai-model {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 5px 10px; font-size: 13px; font-family: var(--sans);
+  cursor: pointer; outline: none;
+}
+.ai-model:focus { border-color: var(--accent); }
 .ai-input {
   flex: 1 1 280px; min-width: 0;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);

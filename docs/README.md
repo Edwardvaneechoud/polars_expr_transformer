@@ -21,19 +21,20 @@ client-side; there is no server component.
 
 The Expression panel has a **Generate flowfile formula** button that drafts a
 formula from a plain-English description. A small instruction-tuned
-model ([Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen)) runs entirely
-client-side on WebGPU via [WebLLM](https://github.com/mlc-ai/web-llm),
-loaded on demand from the `esm.run` CDN — the model (~1 GB) is only
-downloaded when a visitor first uses the feature, so the default page load
-is unchanged. It needs a WebGPU browser (desktop Chrome or Edge).
+[Qwen2.5](https://huggingface.co/Qwen) model runs entirely client-side on
+WebGPU via [WebLLM](https://github.com/mlc-ai/web-llm), loaded on demand
+from the `esm.run` CDN — nothing is downloaded until a visitor first uses
+the feature, so the default page load is unchanged. A picker offers 0.5B
+(~0.4 GB), 1.5B (~1 GB, default) and 3B (~2 GB); switching reloads on the
+next generate. It needs a WebGPU browser (desktop Chrome or Edge).
 
 The system prompt is built at runtime from the function reference plus the
 active dataset's column names, so it stays in sync with the catalog. Each
 draft is run through the same `run_expression` parser the playground uses;
 if it fails, the parser's error is fed back to the model for one repair
-attempt before the result is shown. The model id and quantization are set
-by `WEBLLM_MODEL` near the top of the natural-language section in
-`assets/app.js` (swap in the `0.5B` id for a ~350 MB download).
+attempt before the result is shown. The default model is `WEBLLM_MODEL` in
+`assets/app.js`; the picker's options (and their `q4f16_1` quantization)
+are the `#ai-model` `<option>`s in `index.html`.
 
 ## Developing locally
 

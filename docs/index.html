@@ -103,6 +103,14 @@
                 placeholder="Describe the column you want — e.g. combine first and last name with a space">
               <button id="ai-generate" class="btn btn-primary btn-sm" type="button">Generate ▸</button>
             </div>
+            <div class="ai-row ai-row-sub">
+              <label class="ai-model-label" for="ai-model">Model</label>
+              <select id="ai-model" class="ai-model" title="Larger models are more accurate but download more on first use">
+                <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">0.5B · fastest (~0.4 GB)</option>
+                <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC" selected>1.5B · balanced (~1 GB)</option>
+                <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC">3B · most accurate (~2 GB)</option>
+              </select>
+            </div>
             <p class="ai-status" id="ai-status"></p>
           </div>
           <div class="editor-shell">

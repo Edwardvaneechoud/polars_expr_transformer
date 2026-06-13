@@ -539,13 +539,21 @@ function renderRunResult(result, elapsedMs) {
    by the same parser the playground already runs (run_expression); on a
    failure its error is fed back for one repair attempt.
    ---------------------------------------------------------------- */
-// q4f16_1 keeps the download ~1 GB; swap to "…-q4f32_1-MLC" for GPUs
-// without shader-f16 support, or to "Qwen2.5-0.5B-Instruct-q4f16_1-MLC"
-// for a ~350 MB download with a small quality trade-off.
+// Default model; users switch sizes via the #ai-model picker. q4f16_1 needs
+// shader-f16 support (most modern GPUs) — swap the ids in index.html to the
+// "…-q4f32_1-MLC" variants for GPUs without it.
 const WEBLLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const WEBLLM_ESM = "https://esm.run/@mlc-ai/web-llm";
 
-const ai = { engine: null, loading: false, ready: false, busy: false, lessons: [] };
+const ai = {
+  engine: null,
+  loading: false,
+  ready: false,
+  busy: false,
+  lessons: [],
+  model: WEBLLM_MODEL,   // currently selected model id
+  loadedModel: null,     // model id actually loaded into the engine
+};
 
 function aiStatus(html, kind = "") {
   const el = $("#ai-status");
@@ -640,7 +648,7 @@ function checkExpression(expr) {
 }
 
 async function ensureAiEngine() {
-  if (ai.ready) return ai.engine;
+  if (ai.ready && ai.loadedModel === ai.model) return ai.engine;  // already loaded
   if (ai.loading) return null;
   if (!navigator.gpu) {
     aiStatus(
@@ -651,15 +659,20 @@ async function ensureAiEngine() {
   }
   ai.loading = true;
   try {
+    if (ai.engine && typeof ai.engine.unload === "function") {
+      await ai.engine.unload();        // free the previous model before switching
+    }
+    ai.ready = false;
     aiStatus("Loading WebLLM…");
     const webllm = await import(WEBLLM_ESM);
-    ai.engine = await webllm.CreateMLCEngine(WEBLLM_MODEL, {
+    ai.engine = await webllm.CreateMLCEngine(ai.model, {
       initProgressCallback: (report) => {
         const pct = report.progress ? ` (${Math.round(report.progress * 100)}%)` : "";
         aiStatus(`${escapeHtml(report.text || "Loading model…")}${pct}`);
       },
     });
     ai.ready = true;
+    ai.loadedModel = ai.model;
     return ai.engine;
   } catch (error) {
     console.error(error);
@@ -739,6 +752,16 @@ function setupAi() {
     toggle.classList.toggle("active", open);
     if (open) $("#ai-input").focus();
   });
+  const modelSelect = $("#ai-model");
+  if (modelSelect) {
+    modelSelect.value = ai.model;
+    modelSelect.addEventListener("change", () => {
+      ai.model = modelSelect.value;
+      if (ai.loadedModel && ai.loadedModel !== ai.model) {
+        aiStatus("Model changed — it will download on the next generate.");
+      }
+    });
+  }
   $("#ai-generate").addEventListener("click", generateFromNl);
   $("#ai-input").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
