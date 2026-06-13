@@ -600,6 +600,7 @@ function buildAiSystemPrompt() {
     "- There is no [..] indexing or slicing. For the last character of text use right([col], 1); for the first, left([col], 1); for the middle, mid([col], start, length).",
     "- Functions may be nested: uppercase(left([last_name], 3)).",
     "- For missing/null values use is_empty, is_not_empty, coalesce or ifnull.",
+    "- To read a part of a date use year([col]), month([col]), day([col]), hour([col]), weekday([col]), etc. to_date / to_datetime only convert text into a date — never use them to extract a part.",
     "",
     `Columns in the current dataset: ${columns}. Prefer these names; only use a different [name] if the request clearly refers to one.`,
     "",
@@ -612,6 +613,7 @@ function buildAiSystemPrompt() {
     `"Multiply price by quantity and round to 2 decimals" -> round([price] * [quantity], 2)`,
     `"Uppercase the first three letters of the last name" -> uppercase(left([last_name], 3))`,
     `"Last letter of the first name" -> right([first_name], 1)`,
+    `"Get the year from the start date" -> year([start])`,
     `"Use the nickname, or the full name when there is no nickname" -> coalesce([nickname], [name])`,
     `"Grade: A for 90 or above, B for 80 or above, otherwise C" -> if [score] >= 90 then "A" elseif [score] >= 80 then "B" else "C" endif`,
   ];
