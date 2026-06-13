@@ -545,12 +545,21 @@ function renderRunResult(result, elapsedMs) {
 const WEBLLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
 const WEBLLM_ESM = "https://esm.run/@mlc-ai/web-llm";
 
-const ai = { engine: null, loading: false, ready: false, busy: false };
+const ai = { engine: null, loading: false, ready: false, busy: false, lessons: [] };
 
 function aiStatus(html, kind = "") {
   const el = $("#ai-status");
   el.className = `ai-status ${kind}`;
   el.innerHTML = html;
+}
+
+/* Remember formulas the parser rejected so later prompts can avoid
+   repeating them. Kept bounded so the prompt stays small. */
+function rememberLesson(expr, error) {
+  const note = `${expr} — ${String(error).split("\n")[0]}`;
+  if (ai.lessons.includes(note)) return;
+  ai.lessons.push(note);
+  if (ai.lessons.length > 6) ai.lessons.shift();
 }
 
 /* Build the system prompt from the live function reference plus the
@@ -566,18 +575,20 @@ function buildAiSystemPrompt() {
     }
   }
   const columns = DATASETS[state.dataset].columns.map((c) => `[${c.name}]`).join(", ");
-  return [
-    "You translate a user's natural-language request into a SINGLE polars-expr-transformer expression.",
+  const parts = [
+    "You translate a user's natural-language request into a SINGLE polars-expr-transformer formula.",
     "",
     "Output rules:",
-    "- Reply with ONLY the expression, on one line. No explanation, no markdown, no code fences.",
-    "- Use only the functions listed below. Never invent function names. If no function fits, build the result from operators and conditionals.",
+    "- Reply with ONLY the formula, on one line. No explanation, no markdown, no code fences.",
+    "- Use the functions listed below with their names spelled exactly as shown (for example uppercase, not upper; lowercase, not lower). Never invent function names.",
+    "- If no function fits, build the result from operators and conditionals.",
     "- Reference columns with square brackets, e.g. [first_name]. Spaces are allowed: [Order Date].",
     "",
     "Syntax:",
     `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false.`,
     "- Conditionals: if <condition> then <value> elseif <condition> then <value> else <value> endif (elseif may repeat or be omitted; else is required).",
     "- Operators: + - * / % (arithmetic; + also concatenates text) | = == != (equality) | > >= < <= (comparison) | and or (boolean) | ( ) for grouping.",
+    "- There is no [..] indexing or slicing. For the last character of text use right([col], 1); for the first, left([col], 1); for the middle, mid([col], start, length).",
     "- Functions may be nested: uppercase(left([last_name], 3)).",
     "- For missing/null values use is_empty, is_not_empty, coalesce or ifnull.",
     "",
@@ -586,16 +597,21 @@ function buildAiSystemPrompt() {
     "Available functions:",
     catalog.join("\n"),
     "",
-    "Examples (request -> expression):",
+    "Examples (request -> formula):",
     `"Combine first and last name with a space between them" -> concat([first_name], " ", [last_name])`,
     `"Label anyone older than 30 as Senior, everyone else Junior" -> if [age] > 30 then "Senior" else "Junior" endif`,
     `"Multiply price by quantity and round to 2 decimals" -> round([price] * [quantity], 2)`,
     `"Uppercase the first three letters of the last name" -> uppercase(left([last_name], 3))`,
+    `"Last letter of the first name" -> right([first_name], 1)`,
     `"Use the nickname, or the full name when there is no nickname" -> coalesce([nickname], [name])`,
     `"Grade: A for 90 or above, B for 80 or above, otherwise C" -> if [score] >= 90 then "A" elseif [score] >= 80 then "B" else "C" endif`,
-    "",
-    "Reply with only the expression.",
-  ].join("\n");
+  ];
+  if (ai.lessons.length) {
+    parts.push("", "Avoid these formulas the parser rejected earlier in this session:");
+    for (const lesson of ai.lessons) parts.push(`- ${lesson}`);
+  }
+  parts.push("", "Reply with only the formula.");
+  return parts.join("\n");
 }
 
 /* Pull a bare expression out of whatever the model returned. */
@@ -668,33 +684,42 @@ async function generateFromNl() {
   ai.busy = true;
   $("#ai-generate").disabled = true;
   try {
+    if (typeof engine.resetChat === "function") await engine.resetChat();  // fresh session each generation
+
     const messages = [
       { role: "system", content: buildAiSystemPrompt() },
       { role: "user", content: nl },
     ];
     let expr = "";
-    for (let attempt = 0; attempt < 2; attempt++) {
+    let problem = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
       aiStatus(attempt === 0 ? "Generating…" : "Adjusting the formula…");
       const reply = await engine.chat.completions.create({
         messages,
-        temperature: 0.2,
+        temperature: 0.1,
         max_tokens: 256,
       });
       expr = cleanModelOutput(reply.choices?.[0]?.message?.content);
-      const problem = expr ? checkExpression(expr) : "empty response";
+      problem = expr ? checkExpression(expr) : "empty response";
       if (!problem) break;
-      // Hand the parser's own error back for a single repair attempt.
+      rememberLesson(expr, problem);                  // carry the mistake into later prompts
+      // Hand the parser's own error back so the model can correct itself.
       messages.push({ role: "assistant", content: expr });
       messages.push({
         role: "user",
-        content: `That expression failed with this error:\n${problem}\nReturn a corrected expression. Reply with only the expression.`,
+        content: `That formula is not valid. The parser said:\n${problem}\nReturn a corrected formula. Reply with only the formula.`,
       });
     }
     if (!expr) {
-      return aiStatus("The model didn't return an expression — try rephrasing.", "err");
+      return aiStatus("The model didn't return a formula — try rephrasing.", "err");
     }
     setExpression(expr);                              // fills the editor and runs it
-    aiStatus(`Generated from “${escapeHtml(nl)}”. Review it above and tweak as needed.`, "ok");
+    aiStatus(
+      problem
+        ? "Generated a formula, but it didn't pass the parser — review and fix it below."
+        : `Generated from “${escapeHtml(nl)}”. Review it above and tweak as needed.`,
+      problem ? "err" : "ok"
+    );
   } catch (error) {
     console.error(error);
     aiStatus(`Generation failed: ${escapeHtml(error.message || String(error))}`, "err");
