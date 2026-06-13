@@ -553,6 +553,7 @@ const ai = {
   lessons: [],
   model: WEBLLM_MODEL,   // currently selected model id
   loadedModel: null,     // model id actually loaded into the engine
+  useGrammar: true,      // constrain decoding to the formula grammar (XGrammar)
 };
 
 function aiStatus(html, kind = "") {
@@ -620,6 +621,58 @@ function buildAiSystemPrompt() {
   }
   parts.push("", "Reply with only the formula.");
   return parts.join("\n");
+}
+
+/* Build an EBNF grammar for the formula language from the live function
+   list and the active dataset's columns. Passed to WebLLM as a grammar
+   response_format so the model can only emit a syntactically valid formula
+   that uses real function and column names — hallucinated names, [..]
+   indexing and the like become impossible at decode time. Validated with
+   XGrammar; the downstream parser remains the semantic backstop. */
+function buildFormulaGrammar() {
+  const esc = (s) => s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const fnames = state.reference.categories.flatMap((c) => c.functions.map((f) => f.name));
+  const cols = DATASETS[state.dataset].columns.map((c) => c.name);
+  return [
+    "root ::= ws expr ws",
+    "expr ::= term (ws op ws term)*",
+    "term ::= call | cond | group | col | str | num | bool",
+    'group ::= "(" ws expr ws ")"',
+    'call ::= fname ws "(" ws arglist? ws ")"',
+    'arglist ::= expr (ws "," ws expr)*',
+    'cond ::= "if" ws expr ws "then" ws expr ws elseifs "else" ws expr ws "endif"',
+    'elseifs ::= ("elseif" ws expr ws "then" ws expr ws)*',
+    'col ::= "[" colname "]"',
+    'str ::= "\\"" dqchar* "\\"" | "\'" sqchar* "\'"',
+    'dqchar ::= [^"\\n]',
+    "sqchar ::= [^'\\n]",
+    'num ::= "-"? digit+ ("." digit+)?',
+    "digit ::= [0-9]",
+    'bool ::= "true" | "false"',
+    'op ::= "==" | "!=" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "and" | "or"',
+    "fname ::= " + fnames.map((n) => `"${esc(n)}"`).join(" | "),
+    "colname ::= " + cols.map((c) => `"${esc(c)}"`).join(" | "),
+    "ws ::= [ \\t\\n]*",
+  ].join("\n");
+}
+
+/* One model call, grammar-constrained when supported. Falls back to plain
+   generation (prompt rules + parser repair loop) if the engine rejects the
+   grammar response_format, and remembers that for the session. */
+async function aiComplete(messages) {
+  const base = { messages, temperature: 0.1, max_tokens: 256 };
+  if (ai.useGrammar) {
+    try {
+      return await ai.engine.chat.completions.create({
+        ...base,
+        response_format: { type: "grammar", grammar: buildFormulaGrammar() },
+      });
+    } catch (error) {
+      console.warn("Grammar-constrained generation unavailable; using the prompt only.", error);
+      ai.useGrammar = false;
+    }
+  }
+  return await ai.engine.chat.completions.create(base);
 }
 
 /* Pull a bare expression out of whatever the model returned. */
@@ -707,11 +760,7 @@ async function generateFromNl() {
     let problem = null;
     for (let attempt = 0; attempt < 3; attempt++) {
       aiStatus(attempt === 0 ? "Generating…" : "Adjusting the formula…");
-      const reply = await engine.chat.completions.create({
-        messages,
-        temperature: 0.1,
-        max_tokens: 256,
-      });
+      const reply = await aiComplete(messages);
       expr = cleanModelOutput(reply.choices?.[0]?.message?.content);
       problem = expr ? checkExpression(expr) : "empty response";
       if (!problem) break;

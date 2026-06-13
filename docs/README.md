@@ -28,13 +28,22 @@ the feature, so the default page load is unchanged. A picker offers 0.5B
 (~0.4 GB), 1.5B (~1 GB, default) and 3B (~2 GB); switching reloads on the
 next generate. It needs a WebGPU browser (desktop Chrome or Edge).
 
-The system prompt is built at runtime from the function reference plus the
-active dataset's column names, so it stays in sync with the catalog. Each
-draft is run through the same `run_expression` parser the playground uses;
-if it fails, the parser's error is fed back to the model for one repair
-attempt before the result is shown. The default model is `WEBLLM_MODEL` in
-`assets/app.js`; the picker's options (and their `q4f16_1` quantization)
-are the `#ai-model` `<option>`s in `index.html`.
+Generation is constrained by an EBNF grammar built at runtime from the
+function list and the active dataset's columns and enforced in the browser
+by WebLLM/[XGrammar](https://xgrammar.mlc.ai) (`response_format: { type:
+"grammar" }`). The model can therefore only emit a syntactically valid
+formula that uses real function and column names — hallucinated names,
+`[..]` indexing and the like are impossible at decode time; if a model or
+engine can't honour the grammar the code falls back to plain generation.
+The system prompt is built from the same catalog so it stays in sync.
+
+As a semantic backstop each draft is still run through the
+`run_expression` parser; if it fails to execute, the error is fed back for
+a repair attempt (up to three), and formulas the parser rejects are
+remembered to steer later prompts in the session. The default model is
+`WEBLLM_MODEL` in `assets/app.js`; the picker's options (and their
+`q4f16_1` quantization) are the `#ai-model` `<option>`s in `index.html`;
+the grammar itself is `buildFormulaGrammar()`.
 
 ## Developing locally
 
