@@ -674,7 +674,7 @@ async function generateFromNl() {
     ];
     let expr = "";
     for (let attempt = 0; attempt < 2; attempt++) {
-      aiStatus(attempt === 0 ? "Thinking…" : "Fixing the expression…");
+      aiStatus(attempt === 0 ? "Generating…" : "Adjusting the formula…");
       const reply = await engine.chat.completions.create({
         messages,
         temperature: 0.2,

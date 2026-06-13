@@ -19,8 +19,8 @@ client-side; there is no server component.
 
 ## Natural-language input (optional)
 
-The Expression panel has a **✨ Describe in words** toggle that drafts an
-expression from a plain-English description. A small instruction-tuned
+The Expression panel has a **Generate flowfile formula** button that drafts a
+formula from a plain-English description. A small instruction-tuned
 model ([Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen)) runs entirely
 client-side on WebGPU via [WebLLM](https://github.com/mlc-ai/web-llm),
 loaded on demand from the `esm.run` CDN — the model (~1 GB) is only
