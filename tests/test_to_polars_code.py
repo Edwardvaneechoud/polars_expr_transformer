@@ -75,6 +75,18 @@ class TestColumnAndLiterals:
         result = to_polars_code(expr_str)
         assert result == "pl.lit(True)"
 
+    def test_null_literal(self, main_df):
+        expr_str = "null"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == "pl.lit(None)"
+
+    def test_null_literal_in_function(self, main_df):
+        expr_str = "ifnull([age], null)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.coalesce([pl.col("age"), pl.lit(None)])'
+
     def test_column_reference(self, main_df):
         expr_str = "[my_column]"
         validate_func_expr_str(main_df, expr_str)

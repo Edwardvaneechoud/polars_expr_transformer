@@ -91,6 +91,7 @@ value_type: TypeAlias = Literal[
     "string",
     "number",
     "boolean",
+    "null",
     "operator",
     "function",
     "column",
@@ -149,6 +150,8 @@ class Classifier:
     def get_val_type(self) -> value_type:
         if self.val.lower() in ["true", "false"]:
             return "boolean"
+        elif self.val.lower() == "null":
+            return "null"
         elif self.val in operators:
             return "operator"
         elif self.val in ("(", ")"):
@@ -173,6 +176,8 @@ class Classifier:
     def get_pl_func(self):
         if self.val_type == "boolean":
             return True if self.val.lower() == "true" else False
+        elif self.val_type == "null":
+            return None
         elif self.val_type == "function":
             return funcs[self.val]
         elif self.val_type in ("number", "string"):

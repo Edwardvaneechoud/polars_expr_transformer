@@ -994,3 +994,46 @@ def test_unbalanced_parentheses():
     df = pl.DataFrame({'a': [1, 2, 3]})
     with pytest.raises(ValueError, match="Unbalanced parentheses"):
         simple_function_to_expr('((1)')
+
+
+def test_null_literal_standalone():
+    """A bare `null` is the null literal (pl.lit(None))."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('null'))
+    assert result.to_series().to_list() == [None]
+
+
+def test_null_literal_in_conditional():
+    """`null` works as a branch value in if/then/else."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('if [a] > 2 then null else [a] endif'))
+    assert result.to_series().to_list() == [1, 2, None]
+
+
+def test_null_literal_in_coalesce():
+    """`null` can be passed as a function argument and is skipped by coalesce."""
+    df = pl.DataFrame({'a': [1, None, 3]})
+    result = df.select(simple_function_to_expr('coalesce([a], null, 0)'))
+    assert result.to_series().to_list() == [1, 0, 3]
+
+
+def test_null_literal_in_ifnull():
+    """`null` can be used as the default in ifnull."""
+    df = pl.DataFrame({'a': [1, None, 3]})
+    result = df.select(simple_function_to_expr('ifnull([a], null)'))
+    assert result.to_series().to_list() == [1, None, 3]
+
+
+def test_null_literal_case_insensitive():
+    """`NULL` and `Null` behave like `null`, mirroring true/false."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    for kw in ('NULL', 'Null'):
+        result = df.select(simple_function_to_expr(kw))
+        assert result.to_series().to_list() == [None]
+
+
+def test_quoted_null_is_string_literal():
+    """A quoted "null" stays the string "null", not the null literal."""
+    df = pl.DataFrame({'a': [1, 2, 3]})
+    result = df.select(simple_function_to_expr('"null"'))
+    assert result.to_series().to_list() == ['null']
