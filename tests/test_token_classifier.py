@@ -218,3 +218,15 @@ class TestStandardizeTokens(unittest.TestCase):
         ]
         self.assertEqual([t.val for t in result], [t.val for t in expected])
 
+
+class TestNullClassification(unittest.TestCase):
+
+    def test_null_literal_classified_as_null(self):
+        """A bare `null` token is classified as the null type, case-insensitively."""
+        for kw in ('null', 'NULL', 'Null'):
+            self.assertEqual(Classifier(kw).val_type, 'null')
+
+    def test_quoted_null_is_string(self):
+        """A quoted "null" is a string literal, not the null type."""
+        self.assertEqual(Classifier('"null"').val_type, 'string')
+

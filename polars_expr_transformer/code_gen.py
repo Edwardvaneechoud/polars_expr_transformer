@@ -229,6 +229,8 @@ def format_pl_literal(val_str, val_type, prefix="pl"):
     if val_type == "boolean":
         py_val = "True" if val_str.lower() == "true" else "False"
         return f"{prefix}.lit({py_val})"
+    elif val_type == "null":
+        return f"{prefix}.lit(None)"
     elif val_type == "number":
         return f"{prefix}.lit({val_str})"
     elif val_type == "string":
