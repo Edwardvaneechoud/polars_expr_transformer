@@ -65,7 +65,7 @@ const EXAMPLES = [
   { label: "Weekend?", dataset: "events", expr: "weekday([start]) >= 6" },
 ];
 
-const KEYWORDS = ["if", "then", "elseif", "else", "endif", "and", "or", "not", "true", "false"];
+const KEYWORDS = ["if", "then", "elseif", "else", "endif", "and", "or", "not", "true", "false", "null"];
 
 /* ---------------- state ---------------- */
 const state = {
@@ -594,7 +594,7 @@ function buildAiSystemPrompt() {
     "- Reference columns with square brackets, e.g. [first_name]. Spaces are allowed: [Order Date].",
     "",
     "Syntax:",
-    `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false.`,
+    `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false. The null literal (an empty/missing value) is bare: null.`,
     "- Conditionals: if <condition> then <value> elseif <condition> then <value> else <value> endif (elseif may repeat or be omitted; else is required).",
     "- Operators: + - * / % (arithmetic; + also concatenates text) | = == != (equality) | > >= < <= (comparison) | and or (boolean) | ( ) for grouping.",
     "- There is no [..] indexing or slicing. For the last character of text use right([col], 1); for the first, left([col], 1); for the middle, mid([col], start, length).",
@@ -638,7 +638,7 @@ function buildFormulaGrammar() {
   return [
     "root ::= ws expr ws",
     "expr ::= term (ws op ws term)*",
-    "term ::= call | cond | group | col | str | num | bool",
+    "term ::= call | cond | group | col | str | num | bool | nul",
     'group ::= "(" ws expr ws ")"',
     'call ::= fname ws "(" ws arglist? ws ")"',
     'arglist ::= expr (ws "," ws expr)*',
@@ -651,6 +651,7 @@ function buildFormulaGrammar() {
     'num ::= "-"? digit+ ("." digit+)?',
     "digit ::= [0-9]",
     'bool ::= "true" | "false"',
+    'nul ::= "null"',
     'op ::= "==" | "!=" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "and" | "or"',
     "fname ::= " + fnames.map((n) => `"${esc(n)}"`).join(" | "),
     "colname ::= " + cols.map((c) => `"${esc(c)}"`).join(" | "),

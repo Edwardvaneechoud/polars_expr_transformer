@@ -191,7 +191,7 @@ def _generate_tree(obj: Func, prefix="", is_last=True, level=0):
         type_str = f" ({val_type})" if val_type else ""
 
         # For literals like numbers, strings, etc. - use a better label
-        if val_type in ["number", "string", "boolean"]:
+        if val_type in ["number", "string", "boolean", "null"]:
             lines.append(f"{prefix}{branch}Value: {val}{type_str}")
         else:
             lines.append(f"{prefix}{branch}Classifier: {val}{type_str}")
