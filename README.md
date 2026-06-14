@@ -63,6 +63,24 @@ Reference DataFrame columns using square brackets:
 '[Column With Spaces]'    # Columns with spaces work too
 ```
 
+### Values & Data Types
+
+Besides column references, you can write literal values directly. Five literal types are supported:
+
+| Type | How to write it | Examples |
+|------|-----------------|----------|
+| String | Single or double quotes | `"hello"`, `'world'` |
+| Integer | Bare whole numbers (negatives allowed) | `42`, `-7` |
+| Float | Bare decimal numbers | `3.14`, `-0.5` |
+| Boolean | `true` or `false` (case-insensitive) | `true`, `False` |
+| Null | `null` (case-insensitive) — the missing value | `null` |
+
+```python
+'if [active] = true then "yes" else "no" endif'   # boolean literal
+'[price] * 1.1'                                     # float literal
+'coalesce([nickname], null)'                        # null literal
+```
+
 ### Operators
 
 | Operator | Description | Example |
