@@ -1,5 +1,4 @@
 import polars as pl
-import polars_ds as pds
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 from functools import partial
@@ -286,6 +285,14 @@ def right_trim(text: PlStringType) -> pl.Expr:
 
 
 def __get_similarity_method(how: str) -> callable:
+    try:
+        import polars_ds as pds
+    except ImportError as exc:
+        raise ImportError(
+            "String-similarity functions require the optional 'polars-ds' package, which has no "
+            "WebAssembly wheel and is unavailable in browser/Pyodide builds. Install it with "
+            "`pip install polars-ds` in a native environment to use similarity methods."
+        ) from exc
     match how:
         case 'levenshtein':
             return partial(pds.str_leven, return_sim=True)
