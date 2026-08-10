@@ -8,6 +8,8 @@ The ``prefix`` parameter (default ``"pl"``) controls the library qualifier used
 in the generated code.  Pass ``"ff"`` to emit FlowFrame code instead.
 """
 
+import ast
+
 # Reverse mapping from internal operator names to Python operator symbols
 OPERATOR_SYMBOLS = {
     "pl.Expr.add": "+",
@@ -24,6 +26,42 @@ OPERATOR_SYMBOLS = {
     "pl.Expr.or_": "|",
     "does_not_equal": "!=",
 }
+
+
+_ATOMIC_EXPR_NODES = (
+    ast.Call,
+    ast.Attribute,
+    ast.Name,
+    ast.Constant,
+    ast.Subscript,
+    ast.List,
+    ast.Tuple,
+    ast.Dict,
+    ast.Set,
+)
+
+
+def parenthesize(code: str) -> str:
+    """Wrap rendered code in parentheses unless it is already an atomic expression.
+
+    Generated code is assembled by attaching method calls and infix operators to
+    already-rendered sub-expressions, and both bind tighter than a bare infix
+    expression.  Without this, ``pl.col("a") / pl.col("b")`` followed by
+    ``.log()`` attaches the method to ``pl.col("b")`` alone, which is valid
+    Python computing the wrong thing.
+
+    Atomicity is decided by parsing the rendered code, so this stays correct for
+    any code generator in ``FUNCTION_CODE_GEN``, including ones that render
+    infix output themselves.  Parentheses around an already-atomic expression
+    would be harmless but are skipped to keep generated code readable.
+    """
+    try:
+        node = ast.parse(code, mode="eval").body
+    except SyntaxError:
+        return f"({code})"
+    if isinstance(node, _ATOMIC_EXPR_NODES):
+        return code
+    return f"({code})"
 
 
 def _method_chain(method):
