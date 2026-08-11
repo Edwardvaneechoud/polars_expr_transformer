@@ -1,6 +1,7 @@
 from polars_expr_transformer import to_polars_code, simple_function_to_expr, PolarsCodeGenError
 from polars_expr_transformer.process.polars_expr_transformer import _validate_polars_code
 from polars_expr_transformer.process.models import Func, Classifier
+from polars_expr_transformer.code_gen import parenthesize
 import polars as pl
 from polars.testing import assert_frame_equal
 from pytest import fixture
@@ -482,6 +483,174 @@ class TestCodeGenFixes:
         assert "datetime.datetime.today()" in result
         expr = eval(result, {"pl": pl, "datetime": datetime})
         assert isinstance(expr, pl.Expr)
+
+
+SINGLE_ARG_MATH_FUNCTIONS = [
+    "log",
+    "log10",
+    "log2",
+    "sqrt",
+    "abs",
+    "exp",
+    "ceil",
+    "floor",
+    "sin",
+    "cos",
+    "tan",
+    "asin",
+    "acos",
+    "atan",
+    "tanh",
+    "sign",
+]
+
+SINGLE_ARG_STRING_FUNCTIONS = [
+    "uppercase",
+    "lowercase",
+    "titlecase",
+    "length",
+    "trim",
+    "left_trim",
+    "right_trim",
+    "reverse",
+]
+
+COMPOUND_ARGUMENT_EXPRESSIONS = [
+    "abs([val]-[price])",
+    "round([price]/[age], 2)",
+    "power([val]+[age], 2)",
+    "mod([age]+[score], 7)",
+    "left([first]+[last], 3)",
+    "right([first]+[last], 3)",
+    "contains([first]+[last], 'o')",
+    "starts_with([first]+[last], 'J')",
+    "ends_with([first]+[last], 'e')",
+    "count_match([first]+[last], 'o')",
+    "split([first]+[last], 'o')",
+    "to_string([age]+[score])",
+    "to_integer([price]/[age])",
+    "to_float([age]+[score])",
+    "to_decimal([price]/[age], 2)",
+    "is_empty([first]+[last])",
+    "is_not_empty([first]+[last])",
+    "equals([age]+[score], 120)",
+    "between([age]+[score], 100, 200)",
+    "nullif([age]+[score], 120)",
+    "ifnull([first]+[last], 'z')",
+    "coalesce([first]+[last], 'z')",
+    "concat([first]+[last], '!')",
+    "greatest([age]+[score], [num])",
+    "not([age]+[score] > 200)",
+    # Function results used as operands, i.e. the same defect in mirror image
+    "sqrt([age]+[score]) * 2",
+    "to_integer([price]/[age]) + 1",
+    "if [age] > 30 then sqrt([age]+[score]) else 0 endif",
+]
+
+
+class TestCompoundArgumentParenthesization:
+    """A function's rendered argument must be parenthesized before a method is attached.
+
+    Without the parentheses Python precedence binds the method to the trailing
+    operand only, so ``log([a]/[b])`` renders as ``pl.col("a") / pl.col("b").log()``.
+    That is valid Python and a valid Polars expression, it simply computes
+    something else, which means ``validate=True`` cannot catch it.  The
+    round-trip tests below compare the runtime path against the generated code
+    on the same frame, which does catch it.
+    """
+
+    @fixture
+    def unit_df(self) -> pl.DataFrame:
+        """Values in (0, 1] so every math function stays inside its domain."""
+        return pl.DataFrame({"x": [0.1, 0.25, 0.5], "y": [0.2, 0.4, 0.3]})
+
+    @fixture
+    def date_df(self) -> pl.DataFrame:
+        return pl.DataFrame(
+            {"d": [datetime.date(2023, 1, 1), datetime.date(2023, 6, 15)]}
+        )
+
+    def test_log_of_quotient(self):
+        assert (
+            to_polars_code("log([a]/([b]-[a]))")
+            == '(pl.col("a") / (pl.col("b") - pl.col("a"))).log()'
+        )
+
+    def test_sqrt_of_sum(self):
+        assert to_polars_code("sqrt(1/[a] + 1/[b])") == (
+            '((pl.lit(1) / pl.col("a")) + (pl.lit(1) / pl.col("b"))).sqrt()'
+        )
+
+    def test_simple_arguments_stay_unparenthesized(self):
+        """Atomic arguments need no parentheses, so generated code stays readable."""
+        assert to_polars_code("log([a])") == 'pl.col("a").log()'
+        assert to_polars_code("sqrt([a])") == 'pl.col("a").sqrt()'
+        assert to_polars_code("uppercase([name])") == 'pl.col("name").str.to_uppercase()'
+
+    @pytest.mark.parametrize("func_name", SINGLE_ARG_MATH_FUNCTIONS)
+    def test_single_arg_math_function_round_trip(self, unit_df, func_name):
+        validate_func_expr_str(unit_df, f"{func_name}([x]+[y])")
+
+    @pytest.mark.parametrize("func_name", SINGLE_ARG_STRING_FUNCTIONS)
+    def test_single_arg_string_function_round_trip(self, main_df, func_name):
+        # [name] carries surrounding whitespace so the trim variants are not
+        # satisfied by concatenating in the wrong order.
+        validate_func_expr_str(main_df, f"{func_name}([name]+[first])")
+
+    @pytest.mark.parametrize("expr_str", COMPOUND_ARGUMENT_EXPRESSIONS)
+    def test_compound_argument_round_trip(self, main_df, expr_str):
+        validate_func_expr_str(main_df, expr_str)
+
+    @pytest.mark.parametrize(
+        "expr_str",
+        [
+            "year(add_days([d], 400))",
+            "day(add_days([d], 40))",
+            "month(add_weeks([d], 8))",
+        ],
+    )
+    def test_infix_rendering_function_as_argument_round_trip(self, date_df, expr_str):
+        """add_days and friends render as infix themselves, so they need wrapping too."""
+        validate_func_expr_str(date_df, expr_str)
+
+    def test_infix_rendering_function_as_operand(self, date_df):
+        code = to_polars_code("year(add_days([d], 400))")
+        assert code == '(pl.col("d") + pl.duration(days=pl.lit(400))).dt.year()'
+
+
+class TestParenthesize:
+    """Unit tests for the code_gen.parenthesize helper."""
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            'pl.col("a")',
+            'pl.col("a").log()',
+            "pl.lit(3)",
+            'pl.concat_str([pl.col("a"), pl.lit("b")])',
+            'pl.when(pl.col("a")).then(pl.lit(1)).otherwise(pl.lit(2))',
+            "42",
+        ],
+    )
+    def test_atomic_code_is_left_alone(self, code):
+        assert parenthesize(code) == code
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            'pl.col("a") + pl.col("b")',
+            'pl.col("a") / (pl.col("b") - pl.col("a"))',
+            'pl.col("a") > pl.lit(1)',
+            'pl.col("a") & pl.col("b")',
+            '-pl.col("a")',
+        ],
+    )
+    def test_compound_code_is_wrapped(self, code):
+        assert parenthesize(code) == f"({code})"
+
+    def test_unparseable_code_is_wrapped(self):
+        """The unknown-function fallback can emit code that does not parse."""
+        assert parenthesize("not valid python !!") == "(not valid python !!)"
 
 
 class TestValidation:

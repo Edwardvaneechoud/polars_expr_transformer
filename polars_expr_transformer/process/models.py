@@ -8,6 +8,7 @@ from polars_expr_transformer.code_gen import (
     OPERATOR_SYMBOLS,
     FUNCTION_CODE_GEN,
     format_pl_literal,
+    parenthesize,
 )
 from dataclasses import dataclass, field
 import polars as pl
@@ -319,26 +320,16 @@ class Func:
         if func_name in OPERATOR_SYMBOLS:
             symbol = OPERATOR_SYMBOLS[func_name]
             if len(self.args) == 2:
-                left = self.args[0].to_polars_code(prefix=prefix)
-                right = self.args[1].to_polars_code(prefix=prefix)
-                # Add parentheses around sub-expressions that are also operators
-                if (
-                    isinstance(self.args[0], Func)
-                    and isinstance(self.args[0].func_ref, Classifier)
-                    and self.args[0].func_ref.val in OPERATOR_SYMBOLS
-                ):
-                    left = f"({left})"
-                if (
-                    isinstance(self.args[1], Func)
-                    and isinstance(self.args[1].func_ref, Classifier)
-                    and self.args[1].func_ref.val in OPERATOR_SYMBOLS
-                ):
-                    right = f"({right})"
+                # Parenthesize sub-expressions so precedence cannot regroup them
+                left = parenthesize(self.args[0].to_polars_code(prefix=prefix))
+                right = parenthesize(self.args[1].to_polars_code(prefix=prefix))
                 return f"{left} {symbol} {right}"
 
         # Known functions: use the code generation mapping
         if func_name in FUNCTION_CODE_GEN:
-            arg_codes = [arg.to_polars_code(prefix=prefix) for arg in self.args]
+            arg_codes = [
+                parenthesize(arg.to_polars_code(prefix=prefix)) for arg in self.args
+            ]
             return FUNCTION_CODE_GEN[func_name](arg_codes, prefix=prefix)
 
         # Fallback: generic function call

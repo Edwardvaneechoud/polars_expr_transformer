@@ -26,6 +26,10 @@ polars-ds = { version = ">=0.6.0", optional = true }
 similarity = ["polars-ds"]
 
 [tool.poetry.group.dev.dependencies]
+# polars-ds is optional for end users (the `similarity` extra), but the test
+# suite exercises string_similarity() and must never silently skip it, so the
+# dev environment always installs it.
+polars-ds = ">=0.6.0"
 pytest = "~7.4.0"
 check-manifest = "^0.46"
 flake8 = "^3.9.2"
