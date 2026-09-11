@@ -129,6 +129,59 @@ def _strip_pl_lit(code_str: str, prefix: str = "pl") -> str:
     return code_str
 
 
+def _hex_digest(algorithm):
+    """Create a code gen function for a per-element hashlib digest.
+
+    The generated code needs ``hashlib`` in scope, the way ``now()`` needs
+    ``datetime``.
+    """
+
+    def gen(args, prefix="pl"):
+        return (
+            f"{args[0]}.cast({prefix}.Utf8).map_elements("
+            f'lambda v: hashlib.{algorithm}(v.encode("utf-8")).hexdigest(), '
+            f"return_dtype={prefix}.Utf8)"
+        )
+
+    return gen
+
+
+def _encoding_arg(args, prefix, fixed):
+    """Resolve the encoding name for encode/decode code gen.
+
+    ``str.encode``/``str.decode`` take a plain Python string, so a
+    ``prefix.lit(...)`` wrapper around the argument is unwrapped here.
+    """
+    if fixed is not None:
+        return f'"{fixed}"'
+    if len(args) > 1:
+        return _strip_pl_lit(args[1], prefix)
+    return '"base64"'
+
+
+def _encode(fixed=None):
+    """Create a code gen function for encode()/base64_encode()/hex_encode()."""
+
+    def gen(args, prefix="pl"):
+        encoding = _encoding_arg(args, prefix, fixed)
+        return f"{args[0]}.cast({prefix}.Utf8).str.encode({encoding})"
+
+    return gen
+
+
+def _decode(fixed=None):
+    """Create a code gen function for decode()/base64_decode()/hex_decode()."""
+
+    def gen(args, prefix="pl"):
+        encoding = _encoding_arg(args, prefix, fixed)
+        return (
+            f"{args[0]}.str.decode({encoding}, strict=False)"
+            f".cast({prefix}.Utf8)"
+        )
+
+    return gen
+
+
 # Maps function names to code generation functions.
 # Each function takes a list of argument code strings and an optional prefix,
 # and returns the generated code string.
@@ -250,6 +303,19 @@ FUNCTION_CODE_GEN = {
     "random_int": _template(
         "pl.int_range({0}, {1}).sample(n=pl.len(), with_replacement=True)"
     ),
+    # Hashing
+    "hash": _method_chain("hash()"),
+    "md5": _hex_digest("md5"),
+    "sha1": _hex_digest("sha1"),
+    "sha256": _hex_digest("sha256"),
+    "sha512": _hex_digest("sha512"),
+    # Encoding
+    "encode": _encode(),
+    "decode": _decode(),
+    "base64_encode": _encode("base64"),
+    "base64_decode": _decode("base64"),
+    "hex_encode": _encode("hex"),
+    "hex_decode": _decode("hex"),
 }
 
 

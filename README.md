@@ -239,6 +239,37 @@ Besides column references, you can write literal values directly. Five literal t
 | `to_datetime(text, format)` | Parse datetime | `to_datetime([ts], "%Y-%m-%d %H:%M:%S")` |
 | `to_decimal(value, precision)` | Convert with precision | `to_decimal([amount], 2)` |
 
+### Hashing
+
+One-way fingerprints: the original value cannot be recovered from the result.
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `hash(value)` | Fast numeric fingerprint | `hash([email])` |
+| `md5(text)` | MD5 hash (32 hex characters) | `md5([email])` |
+| `sha1(text)` | SHA-1 hash (40 hex characters) | `sha1([email])` |
+| `sha256(text)` | SHA-256 hash (64 hex characters) | `sha256([email])` |
+| `sha512(text)` | SHA-512 hash (128 hex characters) | `sha512([email])` |
+
+`hash()` is a fast, non-cryptographic hash whose numbers may change between Polars
+versions; use `sha256()` when the fingerprint has to stay the same over time. The
+cryptographic digests run through Python's `hashlib`, so generated code for them
+needs `import hashlib` alongside `import polars as pl`.
+
+### Encoding
+
+Reversible text encodings: `decode` turns whatever `encode` produced back into the
+original text.
+
+| Function | Description | Example |
+|----------|-------------|---------|
+| `encode(text, encoding)` | Encode as base64 or hex | `encode([name], "hex")` |
+| `decode(text, encoding)` | Decode from base64 or hex | `decode([token], "base64")` |
+| `base64_encode(text)` | Encode as base64 | `base64_encode([name])` |
+| `base64_decode(text)` | Decode from base64 | `base64_decode([token])` |
+| `hex_encode(text)` | Encode as hexadecimal | `hex_encode([name])` |
+| `hex_decode(text)` | Decode from hexadecimal | `hex_decode([token])` |
+
 ## API Reference
 
 ### `simple_function_to_expr(expression: str) -> pl.Expr`
