@@ -1,7 +1,7 @@
 {
-  "version": "0.5.5",
-  "wheel": "wheel/polars_expr_transformer-0.5.5-py3-none-any.whl",
-  "total_functions": 95,
+  "version": "0.5.7",
+  "wheel": "wheel/polars_expr_transformer-0.5.7-py3-none-any.whl",
+  "total_functions": 106,
   "categories": [
     {
       "key": "logic",
@@ -859,7 +859,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to get the absolute value of"
             }
           ],
@@ -878,7 +878,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the arccosine of (values between -1 and 1)"
             }
           ],
@@ -897,7 +897,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the arcsine of (values between -1 and 1)"
             }
           ],
@@ -916,7 +916,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the arctangent of"
             }
           ],
@@ -935,7 +935,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to round up"
             }
           ],
@@ -954,7 +954,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -973,7 +973,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to use as the exponent of e"
             }
           ],
@@ -992,7 +992,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to round down"
             }
           ],
@@ -1011,7 +1011,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the natural logarithm of"
             }
           ],
@@ -1030,7 +1030,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the base-10 logarithm of"
             }
           ],
@@ -1049,7 +1049,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the base-2 logarithm of"
             }
           ],
@@ -1068,12 +1068,12 @@
           "parameters": [
             {
               "name": "dividend",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to be divided"
             },
             {
               "name": "divisor",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The number to divide by"
             }
           ],
@@ -1092,7 +1092,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to flip the sign of"
             }
           ],
@@ -1124,12 +1124,12 @@
           "parameters": [
             {
               "name": "base",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to raise"
             },
             {
               "name": "exponent",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The power to raise the base to"
             }
           ],
@@ -1148,12 +1148,12 @@
           "parameters": [
             {
               "name": "base",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to raise"
             },
             {
               "name": "exponent",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The power to raise the base to"
             }
           ],
@@ -1198,7 +1198,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to round"
             },
             {
@@ -1223,7 +1223,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to check"
             }
           ],
@@ -1242,7 +1242,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -1261,7 +1261,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the square root of"
             }
           ],
@@ -1280,7 +1280,7 @@
           "parameters": [
             {
               "name": "angle",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value with angles in radians"
             }
           ],
@@ -1299,7 +1299,7 @@
           "parameters": [
             {
               "name": "number",
-              "type": "DataTypeGroup({Float32, Int16, Int128, Decimal, UInt32, Float64, Int32, UInt8, Int8, UInt64, Int64, UInt16})",
+              "type": "DataTypeGroup({Int64, Decimal, UInt16, Float32, Int16, Int8, Int128, UInt32, Float64, Int32, UInt8, UInt64})",
               "description": "The column or value to take the hyperbolic tangent of"
             }
           ],
@@ -2072,6 +2072,239 @@
             }
           ],
           "returns": "The text representation"
+        }
+      ]
+    },
+    {
+      "key": "hashing",
+      "label": "Hashing",
+      "functions": [
+        {
+          "name": "hash",
+          "signature": "hash(value)",
+          "description": "Creates a fast numeric fingerprint of a value, useful for grouping or comparing values without storing them. Note that this is a fast, non-cryptographic hash whose numbers may change between Polars versions. Use sha256 when you need a fingerprint that stays the same over time.",
+          "example_text": "For example, hash([first_name]) would return a number like 10309318109784178017 when [first_name] is \"John\".",
+          "example_call": "hash([first_name])",
+          "example_result": "a number like 10309318109784178017",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "hash([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "value",
+              "type": "any",
+              "description": "The column or value to fingerprint"
+            }
+          ],
+          "returns": "A whole number fingerprint of the value"
+        },
+        {
+          "name": "md5",
+          "signature": "md5(text)",
+          "description": "Creates an MD5 hash of text, written as 32 hexadecimal characters. Note that MD5 is not considered secure for passwords or signatures; use sha256 for those.",
+          "example_text": "For example, md5([first_name]) would return \"61409aa1fd47d4a5332de23cbf59a36f\" when [first_name] is \"John\".",
+          "example_call": "md5([first_name])",
+          "example_result": "\"61409aa1fd47d4a5332de23cbf59a36f\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "md5([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to hash"
+            }
+          ],
+          "returns": "The MD5 hash as text"
+        },
+        {
+          "name": "sha1",
+          "signature": "sha1(text)",
+          "description": "Creates a SHA-1 hash of text, written as 40 hexadecimal characters. Note that SHA-1 is not considered secure for passwords or signatures; use sha256 for those.",
+          "example_text": "For example, sha1([first_name]) would return \"5753a498f025464d72e088a9d5d6e872592d5f91\" when [first_name] is \"John\".",
+          "example_call": "sha1([first_name])",
+          "example_result": "\"5753a498f025464d72e088a9d5d6e872592d5f91\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "sha1([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to hash"
+            }
+          ],
+          "returns": "The SHA-1 hash as text"
+        },
+        {
+          "name": "sha256",
+          "signature": "sha256(text)",
+          "description": "Creates a SHA-256 hash of text, written as 64 hexadecimal characters.",
+          "example_text": "For example, sha256([first_name]) would return \"a8cfcd74832004951b4408cdb0a5dbcd8c7e52d43f7fe244bf720582e05241da\" when [first_name] is \"John\".",
+          "example_call": "sha256([first_name])",
+          "example_result": "\"a8cfcd74832004951b4408cdb0a5dbcd8c7e52d43f7fe244bf720582e05241da\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "sha256([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to hash"
+            }
+          ],
+          "returns": "The SHA-256 hash as text"
+        },
+        {
+          "name": "sha512",
+          "signature": "sha512(text)",
+          "description": "Creates a SHA-512 hash of text, written as 128 hexadecimal characters.",
+          "example_text": "For example, sha512([first_name]) would return a 128 character hash starting with \"41b6d0cd5ddab150\" when [first_name] is \"John\".",
+          "example_call": "sha512([first_name])",
+          "example_result": "a 128 character hash starting with \"41b6d0cd5ddab150\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "sha512([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to hash"
+            }
+          ],
+          "returns": "The SHA-512 hash as text"
+        }
+      ]
+    },
+    {
+      "key": "encoding",
+      "label": "Encoding",
+      "functions": [
+        {
+          "name": "base64_decode",
+          "signature": "base64_decode(text)",
+          "description": "Decodes base64 text back into readable text. Text that is not valid base64 becomes empty, and the decoded result has to be text itself.",
+          "example_text": "For example, base64_decode(\"Sm9obg==\") would return \"John\".",
+          "example_call": "base64_decode(\"Sm9obg==\")",
+          "example_result": "\"John\"",
+          "example_context": null,
+          "try_expression": "base64_decode(\"Sm9obg==\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to decode"
+            }
+          ],
+          "returns": "The decoded text"
+        },
+        {
+          "name": "base64_encode",
+          "signature": "base64_encode(text)",
+          "description": "Encodes text as base64.",
+          "example_text": "For example, base64_encode([first_name]) would return \"Sm9obg==\" when [first_name] is \"John\".",
+          "example_call": "base64_encode([first_name])",
+          "example_result": "\"Sm9obg==\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "base64_encode([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to encode"
+            }
+          ],
+          "returns": "The base64 text"
+        },
+        {
+          "name": "decode",
+          "signature": "decode(text, encoding='base64')",
+          "description": "Decodes base64 or hexadecimal text back into readable text. Text that is not valid for the encoding becomes empty, and the decoded result has to be text itself.",
+          "example_text": "For example, decode(\"Sm9obg==\", \"base64\") would return \"John\".",
+          "example_call": "decode(\"Sm9obg==\", \"base64\")",
+          "example_result": "\"John\"",
+          "example_context": null,
+          "try_expression": "decode(\"Sm9obg==\", \"base64\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to decode"
+            },
+            {
+              "name": "encoding",
+              "type": "text",
+              "description": "Which encoding the text uses, either 'base64' (default) or 'hex'",
+              "default": "'base64'"
+            }
+          ],
+          "returns": "The decoded text"
+        },
+        {
+          "name": "encode",
+          "signature": "encode(text, encoding='base64')",
+          "description": "Encodes text as base64 or hexadecimal.",
+          "example_text": "For example, encode([first_name], \"base64\") would return \"Sm9obg==\" when [first_name] is \"John\".",
+          "example_call": "encode([first_name], \"base64\")",
+          "example_result": "\"Sm9obg==\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "encode([first_name], \"base64\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to encode"
+            },
+            {
+              "name": "encoding",
+              "type": "text",
+              "description": "Which encoding to use, either 'base64' (default) or 'hex'",
+              "default": "'base64'"
+            }
+          ],
+          "returns": "The encoded text"
+        },
+        {
+          "name": "hex_decode",
+          "signature": "hex_decode(text)",
+          "description": "Decodes hexadecimal text back into readable text. Text that is not valid hexadecimal becomes empty, and the decoded result has to be text itself.",
+          "example_text": "For example, hex_decode(\"4a6f686e\") would return \"John\".",
+          "example_call": "hex_decode(\"4a6f686e\")",
+          "example_result": "\"John\"",
+          "example_context": null,
+          "try_expression": "hex_decode(\"4a6f686e\")",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to decode"
+            }
+          ],
+          "returns": "The decoded text"
+        },
+        {
+          "name": "hex_encode",
+          "signature": "hex_encode(text)",
+          "description": "Encodes text as hexadecimal.",
+          "example_text": "For example, hex_encode([first_name]) would return \"4a6f686e\" when [first_name] is \"John\".",
+          "example_call": "hex_encode([first_name])",
+          "example_result": "\"4a6f686e\"",
+          "example_context": "[first_name] is \"John\"",
+          "try_expression": "hex_encode([first_name])",
+          "try_dataset": "employees",
+          "parameters": [
+            {
+              "name": "text",
+              "type": "expression | text",
+              "description": "The column or text to encode"
+            }
+          ],
+          "returns": "The hexadecimal text"
         }
       ]
     }

@@ -52,7 +52,7 @@ Every node implements three parallel methods: `get_pl_func()` (live expr), `get_
 
 ### Function registry — how to add a function
 
-User-facing functions live in `funcs/{string,math,date,logic,type_conversions,special}_functions.py`. **To add one, just define a function in the appropriate module** — `funcs/__init__.py` merges every module's `__dict__` into `all_functions`, and `configs/settings.py` exposes it to the parser via the `funcs` dict (which also injects `pl.col`, `pl.lit`, operators, and `aliases`). No registration step is needed.
+User-facing functions live in `funcs/{string,math,date,logic,type_conversions,special,hashing,encoding}_functions.py`. **To add one, just define a function in the appropriate module** — `funcs/__init__.py` merges every module's `__dict__` into `all_functions`, and `configs/settings.py` exposes it to the parser via the `funcs` dict (which also injects `pl.col`, `pl.lit`, operators, and `aliases`). No registration step is needed.
 
 Conventions for new functions:
 - Underscore-prefixed names (`_in`, `__negative`) are internal and excluded from the public overview.

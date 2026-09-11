@@ -5,7 +5,9 @@ from polars_expr_transformer.funcs import (logic_functions,
                                            math_functions,
                                            special_funcs,
                                            date_functions,
-                                           type_conversions)
+                                           type_conversions,
+                                           hashing_functions,
+                                           encoding_functions)
 
 all_functions = {}
 all_functions.update(logic_functions.__dict__)
@@ -14,3 +16,5 @@ all_functions.update(math_functions.__dict__)
 all_functions.update(special_funcs.__dict__)
 all_functions.update(date_functions.__dict__)
 all_functions.update(type_conversions.__dict__)
+all_functions.update(hashing_functions.__dict__)
+all_functions.update(encoding_functions.__dict__)

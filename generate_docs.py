@@ -28,6 +28,8 @@ CATEGORY_LABELS = {
     "special": "Special",
     "date": "Date & Time",
     "type_conversions": "Type Conversion",
+    "hashing": "Hashing",
+    "encoding": "Encoding",
 }
 
 # Human friendly names for the union type aliases used in annotations.

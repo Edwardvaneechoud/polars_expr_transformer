@@ -26,6 +26,7 @@ from polars_expr_transformer.process.preprocess import preprocess
 from polars_expr_transformer.exceptions import PolarsCodeGenError
 import polars as pl
 import datetime
+import hashlib
 
 
 def finalize_hierarchy(obj):
@@ -197,13 +198,13 @@ def test_tokenization(func_str, all_split_vals, all_functions):
 def _validate_polars_code(func_str: str, code: str) -> None:
     """Validate generated Polars code by eval-ing it.
 
-    Builds a scope with ``pl``, ``datetime``, and optionally ``pds``
-    (polars_ds), then attempts ``eval(code, scope)``.
+    Builds a scope with ``pl``, ``datetime`` and ``hashlib`` — the modules
+    the generated code can refer to — then attempts ``eval(code, scope)``.
 
     Raises:
         PolarsCodeGenError: If the generated code cannot be evaluated.
     """
-    scope = {"pl": pl, "datetime": datetime}
+    scope = {"pl": pl, "datetime": datetime, "hashlib": hashlib}
     try:
         eval(code, scope)
     except Exception as e:

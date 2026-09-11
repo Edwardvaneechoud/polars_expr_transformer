@@ -8,12 +8,16 @@ from pytest import fixture
 import pytest
 import warnings
 import datetime
+import hashlib
 
 
 def eval_pl_expr(expr_func_str: str) -> pl.Expr:
     """Evaluates the polars expressions string and returns the expr"""
     try:
-        expr = eval(to_polars_code(expr_func_str), {"pl": pl, "datetime": datetime})
+        expr = eval(
+            to_polars_code(expr_func_str),
+            {"pl": pl, "datetime": datetime, "hashlib": hashlib},
+        )
     except Exception as e:
         raise Exception(f"Could not evaluate the polars expression:\n\n{e}")
     return expr
@@ -408,6 +412,80 @@ class TestLogicFunctions:
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
         assert result == 'pl.col("age").is_between(pl.lit(1), pl.lit(100))'
+
+
+class TestHashingFunctions:
+    def test_hash(self, main_df):
+        expr_str = "hash([col_a])"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("col_a").hash()'
+
+    @pytest.mark.parametrize("algorithm", ["md5", "sha1", "sha256", "sha512"])
+    def test_digests(self, main_df, algorithm):
+        expr_str = f"{algorithm}([col_a])"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.col("col_a").cast(pl.Utf8).map_elements('
+            f'lambda v: hashlib.{algorithm}(v.encode("utf-8")).hexdigest(), '
+            "return_dtype=pl.Utf8)"
+        )
+
+    def test_digest_of_numeric_column(self, main_df):
+        expr_str = "sha256([num])"
+        validate_func_expr_str(main_df, expr_str)
+        assert 'pl.col("num").cast(pl.Utf8)' in to_polars_code(expr_str)
+
+    def test_digest_composed_with_string_function(self, main_df):
+        expr_str = "uppercase(md5([col_a]))"
+        validate_func_expr_str(main_df, expr_str)
+        assert to_polars_code(expr_str).endswith(".str.to_uppercase()")
+
+
+class TestEncodingFunctions:
+    def test_encode_defaults_to_base64(self, main_df):
+        expr_str = "encode([col_a])"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("col_a").cast(pl.Utf8).str.encode("base64")'
+
+    def test_encode_with_encoding_argument(self, main_df):
+        expr_str = 'encode([col_a], "hex")'
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("col_a").cast(pl.Utf8).str.encode("hex")'
+
+    def test_hex_encode(self, main_df):
+        expr_str = "hex_encode([col_a])"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("col_a").cast(pl.Utf8).str.encode("hex")'
+
+    def test_decode(self, main_df):
+        expr_str = 'decode("YXBwbGU=")'
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.lit("YXBwbGU=").str.decode("base64", strict=False).cast(pl.Utf8)'
+        )
+
+    def test_decode_with_encoding_argument(self, main_df):
+        expr_str = 'decode("6170706c65", "hex")'
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.lit("6170706c65").str.decode("hex", strict=False).cast(pl.Utf8)'
+        )
+
+    def test_round_trip(self, main_df):
+        expr_str = "base64_decode(base64_encode([col_a]))"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.col("col_a").cast(pl.Utf8).str.encode("base64")'
+            '.str.decode("base64", strict=False).cast(pl.Utf8)'
+        )
 
 
 class TestCombinedExpressions:

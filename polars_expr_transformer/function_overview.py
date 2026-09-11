@@ -6,7 +6,9 @@ from polars_expr_transformer.funcs import (
     math_functions,
     special_funcs,
     date_functions,
-    type_conversions
+    type_conversions,
+    hashing_functions,
+    encoding_functions
 )
 import inspect
 
@@ -16,7 +18,9 @@ MODULE_CATEGORIES = {
     'math': math_functions,
     'special': special_funcs,
     'date': date_functions,
-    'type_conversions': type_conversions
+    'type_conversions': type_conversions,
+    'hashing': hashing_functions,
+    'encoding': encoding_functions
 }
 
 _available_expressions: Optional[List[ExpressionsOverview]] = None
