@@ -1,4 +1,9 @@
-from polars_expr_transformer import to_polars_code, simple_function_to_expr, PolarsCodeGenError
+from polars_expr_transformer import (
+    to_polars_code,
+    simple_function_to_expr,
+    PolarsCodeGenError,
+    ExpressionSyntaxError,
+)
 from polars_expr_transformer.process.polars_expr_transformer import _validate_polars_code
 from polars_expr_transformer.process.models import Func, Classifier
 from polars_expr_transformer.code_gen import parenthesize
@@ -798,3 +803,90 @@ class TestUnknownFunctionWarning:
             warning_messages = [str(warning.message) for warning in w]
             assert any("unknown_test_func" in msg for msg in warning_messages)
         assert "unknown_test_func" in result
+
+
+class TestMembershipOperator:
+    def test_in_list_of_strings(self, main_df):
+        expr_str = "[a] in ('a','b')"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").is_in(["a", "b"])'
+
+    def test_in_list_of_numbers(self, main_df):
+        expr_str = "[age] in (25, 45)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("age").is_in([25, 45])'
+
+    def test_in_list_promotes_whole_numbers(self, main_df):
+        """Polars builds the list strictly, so a mixed list is promoted to decimals."""
+        expr_str = "[price] in (1, 20.123)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("price").is_in([1.0, 20.123])'
+
+    def test_negative_member_is_imploded(self, main_df):
+        """A negative literal parses as a negation expression, not a literal."""
+        expr_str = "[val] in (1, -2.5)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("val").is_in(pl.concat_list([pl.lit(1), pl.lit(2.5).neg()]))'
+
+    def test_not_in_list(self, main_df):
+        expr_str = "[a] not in ('a','b')"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").is_in(["a", "b"]).not_()'
+
+    def test_empty_list(self, main_df):
+        expr_str = "[a] in ()"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").is_in([])'
+
+    def test_list_with_a_column_member_is_imploded(self, main_df):
+        """A plain list cannot hold expressions, so concat_list is used instead."""
+        expr_str = "[a] in ('a', [b])"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").is_in(pl.concat_list([pl.lit("a"), pl.col("b")]))'
+
+    def test_membership_inside_if(self, main_df):
+        expr_str = "if [a] in ('a') then 'yes' else 'no' endif"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.when(pl.col("a").is_in(["a"])).then(pl.lit("yes"))'
+            '.otherwise(pl.lit("no"))'
+        )
+
+    def test_membership_composes_with_logical_operators(self, main_df):
+        expr_str = "[a] in ('a') and [age] > 30"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").is_in(["a"]) & (pl.col("age") > pl.lit(30))'
+
+    def test_plain_value_still_generates_contains(self, main_df):
+        expr_str = "'a' in [a]"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").str.contains(pl.lit("a"))'
+
+    def test_not_in_plain_value_generates_negated_contains(self, main_df):
+        expr_str = "'a' not in [a]"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("a").str.contains(pl.lit("a")).not_()'
+
+    def test_string_members_are_re_rendered_not_copied(self, main_df):
+        """Literal text is rendered from the parsed value, never pasted verbatim."""
+        expr_str = """[a] in ("it's", 'say "hi"')"""
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == """pl.col("a").is_in(["it\'s", 'say "hi"'])"""
+
+
+class TestMembershipCodeGenErrors:
+    def test_mixed_member_types_are_rejected(self):
+        with pytest.raises(ExpressionSyntaxError, match="Mixed value types"):
+            to_polars_code("[a] in ('a', 1)")

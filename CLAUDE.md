@@ -60,6 +60,28 @@ Conventions for new functions:
 - Parameter **type annotations drive literal handling**. Types from `funcs/utils.py` (`PlStringType`, `PlIntType`, `PlNumericType`) and `Func._standardize_args` decide when a raw value is auto-wrapped in `pl.lit()`. Annotate params accordingly.
 - For code generation to emit correct chained Polars (not a generic `func(args)` fallback that warns), add a mapping entry to `FUNCTION_CODE_GEN` / `OPERATOR_SYMBOLS` in `code_gen.py`.
 
+### Membership operators (`in` / `not in`)
+
+`in` means two different things, decided by what follows it. Against a plain value it is
+substring containment (`_in` / `_not_in`, lowering to `str.contains`); against a parenthesized
+list it is set membership (`_is_in` / `_is_not_in`, lowering to `is_in`). The switch happens in
+`process_inline.build_operator_tree`, which swaps in the `MEMBERSHIP_OPERATORS` implementation
+when the right operand is a `_list` node.
+
+That `_list` node is built by `hierarchy_builder.handle_opening_bracket` when a `(` directly
+follows a membership operator. It has to be a named node rather than the anonymous `pl.lit`
+grouping used elsewhere, because `handle_seperator` attaches commas to `current_func.parent` —
+for a grouping node that is whatever encloses the group, which scatters the members. `_list` is
+special-cased in all three `Func` methods in `models.py`, so its members stay unwrapped: literal
+members render as a Python list, and a list holding an expression is imploded with
+`concat_list`, since Polars rejects a plain list of expressions.
+
+`not in` is two words, but preprocessing strips every space, so it arrives as `notin` and comes
+apart on the `in` split value; `token_classifier.merge_multiword_operators` merges the pair back.
+Multi-word operators are deliberately kept out of `all_split_vals` — the tokenizer's multi-char
+splitter picks the first match from that set in arbitrary order, not the longest, so any split
+value containing `in` would be mis-split.
+
 ### Optional `polars-ds` dependency
 
 `string_similarity()` is the only feature requiring `polars-ds`, exposed as the `similarity` extra. polars-ds ships **no WebAssembly wheel**, so it must stay optional for the browser/Pyodide playground. The import is lazy inside `__get_similarity_method` in `string_functions.py` — never import `polars_ds` at module top level.

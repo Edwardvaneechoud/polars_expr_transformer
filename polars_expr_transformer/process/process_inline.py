@@ -1,5 +1,6 @@
 from typing import List, Union, Any
-from polars_expr_transformer.configs.settings import operators, PRECEDENCE
+from polars_expr_transformer.configs.settings import operators, PRECEDENCE, MEMBERSHIP_OPERATORS
+from polars_expr_transformer.exceptions import ExpressionSyntaxError
 from polars_expr_transformer.process.models import IfFunc, Classifier, Func, TempFunc
 from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 
@@ -75,6 +76,66 @@ def parse_inline_functions(formula: Union[Func, TempFunc, IfFunc]):
 
     return formula
 
+
+_VALUE_CLASSES = {'string': 'text', 'number': 'number', 'boolean': 'true/false'}
+
+
+def _unwrap(arg: Any) -> Any:
+    """Look through the TempFunc slots a list member still sits in at this stage."""
+    while isinstance(arg, TempFunc) and len(arg.args) == 1:
+        arg = arg.args[0]
+    return arg
+
+
+def normalize_membership_list(list_func: Func, op_token: Classifier) -> None:
+    """
+    Check and normalize the members of an `in ( ... )` list, in place.
+
+    Members that are expressions are left alone, since their type is only known once the
+    expression runs. Literal members must agree on a value class, and whole numbers are
+    rewritten as decimals when the list mixes the two, because Polars builds the list
+    strictly and would otherwise reject it. Normalizing the tree rather than either output
+    path keeps live evaluation and generated code identical.
+
+    Args:
+        list_func: The list node holding the members.
+        op_token: The membership operator the list belongs to, used in error messages.
+
+    Raises:
+        ExpressionSyntaxError: If the literal members are not all of one value class.
+    """
+    members = [_unwrap(arg) for arg in list_func.args]
+    literals = [m for m in members
+                if isinstance(m, Classifier) and m.val_type != 'null']
+
+    if literals:
+        expected = _VALUE_CLASSES.get(literals[0].val_type, literals[0].val_type)
+        for member in literals:
+            found = _VALUE_CLASSES.get(member.val_type, member.val_type)
+            if found != expected:
+                raise ExpressionSyntaxError(
+                    f"Mixed value types in '{op_token.val}' list: expected all "
+                    f"{expected} values, found {found} {member.val}."
+                )
+
+    numbers = [m for m in literals if m.val_type == 'number']
+    whole = [m for m in numbers if '.' not in m.val]
+    if whole and len(whole) != len(numbers):
+        for i, arg in enumerate(list_func.args):
+            member = _unwrap(arg)
+            if any(member is w for w in whole):
+                promoted = Classifier(str(float(member.val)))
+                promoted.parent = list_func
+                list_func.args[i] = promoted
+
+
+def is_membership_list(op: Classifier, right: Any) -> bool:
+    """Check whether an operator is a membership test against a list of members."""
+    return (op.val in MEMBERSHIP_OPERATORS
+            and isinstance(right, Func)
+            and right.func_ref == '_list')
+
+
 def build_operator_tree(tokens: List[Any]) -> Func:
     """
     Build a tree of function calls from a list of tokens containing operators.
@@ -105,6 +166,9 @@ def build_operator_tree(tokens: List[Any]) -> Func:
             right = parse_expression(token_list, op_precedence + 1)
 
             op_func = operators.get(op.val)
+            if is_membership_list(op, right):
+                normalize_membership_list(right, op)
+                op_func = MEMBERSHIP_OPERATORS[op.val]
             if op_func:
                 left = Func(
                     func_ref=Classifier(op_func, val_type='function'),

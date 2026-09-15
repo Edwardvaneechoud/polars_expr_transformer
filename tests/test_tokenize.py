@@ -129,3 +129,23 @@ class TestTokenizer(unittest.TestCase):
         formula = ""
         tokens = tokenize(formula)
         self.assertEqual(tokens, [])
+
+    def test_membership_operator(self):
+        """Test tokenization of an `in` list, whose parentheses and commas are kept."""
+        formula = preprocess("[name] in ('a','b')")
+        tokens = tokenize(formula)
+        self.assertEqual(tokens, ['pl.col', '(', '"name"', ')', 'in', '(', "'a'", ',', "'b'", ')'])
+
+    def test_not_in_operator_splits_into_two_words(self):
+        """`not in` reaches the tokenizer without its space and comes apart on `in`.
+
+        The token classifier merges the pair back together; see
+        tests/test_token_classifier.py.
+        """
+        formula = preprocess("[name] not in ('a')")
+        tokens = tokenize(formula)
+        self.assertEqual(tokens, ['pl.col', '(', '"name"', ')', 'not', 'in', '(', "'a'", ')'])
+
+    def test_multiword_operators_are_not_split_values(self):
+        """A split value containing `in` would be mis-split by the `in` rule."""
+        self.assertNotIn('not in', all_split_vals)

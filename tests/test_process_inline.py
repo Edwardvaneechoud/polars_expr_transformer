@@ -6,7 +6,15 @@ from typing import List, Union, Any
 from polars_expr_transformer.configs.settings import operators
 from polars_expr_transformer.process.models import IfFunc, Classifier, Func, TempFunc
 from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
-from polars_expr_transformer.process.process_inline import parse_inline_functions, build_operator_tree
+from polars_expr_transformer.process.process_inline import (
+    parse_inline_functions,
+    build_operator_tree,
+    normalize_membership_list,
+)
+from polars_expr_transformer.process.preprocess import preprocess
+from polars_expr_transformer.process.tokenize import tokenize
+from polars_expr_transformer.process.token_classifier import classify_tokens
+from polars_expr_transformer.exceptions import ExpressionSyntaxError
 
 
 class TestParseInlineFunctions(unittest.TestCase):
@@ -325,3 +333,78 @@ class TestParseInlineFunctions(unittest.TestCase):
         except RecursionError:
             self.fail("parse_inline_functions entered infinite recursion")
 
+
+
+def _tree(expression: str):
+    """Build the operator tree for an expression, using the real operator table."""
+    formula = build_hierarchy(classify_tokens(tokenize(preprocess(expression))))
+    return parse_inline_functions(formula)
+
+
+class TestMembershipLowering(unittest.TestCase):
+    """`in`/`not in` lower to membership only against a parenthesized list."""
+
+    def test_in_with_a_list_lowers_to_is_in(self):
+        result = _tree("[a] in ('x','y')")
+        self.assertEqual(result.args[0].func_ref.val, '_is_in')
+
+    def test_not_in_with_a_list_lowers_to_is_not_in(self):
+        result = _tree("[a] not in ('x','y')")
+        self.assertEqual(result.args[0].func_ref.val, '_is_not_in')
+
+    def test_in_with_a_plain_value_keeps_substring_meaning(self):
+        result = _tree("'x' in [a]")
+        self.assertEqual(result.args[0].func_ref.val, '_in')
+
+    def test_not_in_with_a_plain_value_keeps_substring_meaning(self):
+        result = _tree("'x' not in [a]")
+        self.assertEqual(result.args[0].func_ref.val, '_not_in')
+
+    def test_membership_binds_like_a_comparison(self):
+        """`[a] in (...) and [b] > 1` groups as and(in(...), gt(...))."""
+        result = _tree("[a] in ('x') and [b] > 1")
+        and_func = result.args[0]
+        self.assertEqual(and_func.func_ref.val, 'pl.Expr.and_')
+        self.assertEqual(and_func.args[0].func_ref.val, '_is_in')
+        self.assertEqual(and_func.args[1].func_ref.val, 'pl.Expr.gt')
+
+
+class TestNormalizeMembershipList(unittest.TestCase):
+
+    def _list_func(self, *values):
+        list_func = Func(Classifier('_list'))
+        for value in values:
+            list_func.add_arg(Classifier(value))
+        return list_func
+
+    def test_mixed_value_types_are_rejected(self):
+        list_func = self._list_func('"a"', '1')
+        with self.assertRaises(ExpressionSyntaxError) as context:
+            normalize_membership_list(list_func, Classifier('in'))
+        self.assertIn('expected all text values, found number 1', str(context.exception))
+
+    def test_error_names_the_operator(self):
+        list_func = self._list_func('1', '"a"')
+        with self.assertRaises(ExpressionSyntaxError) as context:
+            normalize_membership_list(list_func, Classifier('not in'))
+        self.assertIn("Mixed value types in 'not in' list", str(context.exception))
+
+    def test_null_members_are_allowed_alongside_any_type(self):
+        list_func = self._list_func('"a"', 'null')
+        normalize_membership_list(list_func, Classifier('in'))
+        self.assertEqual([a.val for a in list_func.args], ['"a"', 'null'])
+
+    def test_whole_numbers_are_promoted_when_mixed_with_decimals(self):
+        list_func = self._list_func('1', '2.5')
+        normalize_membership_list(list_func, Classifier('in'))
+        self.assertEqual([a.val for a in list_func.args], ['1.0', '2.5'])
+
+    def test_whole_numbers_are_left_alone_on_their_own(self):
+        list_func = self._list_func('1', '2')
+        normalize_membership_list(list_func, Classifier('in'))
+        self.assertEqual([a.val for a in list_func.args], ['1', '2'])
+
+    def test_empty_list_is_accepted(self):
+        list_func = Func(Classifier('_list'))
+        normalize_membership_list(list_func, Classifier('in'))
+        self.assertEqual(list_func.args, [])

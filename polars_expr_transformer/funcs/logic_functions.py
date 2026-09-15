@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
+from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, as_expr
 from typing import Any
 from polars_expr_transformer.funcs.utils import PlStringType
 
@@ -145,6 +145,85 @@ def _in(value: Any, collection: PlStringType) -> pl.Expr:
     - True if the value is found in the collection, False otherwise
     """
     return contains(collection, value)
+
+
+def _not_in(value: Any, collection: PlStringType) -> pl.Expr:
+    """
+    Checks if a value does not exist within a larger text.
+
+    For example, _not_in("moon", "hello world") would return True.
+
+    Parameters:
+    - value: The value to search for
+    - collection: The text to search in
+
+    Returns:
+    - True if the value is not found in the collection, False otherwise
+    """
+    return contains(collection, value).not_()
+
+
+def _list(*values) -> list:
+    """
+    Collects the members written between the parentheses of an `in ( ... )` list.
+
+    This is the collection operand of the membership operators; it is never called
+    directly from a formula. Members stay as raw Python values, or as expressions
+    when a member references a column, which is what lets `_is_in` pick its lowering.
+
+    For example, _list("a", "b") would return ["a", "b"].
+
+    Parameters:
+    - values: The members of the list
+
+    Returns:
+    - The members as a list
+    """
+    return list(values)
+
+
+def _is_in(value: Any, collection: list) -> pl.Expr:
+    """
+    Checks if a value is one of the members of a list.
+
+    The `collection: list` annotation is load-bearing: it keeps `_standardize_args`
+    from wrapping the list itself in `pl.lit()`. Polars rejects a plain list that
+    holds expressions, so a collection containing one is imploded with `concat_list`
+    instead. An empty collection cannot take that route, as `concat_list` requires
+    at least one expression.
+
+    For example, _is_in([status], ["shipped", "packed"]) would return true when
+    [status] is "shipped".
+
+    Parameters:
+    - value: The column or value to look for
+    - collection: The members to look for it among
+
+    Returns:
+    - true if the value is one of the members, otherwise false
+    """
+    if not collection:
+        return as_expr(value).is_in([])
+    if any(is_polars_expr(member) for member in collection):
+        return as_expr(value).is_in(pl.concat_list([as_expr(m) for m in collection]))
+    return as_expr(value).is_in(list(collection))
+
+
+def _is_not_in(value: Any, collection: list) -> pl.Expr:
+    """
+    Checks if a value is none of the members of a list.
+
+    For example, _is_not_in([status], ["failed", "cancelled"]) would return true
+    when [status] is "shipped".
+
+    Parameters:
+    - value: The column or value to look for
+    - collection: The members to look for it among
+
+    Returns:
+    - true if the value is none of the members, otherwise false
+    """
+    return _is_in(value, collection).not_()
 
 
 def coalesce(*values) -> pl.Expr:

@@ -1,12 +1,26 @@
 from typing import Optional, List, Tuple
 from polars_expr_transformer.exceptions import ExpressionSyntaxError
 from polars_expr_transformer.process.models import Classifier, Func, IfFunc, TempFunc, ConditionVal
+from polars_expr_transformer.configs.settings import MEMBERSHIP_OPERATORS
 from copy import deepcopy
+
+
+def opens_membership_list(previous_val: Classifier) -> bool:
+    """Check whether a '(' directly follows a membership operator."""
+    return (isinstance(previous_val, Classifier)
+            and previous_val.val_type == 'operator'
+            and previous_val.val in MEMBERSHIP_OPERATORS)
 
 
 def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func:
     """
     Handle the opening bracket in the function hierarchy.
+
+    A '(' after a membership operator opens a list of members rather than a grouped
+    value, so it builds the same shape a function call does. That is what makes the
+    commas inside it separate arguments of the list: `handle_seperator` attaches each
+    one to `current_func.parent`, which for a plain grouping node is whatever encloses
+    the group, scattering the members and silently dropping all but the first.
 
     Args:
         current_func: The current function being processed.
@@ -15,6 +29,12 @@ def handle_opening_bracket(current_func: Func, previous_val: Classifier) -> Func
     Returns:
         The updated current function.
     """
+    if opens_membership_list(previous_val):
+        list_func = Func(Classifier('_list'))
+        current_func.add_arg(list_func)
+        first_arg = TempFunc()
+        list_func.add_arg(first_arg)
+        return first_arg
 
     new_func = Func(Classifier('pl.lit'))
     current_func.add_arg(new_func)
