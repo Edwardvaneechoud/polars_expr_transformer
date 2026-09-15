@@ -4,7 +4,8 @@ from polars_expr_transformer.process.models import Classifier
 from polars_expr_transformer.process.token_classifier import (
     replace_ambiguity_minus_sign,
     standardize_quotes,
-    classify_tokens
+    classify_tokens,
+    merge_multiword_operators
 )
 
 
@@ -231,3 +232,29 @@ class TestNullClassification(unittest.TestCase):
         """A quoted "null" is a string literal, not the null type."""
         self.assertEqual(Classifier('"null"').val_type, 'string')
 
+
+
+class TestMergeMultiwordOperators(unittest.TestCase):
+
+    def test_not_in_is_merged_into_one_operator(self):
+        """Adjacent `not` and `in` tokens become the single `not in` operator."""
+        tokens = [Classifier('pl.col'), Classifier('not'), Classifier('in'), Classifier('(')]
+        result = merge_multiword_operators(tokens)
+        self.assertEqual([t.val for t in result], ['pl.col', 'not in', '('])
+        self.assertEqual(result[1].val_type, 'operator')
+
+    def test_not_as_a_function_call_is_left_alone(self):
+        """A `not` used as a function is followed by '(' and must not be merged."""
+        tokens = [Classifier('not'), Classifier('('), Classifier('true'), Classifier(')')]
+        result = merge_multiword_operators(tokens)
+        self.assertEqual([t.val for t in result], ['not', '(', 'true', ')'])
+
+    def test_trailing_not_is_left_alone(self):
+        """A `not` with nothing after it cannot start a merge."""
+        result = merge_multiword_operators([Classifier('not')])
+        self.assertEqual([t.val for t in result], ['not'])
+
+    def test_classify_tokens_merges_not_in(self):
+        """The merge runs as part of classification."""
+        result = classify_tokens(['pl.col', 'not', 'in', '('])
+        self.assertEqual([t.val for t in result], ['pl.col', 'not in', '('])

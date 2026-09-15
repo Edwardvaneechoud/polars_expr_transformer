@@ -53,6 +53,34 @@ def standardize_quotes(tokens: List[str]):
     return [requote_double(tok) for tok in tokens]
 
 
+def merge_multiword_operators(tokens: List[Classifier]) -> List[Classifier]:
+    """
+    Merge the two tokens of `not in` into the single operator token it stands for.
+
+    Preprocessing strips every space, so `not in` reaches the tokenizer as `notin` and
+    only comes apart because `in` is a split value. Rewriting the pair here keeps the
+    tokenizer free of a split value containing `in`, which it would mis-split. A `not`
+    used as a function is always followed by `(`, so it is never merged.
+
+    Args:
+        tokens: A list of Classifier tokens.
+
+    Returns:
+        A list of Classifier tokens with `not in` merged into one operator token.
+    """
+    merged = []
+    i = 0
+    while i < len(tokens):
+        if (tokens[i].val == 'not' and i + 1 < len(tokens)
+                and tokens[i + 1].val == 'in'):
+            merged.append(Classifier('not in'))
+            i += 2
+            continue
+        merged.append(tokens[i])
+        i += 1
+    return merged
+
+
 def classify_tokens(tokens: List[str]) -> List[Classifier]:
     """
     Standardize the list of tokens by converting them to Classifier objects and replacing ambiguous minus signs.
@@ -66,4 +94,4 @@ def classify_tokens(tokens: List[str]) -> List[Classifier]:
     standardized_tokens = standardize_quotes(tokens)
     toks = [Classifier(val) for val in standardized_tokens]
     toks = [t for t in toks if t.val_type != 'empty']
-    return toks
+    return merge_multiword_operators(toks)

@@ -121,7 +121,7 @@ def _template(tmpl):
     return gen
 
 
-def _strip_pl_lit(code_str: str, prefix: str = "pl") -> str:
+def strip_pl_lit(code_str: str, prefix: str = "pl") -> str:
     """Extract the raw value from a prefix.lit() wrapper.
 
     Examples:
@@ -161,7 +161,7 @@ def _encoding_arg(args, prefix, fixed):
     if fixed is not None:
         return f'"{fixed}"'
     if len(args) > 1:
-        return _strip_pl_lit(args[1], prefix)
+        return strip_pl_lit(args[1], prefix)
     return '"base64"'
 
 
@@ -216,12 +216,12 @@ FUNCTION_CODE_GEN = {
     "split": _template("{0}.str.split({1})"),
     "contains": _template("{0}.str.contains({1})"),
     "repeat": lambda args, prefix="pl": (
-        f"{prefix}.concat_str([{args[0]}] * {_strip_pl_lit(args[1], prefix)})"
+        f"{prefix}.concat_str([{args[0]}] * {strip_pl_lit(args[1], prefix)})"
     ),
     # Math functions
     "abs": _method_chain("abs()"),
     "round": lambda args, prefix="pl": (
-        f"{args[0]}.round({_strip_pl_lit(args[1], prefix)})"
+        f"{args[0]}.round({strip_pl_lit(args[1], prefix)})"
         if len(args) > 1
         else f"{args[0]}.round(0)"
     ),
@@ -289,6 +289,10 @@ FUNCTION_CODE_GEN = {
     "_not": _method_chain("not_()"),
     "not": _method_chain("not_()"),
     "_in": _template("{1}.str.contains({0})"),
+    "_not_in": _template("{1}.str.contains({0}).not_()"),
+    # The _list node renders its own members, as a list or as an imploded concat_list.
+    "_is_in": _template("{0}.is_in({1})"),
+    "_is_not_in": _template("{0}.is_in({1}).not_()"),
     "is_string": lambda args, prefix="pl": (
         f"{prefix}.lit({args[0]}.dtype == {prefix}.Utf8)"
     ),
@@ -301,7 +305,7 @@ FUNCTION_CODE_GEN = {
     "to_date": _method_chain_with_args("str.to_date"),
     "to_datetime": _method_chain_with_args("str.to_datetime"),
     "to_decimal": lambda args, prefix="pl": (
-        f"{args[0]}.cast({prefix}.Float64).round({_strip_pl_lit(args[1], prefix)})"
+        f"{args[0]}.cast({prefix}.Float64).round({strip_pl_lit(args[1], prefix)})"
         if len(args) > 1
         else f"{args[0]}.cast({prefix}.Float64)"
     ),

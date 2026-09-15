@@ -9,6 +9,7 @@ from polars_expr_transformer.code_gen import (
     FUNCTION_CODE_GEN,
     format_pl_literal,
     parenthesize,
+    strip_pl_lit,
 )
 from polars_expr_transformer.string_literals import parse_literal, parse_number_literal
 from dataclasses import dataclass, field
@@ -285,6 +286,9 @@ class Func:
                 )
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_readable_pl_function()
+        if self.func_ref == "_list":
+            members = [arg.get_readable_pl_function() for arg in self.args]
+            return f"[{', '.join(members)}]"
         pl_args = [arg.get_pl_func() for arg in self.args]
 
         if self._check_if_standardization_of_args_is_needed(pl_args):
@@ -329,6 +333,10 @@ class Func:
             arg_codes = [arg.to_polars_code(prefix=prefix) for arg in self.args]
             return f"{prefix}.lit({', '.join(arg_codes)})"
 
+        # The members of an `in ( ... )` list
+        if func_name == "_list":
+            return self._members_to_polars_code(prefix=prefix)
+
         # Binary operators: render as infix (left op right)
         if func_name in OPERATOR_SYMBOLS:
             symbol = OPERATOR_SYMBOLS[func_name]
@@ -353,6 +361,25 @@ class Func:
             stacklevel=2,
         )
         return f"{func_name}({', '.join(arg_codes)})"
+
+    def _members_to_polars_code(self, prefix: str = "pl") -> str:
+        """Generate the collection operand of a membership test.
+
+        Polars rejects a plain list holding expressions, so a list with one of those
+        in it is imploded with ``concat_list`` instead. A member is an expression
+        exactly when its node is a ``Func``, which is the same distinction ``_is_in``
+        makes at run time on the evaluated members, so the two cannot disagree.
+        """
+        if all(isinstance(arg, Classifier) for arg in self.args):
+            members = [
+                strip_pl_lit(
+                    format_pl_literal(arg.val, arg.val_type, prefix=prefix), prefix
+                )
+                for arg in self.args
+            ]
+            return f"[{', '.join(members)}]"
+        members = [arg.to_polars_code(prefix=prefix) for arg in self.args]
+        return f"{prefix}.concat_list([{', '.join(members)}])"
 
     def add_arg(self, arg: Union["Func", Classifier, "IfFunc"]):
         """
@@ -439,6 +466,8 @@ class Func:
             if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
                 return self.args[0].get_pl_func()
             return funcs[self.func_ref.val](self.args[0].get_pl_func())
+        if self.func_ref == "_list":
+            return funcs["_list"](*[arg.get_pl_func() for arg in self.args])
         pl_args = [arg.get_pl_func() for arg in self.args]
         func_types = get_types_from_func(funcs[self.func_ref.val])
         # if all_numeric_types(pl_args) and all(allow_expressions(func_type) for func_type in func_types):

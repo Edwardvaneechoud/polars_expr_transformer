@@ -65,7 +65,7 @@ const EXAMPLES = [
   { label: "Weekend?", dataset: "events", expr: "weekday([start]) >= 6" },
 ];
 
-const KEYWORDS = ["if", "then", "elseif", "else", "endif", "and", "or", "not", "true", "false", "null"];
+const KEYWORDS = ["if", "then", "elseif", "else", "endif", "and", "or", "not", "in", "true", "false", "null"];
 
 /* ---------------- state ---------------- */
 const state = {
@@ -597,6 +597,7 @@ function buildAiSystemPrompt() {
     `- String literals use single or double quotes: "hello", 'world'. Numbers and booleans are bare: 42, 3.14, -7, true, false. The null literal (an empty/missing value) is bare: null.`,
     "- Conditionals: if <condition> then <value> elseif <condition> then <value> else <value> endif (elseif may repeat or be omitted; else is required).",
     "- Operators: + - * / % (arithmetic; + also concatenates text) | = == != (equality) | > >= < <= (comparison) | and or (boolean) | ( ) for grouping.",
+    "- Membership: [col] in ('a', 'b') and [col] not in ('a', 'b') test whether a value is one of a list; the members must all be of one type.",
     "- There is no [..] indexing or slicing. For the last character of text use right([col], 1); for the first, left([col], 1); for the middle, mid([col], start, length).",
     "- Functions may be nested: uppercase(left([last_name], 3)).",
     "- For missing/null values use is_empty, is_not_empty, coalesce or ifnull.",
@@ -637,7 +638,7 @@ function buildFormulaGrammar() {
   const cols = DATASETS[state.dataset].columns.map((c) => c.name);
   return [
     "root ::= ws expr ws",
-    "expr ::= term (ws op ws term)*",
+    "expr ::= term (ws (op ws term | inop ws inlist))*",
     "term ::= call | cond | group | col | str | num | bool | nul",
     'group ::= "(" ws expr ws ")"',
     'call ::= fname ws "(" ws arglist? ws ")"',
@@ -653,6 +654,8 @@ function buildFormulaGrammar() {
     'bool ::= "true" | "false"',
     'nul ::= "null"',
     'op ::= "==" | "!=" | ">=" | "<=" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "and" | "or"',
+    'inop ::= "not in" | "in"',
+    'inlist ::= "(" ws (expr (ws "," ws expr)*)? ws ")"',
     "fname ::= " + fnames.map((n) => `"${esc(n)}"`).join(" | "),
     "colname ::= " + cols.map((c) => `"${esc(c)}"`).join(" | "),
     "ws ::= [ \\t\\n]*",

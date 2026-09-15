@@ -1037,3 +1037,109 @@ def test_quoted_null_is_string_literal():
     df = pl.DataFrame({'a': [1, 2, 3]})
     result = df.select(simple_function_to_expr('"null"'))
     assert result.to_series().to_list() == ['null']
+
+def test_in_list_of_strings():
+    df = pl.DataFrame({'name': ['alice', 'bob', 'carol']})
+    result = df.select(simple_function_to_expr("[name] in ('alice','carol')"))
+    expected = pl.DataFrame({'name': [True, False, True]})
+    assert result.equals(expected)
+
+
+def test_in_list_of_integers():
+    df = pl.DataFrame({'n': [1, 2, 3]})
+    result = df.select(simple_function_to_expr("[n] in (1,3)"))
+    expected = pl.DataFrame({'n': [True, False, True]})
+    assert result.equals(expected)
+
+
+def test_in_list_mixing_whole_and_decimal_numbers():
+    """Whole numbers are promoted so polars can build the list strictly."""
+    df = pl.DataFrame({'p': [1.0, 2.5, 3.0]})
+    result = df.select(simple_function_to_expr("[p] in (1, 2.5)"))
+    expected = pl.DataFrame({'p': [True, True, False]})
+    assert result.equals(expected)
+
+
+def test_not_in_list():
+    df = pl.DataFrame({'status': ['shipped', 'failed', 'cancelled']})
+    result = df.select(simple_function_to_expr("[status] not in ('failed','cancelled')"))
+    expected = pl.DataFrame({'status': [True, False, False]})
+    assert result.equals(expected)
+
+
+def test_in_empty_list_is_always_false():
+    df = pl.DataFrame({'name': ['alice', 'bob']})
+    result = df.select(simple_function_to_expr("[name] in ()"))
+    expected = pl.DataFrame({'name': [False, False]})
+    assert result.equals(expected)
+
+
+def test_in_list_propagates_nulls():
+    """Polars' is_in returns null for a null input, never false."""
+    df = pl.DataFrame({'name': ['alice', 'bob', None]})
+    result = df.select(simple_function_to_expr("[name] in ('alice')"))
+    expected = pl.DataFrame({'name': [True, False, None]})
+    assert result.equals(expected)
+
+
+def test_not_in_list_propagates_nulls():
+    df = pl.DataFrame({'name': ['alice', 'bob', None]})
+    result = df.select(simple_function_to_expr("[name] not in ('alice')"))
+    expected = pl.DataFrame({'name': [False, True, None]})
+    assert result.equals(expected)
+
+
+def test_in_list_with_a_column_member():
+    df = pl.DataFrame({'name': ['alice', 'bob', 'carol'], 'other': ['x', 'bob', 'y']})
+    result = df.select(simple_function_to_expr("[name] in ('alice', [other])"))
+    expected = pl.DataFrame({'name': [True, True, False]})
+    assert result.equals(expected)
+
+
+def test_in_list_inside_if_expression():
+    df = pl.DataFrame({'name': ['alice', 'bob', 'carol']})
+    result = df.select(
+        simple_function_to_expr("if [name] in ('alice','carol','dave') then 'DS' else 'DE' endif")
+    )
+    expected = pl.DataFrame({'literal': ['DS', 'DE', 'DS']})
+    assert result.equals(expected)
+
+
+def test_in_list_inside_nested_if_chain():
+    df = pl.DataFrame({'n': [1, 3, 9]})
+    result = df.select(
+        simple_function_to_expr("if [n] in (1,2) then 'low' elseif [n] in (3) then 'mid' else 'hi' endif")
+    )
+    expected = pl.DataFrame({'literal': ['low', 'mid', 'hi']})
+    assert result.equals(expected)
+
+
+def test_not_in_list_inside_if_expression():
+    df = pl.DataFrame({'name': ['alice', 'bob']})
+    result = df.select(
+        simple_function_to_expr("if [name] not in ('alice') then 'other' else 'alice' endif")
+    )
+    expected = pl.DataFrame({'literal': ['alice', 'other']})
+    assert result.equals(expected)
+
+
+def test_in_list_combined_with_logical_operator():
+    df = pl.DataFrame({'name': ['alice', 'alice', 'bob'], 'n': [1, 2, 2]})
+    result = df.select(simple_function_to_expr("[name] in ('alice') and [n] > 1"))
+    expected = pl.DataFrame({'name': [False, True, False]})
+    assert result.equals(expected)
+
+
+def test_in_with_a_plain_value_still_means_substring():
+    """The parenthesized list is what selects membership; a plain value is unchanged."""
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs']})
+    result = df.select(simple_function_to_expr('"a" in [names]'))
+    expected = pl.DataFrame({'names': [True, True, False]})
+    assert result.equals(expected)
+
+
+def test_not_in_with_a_plain_value_means_not_substring():
+    df = pl.DataFrame({'names': ['ham', 'spam', 'eggs']})
+    result = df.select(simple_function_to_expr('"a" not in [names]'))
+    expected = pl.DataFrame({'names': [False, False, True]})
+    assert result.equals(expected)

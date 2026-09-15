@@ -2,6 +2,7 @@ import polars as pl
 from polars_expr_transformer.funcs import all_functions
 from polars_expr_transformer.funcs.logic_functions import does_not_equal
 from polars_expr_transformer.funcs.logic_functions import _in
+from polars_expr_transformer.funcs.logic_functions import _not_in
 operators = {  # get your data out of your code...
     "+": "pl.Expr.add",
     "-": "pl.Expr.sub",
@@ -20,6 +21,7 @@ operators = {  # get your data out of your code...
     'and': "pl.Expr.and_",
     'or': "pl.Expr.or_",
     'in': "_in",
+    'not in': "_not_in",
     'is_null': "pl.Expr.is_null",
 }
 
@@ -27,7 +29,15 @@ aliases = {
     'not': '_not',
 }
 
-_OPERATOR_ROOTS = {"pl": pl, "does_not_equal": does_not_equal, "_in": _in}
+# Membership operators lower to a different implementation than the one `operators` names
+# above, but only when their right-hand side is a parenthesised list: `in`/`not in` keep
+# their substring meaning against a plain value.
+MEMBERSHIP_OPERATORS = {
+    'in': '_is_in',
+    'not in': '_is_not_in',
+}
+
+_OPERATOR_ROOTS = {"pl": pl, "does_not_equal": does_not_equal, "_in": _in, "_not_in": _not_in}
 
 
 def _resolve_operator(dotted_name: str):
@@ -40,7 +50,8 @@ def _resolve_operator(dotted_name: str):
 
 
 operators_mappings = {v: _resolve_operator(v) for v in operators.values()}
-all_split_vals = set(['(', ')', '$if$', '$endif$', '$else$', '$then$','$elseif$', ',', ''] + list(operators)+list(operators))
+single_word_operators = [op for op in operators if ' ' not in op]
+all_split_vals = set(['(', ')', '$if$', '$endif$', '$else$', '$then$','$elseif$', ',', ''] + single_word_operators)
 all_split_vals_reversed = [v[::-1] for v in all_split_vals]
 funcs = {f'{k}': v for k,v in all_functions.items()}
 funcs['pl.col'] = pl.col
@@ -52,7 +63,7 @@ for alias, ref in aliases.items():
 PRECEDENCE = {
     'or': 1,
     'and': 2,
-    '>': 3, '<': 3, '>=': 3, '<=': 3, '==': 3, '!=': 3, 'in': 3,
+    '>': 3, '<': 3, '>=': 3, '<=': 3, '==': 3, '!=': 3, 'in': 3, 'not in': 3,
     '+': 4, '-': 4,
     '*': 5, '/': 5
 }

@@ -117,6 +117,9 @@ class TestValidExpressionsDoNotRaise:
             'if 1=1 then 1 else 2 endif\n// comment with endif )\n + 1',
             '1 + 2 * 3',
             'uppercase([name])',
+            "[name] in ('a', 'b')",
+            "[name] not in ('a', 'b')",
+            "if [name] in ('a','b') then 1 else 2 endif",
         ],
     )
     def test_no_raise(self, expr):
@@ -205,3 +208,21 @@ class TestEmptyValues:
     def test_missing_value(self, expr):
         with pytest.raises(ExpressionSyntaxError, match="found nothing"):
             simple_function_to_expr(expr)
+
+
+class TestMembershipList:
+    def test_mixed_text_and_number(self):
+        with pytest.raises(ExpressionSyntaxError, match="expected all text values, found number 1"):
+            simple_function_to_expr("[name] in ('a', 1)")
+
+    def test_mixed_number_and_text(self):
+        with pytest.raises(ExpressionSyntaxError, match="expected all number values"):
+            simple_function_to_expr("[n] in (1, 'a')")
+
+    def test_message_names_the_operator(self):
+        with pytest.raises(ExpressionSyntaxError, match="Mixed value types in 'not in' list"):
+            simple_function_to_expr("[name] not in ('a', 1)")
+
+    def test_mixed_types_is_a_value_error(self):
+        with pytest.raises(ValueError):
+            simple_function_to_expr("[name] in ('a', 1)")

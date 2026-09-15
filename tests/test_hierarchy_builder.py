@@ -602,3 +602,62 @@ class TestValidateBracketBalance(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             build_hierarchy(tokens)
         self.assertIn("unclosed '('", str(context.exception))
+
+
+class TestMembershipList(unittest.TestCase):
+    """A '(' after a membership operator opens a list of members, not a grouping."""
+
+    def test_opening_bracket_after_in_opens_a_list(self):
+        current_func = Func(Classifier("pl.lit"))
+        result = handle_opening_bracket(current_func, Classifier("in"))
+
+        # The list node is added to the current function, with a slot for its first member.
+        self.assertEqual(len(current_func.args), 1)
+        list_func = current_func.args[0]
+        self.assertEqual(list_func.func_ref.val, "_list")
+        self.assertIsInstance(result, TempFunc)
+        self.assertIs(result.parent, list_func)
+
+    def test_opening_bracket_after_not_in_opens_a_list(self):
+        current_func = Func(Classifier("pl.lit"))
+        handle_opening_bracket(current_func, Classifier("not in"))
+        self.assertEqual(current_func.args[0].func_ref.val, "_list")
+
+    def test_opening_bracket_elsewhere_still_groups(self):
+        current_func = Func(Classifier("pl.lit"))
+        result = handle_opening_bracket(current_func, Classifier("+"))
+        self.assertEqual(result.func_ref.val, "pl.lit")
+
+    def test_build_hierarchy_keeps_every_member(self):
+        """Regression: members after the first used to be scattered and dropped."""
+        tokens = [
+            Classifier("a"),
+            Classifier("in", val_type="operator"),
+            Classifier("("),
+            Classifier("'x'"),
+            Classifier(","),
+            Classifier("'y'"),
+            Classifier(","),
+            Classifier("'z'"),
+            Classifier(")"),
+        ]
+
+        result = build_hierarchy(tokens)
+
+        # a, the operator, and one list node holding all three members.
+        self.assertEqual(len(result.args), 3)
+        list_func = result.args[2]
+        self.assertEqual(list_func.func_ref.val, "_list")
+        members = [t.args[0].val for t in list_func.args]
+        self.assertEqual(members, ["'x'", "'y'", "'z'"])
+
+    def test_build_hierarchy_with_empty_list(self):
+        tokens = [
+            Classifier("a"),
+            Classifier("in", val_type="operator"),
+            Classifier("("),
+            Classifier(")"),
+        ]
+        result = build_hierarchy(tokens)
+        list_func = result.args[2]
+        self.assertEqual(list_func.func_ref.val, "_list")

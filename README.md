@@ -95,6 +95,14 @@ Besides column references, you can write literal values directly. Five literal t
 | `>`, `>=`, `<`, `<=` | Comparisons | `[age] >= 18` |
 | `and` | Logical AND | `[a] > 0 and [b] > 0` |
 | `or` | Logical OR | `[x] = 1 or [y] = 1` |
+| `in ( ... )` | Membership | `[name] in ("alice", "carol")` |
+| `not in ( ... )` | Non-membership | `[status] not in ("failed", "cancelled")` |
+| `in` | Substring, against a plain value | `"li" in [name]` |
+
+Membership needs the parentheses: `[x] in ("a", "b")` tests whether `[x]` is one of the
+listed values, while `"a" in [x]` tests whether `[x]` contains the text `"a"`. Members must
+all be of one type, and a member may reference a column. As in Polars, a null input yields
+null rather than false, and an empty list `()` matches nothing.
 
 ### Conditional Expressions
 
