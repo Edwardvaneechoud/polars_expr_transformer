@@ -1,5 +1,6 @@
 from typing import List
 from polars_expr_transformer.process.models import Classifier
+from polars_expr_transformer.string_literals import requote_double
 
 
 def replace_ambiguity_minus_sign(tokens: List[Classifier]) -> List[Classifier]:
@@ -38,22 +39,18 @@ def replace_ambiguity_minus_sign(tokens: List[Classifier]) -> List[Classifier]:
 
 def standardize_quotes(tokens: List[str]):
     """
-    Standardize single quotes in the list of tokens to double quotes.
+    Standardize quoted string tokens to double-quoted Python literals.
+
+    Quotes inside the body are escaped, so requoting cannot break a literal open
+    and turn the rest of a formula into code.
 
     Args:
         tokens: A list of string tokens.
 
     Returns:
-        A list of string tokens with single quotes standardized to double quotes.
+        A list of string tokens with quotes standardized.
     """
-    output_tokens = []
-    for tok in tokens:
-        if len(tok) > 1 and tok[0] == "'" and tok[-1] == "'":
-            new_tok = '"' + tok[1:-1] + '"'
-            output_tokens.append(new_tok)
-        else:
-            output_tokens.append(tok)
-    return output_tokens
+    return [requote_double(tok) for tok in tokens]
 
 
 def classify_tokens(tokens: List[str]) -> List[Classifier]:

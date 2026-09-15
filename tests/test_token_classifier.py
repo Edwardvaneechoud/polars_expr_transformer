@@ -40,10 +40,11 @@ class TestStandardizeTokens(unittest.TestCase):
         expected = ['""']
         self.assertEqual(result, expected)
 
-        # Edge case: single quotes with content resembling double quotes
+        # Edge case: single quotes with content resembling double quotes.
+        # The inner quotes must come back escaped, or the literal breaks open.
         tokens = ["'\"inner\"'"]
         result = standardize_quotes(tokens)
-        expected = ['"\"inner\""']
+        expected = ['"\\"inner\\""']
         self.assertEqual(result, expected)
 
     def test_replace_ambiguity_minus_sign_leading(self):

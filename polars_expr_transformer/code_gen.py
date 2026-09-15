@@ -10,6 +10,12 @@ in the generated code.  Pass ``"ff"`` to emit FlowFrame code instead.
 
 import ast
 
+from polars_expr_transformer.string_literals import (
+    is_string_literal,
+    parse_string_literal,
+    render_string_literal,
+)
+
 # Reverse mapping from internal operator names to Python operator symbols
 OPERATOR_SYMBOLS = {
     "pl.Expr.add": "+",
@@ -335,9 +341,9 @@ def format_pl_literal(val_str, val_type, prefix="pl"):
         return f"{prefix}.lit({py_val})"
     elif val_type == "null":
         return f"{prefix}.lit(None)"
-    elif val_type == "number":
-        return f"{prefix}.lit({val_str})"
-    elif val_type == "string":
-        return f"{prefix}.lit({val_str})"
+    elif val_type == "string" and is_string_literal(val_str):
+        # Re-render from the parsed value so the emitted literal is escaped code,
+        # never a verbatim copy of untrusted formula text.
+        return f"{prefix}.lit({render_string_literal(parse_string_literal(val_str))})"
     else:
         return f"{prefix}.lit({val_str})"
