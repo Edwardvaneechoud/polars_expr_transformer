@@ -27,8 +27,19 @@ aliases = {
     'not': '_not',
 }
 
+_OPERATOR_ROOTS = {"pl": pl, "does_not_equal": does_not_equal, "_in": _in}
 
-operators_mappings = {v: eval(v) for v in operators.values()}
+
+def _resolve_operator(dotted_name: str):
+    """Look up an operator implementation by its dotted name."""
+    root, *attrs = dotted_name.split(".")
+    obj = _OPERATOR_ROOTS[root]
+    for attr in attrs:
+        obj = getattr(obj, attr)
+    return obj
+
+
+operators_mappings = {v: _resolve_operator(v) for v in operators.values()}
 all_split_vals = set(['(', ')', '$if$', '$endif$', '$else$', '$then$','$elseif$', ',', ''] + list(operators)+list(operators))
 all_split_vals_reversed = [v[::-1] for v in all_split_vals]
 funcs = {f'{k}': v for k,v in all_functions.items()}

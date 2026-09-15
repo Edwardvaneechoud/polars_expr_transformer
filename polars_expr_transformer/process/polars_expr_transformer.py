@@ -24,6 +24,7 @@ from polars_expr_transformer.process.post_process import (
 )
 from polars_expr_transformer.process.preprocess import preprocess
 from polars_expr_transformer.exceptions import PolarsCodeGenError
+import ast
 import polars as pl
 import datetime
 import hashlib
@@ -195,17 +196,83 @@ def test_tokenization(func_str, all_split_vals, all_functions):
     return tokens
 
 
-def _validate_polars_code(func_str: str, code: str) -> None:
-    """Validate generated Polars code by eval-ing it.
+_VALIDATION_SCOPE_NAMES = frozenset({"pl", "datetime", "hashlib"})
 
-    Builds a scope with ``pl``, ``datetime`` and ``hashlib`` — the modules
-    the generated code can refer to — then attempts ``eval(code, scope)``.
+_ALLOWED_AST_NODES = (
+    ast.Expression,
+    ast.Call,
+    ast.keyword,
+    ast.Attribute,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.BoolOp,
+    ast.Compare,
+    ast.List,
+    ast.Tuple,
+    ast.Dict,
+    ast.Set,
+    ast.Slice,
+    ast.Subscript,
+    # The per-element hash functions generate a lambda; its body is walked too.
+    ast.Lambda,
+    ast.arguments,
+    ast.arg,
+    ast.operator,
+    ast.unaryop,
+    ast.boolop,
+    ast.cmpop,
+)
+
+
+def _assert_code_is_in_the_generated_dialect(code: str) -> None:
+    """Reject anything the code generator would never emit.
+
+    Validation runs generated code, and a formula is untrusted input, so the
+    code is first proven to be a plain expression over ``pl``/``datetime``/
+    ``hashlib`` — no statements, no comprehensions, no dunder traversal and no
+    free names. Without this, a literal that escaped its quotes would be
+    executed here rather than merely mis-parsed.
+    """
+    tree = ast.parse(code, mode="eval")
+
+    bound = set(_VALIDATION_SCOPE_NAMES)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Lambda):
+            args = node.args
+            for arg in (
+                args.posonlyargs + args.args + args.kwonlyargs + [args.vararg, args.kwarg]
+            ):
+                if arg is not None:
+                    bound.add(arg.arg)
+
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED_AST_NODES):
+            raise ValueError(f"Disallowed syntax in generated code: {type(node).__name__}")
+        if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+            raise ValueError(f"Disallowed attribute in generated code: {node.attr}")
+        if isinstance(node, ast.Name) and node.id not in bound:
+            raise NameError(f"name '{node.id}' is not defined")
+
+
+def _validate_polars_code(func_str: str, code: str) -> None:
+    """Validate generated Polars code by building it.
+
+    The code is first checked against the shape the generator emits (see
+    ``_assert_code_is_in_the_generated_dialect``), then evaluated in a scope of
+    ``pl``, ``datetime`` and ``hashlib``, which is what catches a wrong method
+    name or arity. The dialect check, not the scope, is the security boundary:
+    builtins stay reachable because Polars needs them internally, but no free
+    name survives the check to reach one.
 
     Raises:
         PolarsCodeGenError: If the generated code cannot be evaluated.
     """
     scope = {"pl": pl, "datetime": datetime, "hashlib": hashlib}
     try:
+        _assert_code_is_in_the_generated_dialect(code)
         eval(code, scope)
     except Exception as e:
         raise PolarsCodeGenError(func_str, code, e) from e

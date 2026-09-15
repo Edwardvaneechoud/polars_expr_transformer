@@ -10,6 +10,7 @@ from polars_expr_transformer.code_gen import (
     format_pl_literal,
     parenthesize,
 )
+from polars_expr_transformer.string_literals import parse_literal, parse_number_literal
 from dataclasses import dataclass, field
 import polars as pl
 from types import NotImplementedType
@@ -181,8 +182,20 @@ class Classifier:
             return None
         elif self.val_type == "function":
             return funcs[self.val]
-        elif self.val_type in ("number", "string"):
-            return eval(self.val)
+        elif self.val_type == "number":
+            try:
+                return parse_number_literal(self.val)
+            except (ValueError, SyntaxError) as e:
+                raise ExpressionSyntaxError(
+                    f"Unexpected token '{self.val}' in expression."
+                ) from e
+        elif self.val_type == "string":
+            try:
+                return parse_literal(self.val)
+            except (ValueError, SyntaxError) as e:
+                raise ExpressionSyntaxError(
+                    f"Unexpected token '{self.val}' in expression."
+                ) from e
         elif self.val == "__negative()":
             return funcs["__negative"]()
         else:
