@@ -1143,3 +1143,27 @@ def test_not_in_with_a_plain_value_means_not_substring():
     result = df.select(simple_function_to_expr('"a" not in [names]'))
     expected = pl.DataFrame({'names': [False, False, True]})
     assert result.equals(expected)
+
+
+def test_column_name_starting_with_if_keyword():
+    """A column named '[if Flag]' is a column, not a conditional."""
+    df = pl.DataFrame({'if Flag': [1, 2]})
+    result = df.select(simple_function_to_expr('[if Flag] == 1'))
+    expected = pl.DataFrame({'if Flag': [True, False]})
+    assert result.equals(expected)
+
+
+def test_keyword_column_inside_a_real_conditional():
+    df = pl.DataFrame({'if Flag': [1, 2]})
+    result = df.select(
+        simple_function_to_expr('if [if Flag] == 1 then "yes" else "no" endif')
+    )
+    expected = pl.DataFrame({'literal': ['yes', 'no']})
+    assert result.equals(expected)
+
+
+def test_column_names_containing_logical_operators():
+    df = pl.DataFrame({'and Flag': [1, 2], 'or': [3, 4]})
+    result = df.select(simple_function_to_expr('[and Flag] > 1 and [or] > 3'))
+    expected = pl.DataFrame({'and Flag': [False, True]})
+    assert result.equals(expected)

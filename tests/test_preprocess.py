@@ -6,7 +6,7 @@ from polars_expr_transformer.process.preprocess import (
     restore_logical_operators, add_additions_outside_of_quotes,
     replace_value_outside_of_quotes, replace_values_outside_of_quotes,
     replace_values, parse_pl_cols, remove_unwanted_characters,
-    preprocess
+    split_protected_spans, preprocess
 )
 
 
@@ -266,3 +266,48 @@ class TestPreprocessFunctions(unittest.TestCase):
         self.assertIn("pl.col(\"col2\")<10", result)
         self.assertIn(" and ", result)  # Space around logical operators should be preserved
 
+
+
+class TestKeywordsInColumnNames(unittest.TestCase):
+    """Column names containing keywords/operators must survive preprocessing."""
+
+    def test_split_protected_spans_alternates(self):
+        """Quoted literals and [column] references come back as odd-index parts."""
+        parts = split_protected_spans("a + [my col] + 'lit' + b")
+        self.assertEqual(parts[1::2], ["[my col]", "'lit'"])
+        self.assertEqual(''.join(parts), "a + [my col] + 'lit' + b")
+
+    def test_split_protected_spans_unterminated_is_not_protected(self):
+        """An unclosed quote or bracket stays ordinary text, as the old regexes did."""
+        self.assertEqual(split_protected_spans("a [b"), ["a [b"])
+        self.assertEqual(split_protected_spans("a 'b"), ["a 'b"])
+
+    def test_split_protected_spans_bracket_is_quote_aware(self):
+        """A ']' inside a quoted run does not close the column reference."""
+        self.assertEqual(split_protected_spans('[a"]"b]'), ['', '[a"]"b]', ''])
+
+    def test_conditional_keyword_in_column_name(self):
+        """A column named e.g. [if Flag] is not rewritten into $if$ markers."""
+        for keyword in ('if', 'then', 'else', 'elseif', 'endif'):
+            with self.subTest(keyword=keyword):
+                result = preprocess(f"[{keyword} Flag] == 1")
+                self.assertEqual(result, f'pl.col("{keyword} Flag")=1')
+
+    def test_column_name_is_only_a_keyword(self):
+        """A column whose whole name is a keyword survives too."""
+        result = preprocess("[endif] == 1")
+        self.assertEqual(result, 'pl.col("endif")=1')
+
+    def test_logical_operator_in_column_name(self):
+        """'and'/'or' inside a column name are not spaced out or lowercased."""
+        self.assertEqual(preprocess("[and Flag] == 1"), 'pl.col("and Flag")=1')
+        self.assertEqual(preprocess("[Flag OR Other] == 1"), 'pl.col("Flag OR Other")=1')
+
+    def test_equality_operator_in_column_name(self):
+        """'==' inside a column name is not collapsed to '='."""
+        self.assertEqual(preprocess("[a==b] == 1"), 'pl.col("a==b")=1')
+
+    def test_keyword_column_inside_conditional(self):
+        """Real keywords still get marked while the column name is left alone."""
+        result = preprocess('if [if Flag] == 1 then "y" else "n" endif')
+        self.assertEqual(result, '$if$(pl.col("if Flag")=1)$then$("y")$else$("n")$endif$')
