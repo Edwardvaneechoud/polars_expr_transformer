@@ -24,10 +24,10 @@ stricter than the old pipeline, which never recognized mixed-case keywords and
 in some positions silently dropped them from the parsed expression. A clear
 error is preferable to silently ignoring part of the user's input.
 
-Known pre-existing quirk, intentionally untouched here: keyword rewriting in
-``preprocess.py`` does not protect ``[column]`` references, so a column literally
-named e.g. ``[then]`` is mangled by ``mark_special_tokens``. This scanner skips
-``[...]``, so it neither masks nor worsens that.
+Keyword rewriting in ``preprocess.py`` protects ``[column]`` references the same
+way, via ``preprocess.split_protected_spans``, so a column literally named e.g.
+``[then]`` survives ``mark_special_tokens`` intact and this scanner's view of the
+expression matches the pipeline's.
 """
 
 from typing import List, Tuple

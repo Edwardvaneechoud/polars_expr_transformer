@@ -1,6 +1,6 @@
 import re
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 from polars_expr_transformer.process.expression_validator import (
     find_comment_spans,
@@ -62,27 +62,136 @@ def normalize_whitespace(input_string: str) -> str:
     return replace_double_spaces(result)
 
 
+def _find_quote_end(input_string: str, start: int) -> int:
+    """
+    Find the closing quote of the literal opening at ``start``.
+
+    Mirrors the ``("[^"]*"|'[^']*')`` regexes this module used to rely on:
+    a quote runs to the next identical quote character, with no escape
+    handling, and an unterminated quote is not a literal at all.
+
+    Args:
+        input_string: The string being scanned.
+        start: Index of the opening quote character.
+
+    Returns:
+        The index of the closing quote, or -1 if the literal is unterminated.
+    """
+    return input_string.find(input_string[start], start + 1)
+
+
+def _find_bracket_end(input_string: str, start: int) -> int:
+    """
+    Find the ``]`` closing the column reference opening at ``start``.
+
+    Quote-aware like :func:`parse_pl_cols`: a ``]`` inside a quoted run does not
+    terminate the reference.
+
+    Args:
+        input_string: The string being scanned.
+        start: Index of the opening ``[``.
+
+    Returns:
+        The index of the closing bracket, or -1 if the reference is unclosed.
+    """
+    quote_char = None
+    for pos in range(start + 1, len(input_string)):
+        char = input_string[pos]
+        if quote_char is not None:
+            if char == quote_char:
+                quote_char = None
+        elif char in "\"'":
+            quote_char = char
+        elif char == ']':
+            return pos
+    return -1
+
+
+def split_protected_spans(input_string: str) -> List[str]:
+    """
+    Split a string into alternating unprotected and protected parts.
+
+    Protected parts are quoted string literals and ``[column]`` references —
+    the two kinds of span that carry the user's own text and must survive the
+    rewrites that only apply to ordinary expression syntax (keyword marking,
+    operator spacing, whitespace removal). Without the bracket half of this, a
+    column named ``[if Flag]`` came out of :func:`mark_special_tokens` as
+    ``[$if$( Flag]``.
+
+    Even indices hold unprotected text and odd indices hold the protected
+    spans, mirroring ``re.split`` with a capturing group, so callers can
+    rewrite ``parts[::2]`` and join the parts back together.
+
+    Args:
+        input_string: The string to split.
+
+    Returns:
+        A list of parts, always of odd length, starting and ending with
+        (possibly empty) unprotected text.
+    """
+    parts = []
+    unprotected = ''
+    pos = 0
+
+    while pos < len(input_string):
+        char = input_string[pos]
+        if char in "\"'":
+            end = _find_quote_end(input_string, pos)
+        elif char == '[':
+            end = _find_bracket_end(input_string, pos)
+        else:
+            end = -1
+
+        if end == -1:
+            unprotected += char
+            pos += 1
+            continue
+
+        parts.append(unprotected)
+        parts.append(input_string[pos:end + 1])
+        unprotected = ''
+        pos = end + 1
+
+    parts.append(unprotected)
+    return parts
+
+
+def replace_outside_protected_spans(input_string: str, transform: Callable[[str], str]) -> str:
+    """
+    Apply a transformation to everything but string literals and ``[columns]``.
+
+    Args:
+        input_string: The string to process.
+        transform: A function rewriting one run of unprotected text.
+
+    Returns:
+        The processed string, with protected spans passed through untouched.
+    """
+    parts = split_protected_spans(input_string)
+    parts[::2] = [transform(part) for part in parts[::2]]
+    return ''.join(parts)
+
+
 def add_spaces_around_logical_operators(input_string: str) -> str:
     """
     Add spaces around logical operators (and, or) in the input string,
-    but only outside of string literals. Normalizes operators to lowercase.
+    but only outside of string literals and [column] references. Normalizes
+    operators to lowercase.
 
     Args:
         input_string: The string to process.
 
     Returns:
-        A string with spaces added around logical operators outside of quotes.
+        A string with spaces added around logical operators outside of
+        protected spans.
     """
-    parts = re.split(r'("[^"]*"|\'[^\']*\')', input_string)
-
-    # Only process parts outside quotes (even indices)
-    for i in range(0, len(parts), 2):
+    def add_spaces(part: str) -> str:
         # Add spaces around 'and' and 'or' operators using word boundaries (case-insensitive)
         # and normalize to lowercase
-        parts[i] = re.sub(r'\b(and|or)\b', lambda m: f' {m.group(1).lower()} ', parts[i], flags=re.IGNORECASE)
-        parts[i] = replace_double_spaces(parts[i])
+        part = re.sub(r'\b(and|or)\b', lambda m: f' {m.group(1).lower()} ', part, flags=re.IGNORECASE)
+        return replace_double_spaces(part)
 
-    return ''.join(parts)
+    return replace_outside_protected_spans(input_string, add_spaces)
 
 
 def mark_special_tokens(input_string: str) -> str:
@@ -135,14 +244,11 @@ def preserve_logical_operators_with_markers(input_string: str) -> str:
     Returns:
         A string with logical operators replaced by markers.
     """
-    parts = re.split(r'("[^"]*"|\'[^\']*\')', input_string)
-
-    # Only process parts outside quotes (even indices)
-    for i in range(0, len(parts), 2):
-        # Use case-insensitive matching and normalize to lowercase markers
-        parts[i] = re.sub(r'\s+(and|or)\s+', lambda m: f' __{m.group(1).lower()}__ ', parts[i], flags=re.IGNORECASE)
-
-    return ''.join(parts)
+    # Use case-insensitive matching and normalize to lowercase markers
+    return replace_outside_protected_spans(
+        input_string,
+        lambda part: re.sub(r'\s+(and|or)\s+', lambda m: f' __{m.group(1).lower()}__ ', part, flags=re.IGNORECASE),
+    )
 
 
 def restore_logical_operators(input_string: str) -> str:
@@ -162,24 +268,23 @@ def restore_logical_operators(input_string: str) -> str:
 
 def add_additions_outside_of_quotes(func_string: str, addition: str, *args) -> str:
     """
-    Add additions outside quoted substrings in the input string.
+    Add additions outside quoted substrings and [column] references.
 
     Args:
         func_string: The string to process.
-        addition: The addition to add outside of quotes.
+        addition: The addition to add outside of protected spans.
         *args: Additional arguments specifying the values to add the addition to.
 
     Returns:
-        The processed string with additions added outside of quotes.
+        The processed string with additions added outside of protected spans.
     """
-    parts = re.split(r'("[^"]*"|\'[^\']*\')', func_string)
-    parts[::2] = [replace_values(v, addition, *args) for v in parts[::2]]
-    return ''.join(parts)
+    return replace_outside_protected_spans(func_string, lambda part: replace_values(part, addition, *args))
 
 
 def replace_value_outside_of_quotes(func_string: str, val: str, replace: str) -> str:
     """
-    Replace a value with another value outside quoted substrings in the input string.
+    Replace a value with another value outside quoted substrings and [column]
+    references in the input string.
 
     Args:
         func_string: The string to process.
@@ -187,34 +292,29 @@ def replace_value_outside_of_quotes(func_string: str, val: str, replace: str) ->
         replace: The value to replace with.
 
     Returns:
-        The processed string with the value replaced outside of quotes.
+        The processed string with the value replaced outside of protected spans.
     """
-    parts = re.split(r"""("[^"]*"|'[^']*')""", ' ' + func_string + ' ')
-    parts[::2] = [v.replace(val, replace) for v in parts[::2]]
-    return ''.join(parts)
+    return replace_outside_protected_spans(' ' + func_string + ' ', lambda part: part.replace(val, replace))
 
 
 def replace_values_outside_of_quotes(func_string: str, replacements: List[Tuple[str, str]]) -> str:
     """
-    Replace multiple values with corresponding replacements outside quoted substrings in the input string.
+    Replace multiple values with corresponding replacements outside quoted
+    substrings and [column] references in the input string.
 
     Args:
         func_string: The string to process.
         replacements: A list of tuples where each tuple contains a value to replace and its replacement.
 
     Returns:
-        The processed string with values replaced outside of quotes.
+        The processed string with values replaced outside of protected spans.
     """
-    # Split the string by quoted parts
-    parts = re.split(r'("[^"]*"|\'[^\']*\')', func_string)
-
-    # Process only the parts outside quotes (even indices)
-    for i in range(0, len(parts), 2):
+    def replace_all(part: str) -> str:
         for old_val, new_val in replacements:
-            parts[i] = parts[i].replace(old_val, new_val)
+            part = part.replace(old_val, new_val)
+        return part
 
-    # Join the parts back together
-    return ''.join(parts)
+    return replace_outside_protected_spans(func_string, replace_all)
 
 def replace_values(part_string: str, addition: str, *args) -> str:
     """
@@ -297,8 +397,8 @@ def parse_pl_cols(func_string: str) -> str:
 
 def remove_unwanted_characters(func_string: str) -> str:
     """
-    Remove unwanted characters outside quoted substrings in the input string,
-    while preserving special markers.
+    Remove unwanted characters outside quoted substrings and [column]
+    references in the input string, while preserving special markers.
 
     This function removes whitespace and other unnecessary characters while
     ensuring that special markers like __and__ and __or__ are preserved.
@@ -307,32 +407,32 @@ def remove_unwanted_characters(func_string: str) -> str:
         func_string: The string to process.
 
     Returns:
-        The processed string with unwanted characters removed outside of quotes.
+        The processed string with unwanted characters removed outside of
+        protected spans.
     """
-    parts = re.split(r"""("[^"]*"|'[^']*')""", func_string)
-
-    # Process parts outside quotes (even indices)
-    for i in range(0, len(parts), 2):
+    def strip_whitespace(part: str) -> str:
         # Save any special markers before removing whitespace
         special_markers = {}
         marker_count = 0
 
         # Find all special markers (like __and__, __or__)
         for marker in ["__and__", "__or__"]:
-            while marker in parts[i]:
+            while marker in part:
                 unique_id = f"__MARKER_{marker_count}__"
-                parts[i] = parts[i].replace(marker, unique_id, 1)
+                part = part.replace(marker, unique_id, 1)
                 special_markers[unique_id] = marker
                 marker_count += 1
 
         # Remove all whitespace
-        parts[i] = "".join(parts[i].split())
+        part = "".join(part.split())
 
         # Restore the special markers
         for unique_id, marker in special_markers.items():
-            parts[i] = parts[i].replace(unique_id, marker)
+            part = part.replace(unique_id, marker)
 
-    return "".join(parts)
+        return part
+
+    return replace_outside_protected_spans(func_string, strip_whitespace)
 
 
 def preprocess(input_function: str) -> str:
