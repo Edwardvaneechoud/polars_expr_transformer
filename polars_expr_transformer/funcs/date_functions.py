@@ -1,8 +1,13 @@
 import polars as pl
-from typing import Any
-from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, create_fix_date_col
+from polars_expr_transformer.funcs.utils import (
+    is_polars_expr,
+    create_fix_col,
+    create_fix_date_col,
+    as_expr,
+    DATE_TEXT_FORMATS,
+)
 from datetime import datetime
-from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
+from polars_expr_transformer.funcs.utils import PlIntType, PlDateType
 
 
 def now() -> pl.Expr:
@@ -29,9 +34,12 @@ def today() -> pl.Expr:
     return pl.lit(datetime.today())
 
 
-def year(date_value: Any) -> pl.Expr:
+def year(date_value: PlDateType) -> pl.Expr:
     """
     Gets the year from a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, year([hire_date]) would return 2021 when [hire_date] is 2021-03-15.
 
@@ -45,9 +53,12 @@ def year(date_value: Any) -> pl.Expr:
     return date_value.dt.year()
 
 
-def month(date_value: Any) -> pl.Expr:
+def month(date_value: PlDateType) -> pl.Expr:
     """
     Gets the month from a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, month([hire_date]) would return 3 when [hire_date] is 2021-03-15.
 
@@ -61,9 +72,12 @@ def month(date_value: Any) -> pl.Expr:
     return date_value.dt.month()
 
 
-def day(date_value: PlStringType) -> pl.Expr:
+def day(date_value: PlDateType) -> pl.Expr:
     """
     Gets the day of the month from a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, day([hire_date]) would return 15 when [hire_date] is 2021-03-15.
 
@@ -77,9 +91,12 @@ def day(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.day()
 
 
-def hour(date_value: PlStringType) -> pl.Expr:
+def hour(date_value: PlDateType) -> pl.Expr:
     """
     Gets the hour from a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, hour([order_date]) would return 10 when [order_date] is 2024-01-15 10:30:45.
 
@@ -93,9 +110,12 @@ def hour(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.hour()
 
 
-def minute(date_value: PlStringType) -> pl.Expr:
+def minute(date_value: PlDateType) -> pl.Expr:
     """
     Gets the minute from a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, minute([order_date]) would return 30 when [order_date] is 2024-01-15 10:30:45.
 
@@ -109,9 +129,12 @@ def minute(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.minute()
 
 
-def second(date_value: PlStringType) -> pl.Expr:
+def second(date_value: PlDateType) -> pl.Expr:
     """
     Gets the second from a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, second([order_date]) would return 45 when [order_date] is 2024-01-15 10:30:45.
 
@@ -125,9 +148,12 @@ def second(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.second()
 
 
-def add_days(date_value: PlStringType, days: PlIntType) -> pl.Expr:
+def add_days(date_value: PlDateType, days: PlIntType) -> pl.Expr:
     """
     Adds a number of days to a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_days([hire_date], 5) would return 2021-03-20 when [hire_date] is 2021-03-15.
 
@@ -143,9 +169,12 @@ def add_days(date_value: PlStringType, days: PlIntType) -> pl.Expr:
     return date_value + pl.duration(days=days)
 
 
-def add_years(date_value: PlStringType, years: PlIntType) -> pl.Expr:
+def add_years(date_value: PlDateType, years: PlIntType) -> pl.Expr:
     """
     Adds a number of years to a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_years([hire_date], 1) would return 2022-03-15 when [hire_date] is 2021-03-15.
 
@@ -161,9 +190,12 @@ def add_years(date_value: PlStringType, years: PlIntType) -> pl.Expr:
     return date_value + pl.duration(days=years * 365)
 
 
-def add_hours(date_value: PlStringType, hours: PlIntType) -> pl.Expr:
+def add_hours(date_value: PlDateType, hours: PlIntType) -> pl.Expr:
     """
     Adds a number of hours to a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_hours([order_date], 3) would return 2024-01-15 13:30:00 when [order_date] is 2024-01-15 10:30:00.
 
@@ -179,9 +211,12 @@ def add_hours(date_value: PlStringType, hours: PlIntType) -> pl.Expr:
     return date_value + pl.duration(hours=hours)
 
 
-def add_minutes(date_value: PlStringType, minutes: PlIntType) -> pl.Expr:
+def add_minutes(date_value: PlDateType, minutes: PlIntType) -> pl.Expr:
     """
     Adds a number of minutes to a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_minutes([order_date], 15) would return 2024-01-15 10:45:00 when [order_date] is 2024-01-15 10:30:00.
 
@@ -197,9 +232,12 @@ def add_minutes(date_value: PlStringType, minutes: PlIntType) -> pl.Expr:
     return date_value + pl.duration(minutes=minutes)
 
 
-def add_seconds(date_value: PlStringType, seconds: PlIntType) -> pl.Expr:
+def add_seconds(date_value: PlDateType, seconds: PlIntType) -> pl.Expr:
     """
     Adds a number of seconds to a datetime.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_seconds([order_date], 30) would return 2024-01-15 10:30:30 when [order_date] is 2024-01-15 10:30:00.
 
@@ -215,9 +253,12 @@ def add_seconds(date_value: PlStringType, seconds: PlIntType) -> pl.Expr:
     return date_value + pl.duration(seconds=seconds)
 
 
-def datetime_diff_seconds(date1: PlStringType, date2: PlStringType) -> pl.Expr:
+def datetime_diff_seconds(date1: PlDateType, date2: PlDateType) -> pl.Expr:
     """
     Calculates the number of seconds between two datetimes (the first minus the second).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, datetime_diff_seconds([end], [start]) would return 3600 when [start] is 2024-01-15 10:00:00 and [end] is 2024-01-15 11:00:00.
 
@@ -233,9 +274,12 @@ def datetime_diff_seconds(date1: PlStringType, date2: PlStringType) -> pl.Expr:
     return (date_value1 - date_value2).dt.total_seconds()
 
 
-def datetime_diff_nanoseconds(date1: PlStringType, date2: PlStringType) -> pl.Expr:
+def datetime_diff_nanoseconds(date1: PlDateType, date2: PlDateType) -> pl.Expr:
     """
     Calculates the number of nanoseconds between two datetimes (the first minus the second), for very precise time measurements.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, datetime_diff_nanoseconds([end], [start]) would return 1000000000 when [start] is 2024-01-15 10:00:00 and [end] is 2024-01-15 10:00:01.
 
@@ -251,9 +295,12 @@ def datetime_diff_nanoseconds(date1: PlStringType, date2: PlStringType) -> pl.Ex
     return (date_value1 - date_value2).dt.total_nanoseconds()
 
 
-def date_diff_days(date1: PlStringType, date2: PlStringType) -> pl.Expr:
+def date_diff_days(date1: PlDateType, date2: PlDateType) -> pl.Expr:
     """
     Calculates the number of days between two dates (the first minus the second).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, date_diff_days(today(), [hire_date]) would return 30 when [hire_date] is 30 days before today.
 
@@ -269,9 +316,12 @@ def date_diff_days(date1: PlStringType, date2: PlStringType) -> pl.Expr:
     return (date_value1 - date_value2).dt.total_days()
 
 
-def date_trim(date_value: Any, part: str) -> pl.Expr:
+def date_trim(date_value: PlDateType, part: str) -> pl.Expr:
     """
     Removes the smaller parts of a date or time.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, date_trim([order_date], "day") would return 2024-01-15 00:00:00 when [order_date] is 2024-01-15 10:30:45.
 
@@ -307,9 +357,12 @@ def date_trim(date_value: Any, part: str) -> pl.Expr:
             f"Invalid part '{part}' specified. Must be 'year', 'month', 'day', 'hour', 'minute', or 'second'.")
 
 
-def date_truncate(date_value: Any, truncate_by: str) -> pl.Expr:
+def date_truncate(date_value: PlDateType, truncate_by: str) -> pl.Expr:
     """
     Rounds a date down to the nearest specified unit.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, date_truncate([order_date], "1d") would return 2024-01-15 00:00:00 when [order_date] is 2024-01-15 10:30:45.
 
@@ -329,9 +382,12 @@ def date_truncate(date_value: Any, truncate_by: str) -> pl.Expr:
     return date_value.dt.truncate(truncate_by)
 
 
-def add_months(date_value: PlStringType, months: PlIntType) -> pl.Expr:
+def add_months(date_value: PlDateType, months: PlIntType) -> pl.Expr:
     """
     Adds a number of months to a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_months([hire_date], 2) would return 2021-05-15 when [hire_date] is 2021-03-15.
 
@@ -347,9 +403,12 @@ def add_months(date_value: PlStringType, months: PlIntType) -> pl.Expr:
     return date_value.dt.offset_by(pl.concat_str([months.cast(pl.Utf8), pl.lit("mo")]))
 
 
-def add_weeks(date_value: PlStringType, weeks: PlIntType) -> pl.Expr:
+def add_weeks(date_value: PlDateType, weeks: PlIntType) -> pl.Expr:
     """
     Adds a number of weeks to a date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, add_weeks([hire_date], 2) would return 2021-03-29 when [hire_date] is 2021-03-15.
 
@@ -365,9 +424,12 @@ def add_weeks(date_value: PlStringType, weeks: PlIntType) -> pl.Expr:
     return date_value + pl.duration(weeks=weeks)
 
 
-def week(date_value: PlStringType) -> pl.Expr:
+def week(date_value: PlDateType) -> pl.Expr:
     """
     Gets the ISO week number from a date (1-53).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, week([hire_date]) would return 11 when [hire_date] is 2021-03-15.
 
@@ -381,9 +443,12 @@ def week(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.week()
 
 
-def weekday(date_value: PlStringType) -> pl.Expr:
+def weekday(date_value: PlDateType) -> pl.Expr:
     """
     Gets the day of the week from a date (1=Monday, 7=Sunday).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, weekday([hire_date]) would return 1 when [hire_date] is 2021-03-15, a Monday.
 
@@ -397,9 +462,12 @@ def weekday(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.weekday()
 
 
-def dayofweek(date_value: PlStringType) -> pl.Expr:
+def dayofweek(date_value: PlDateType) -> pl.Expr:
     """
     Gets the day of the week from a date (alias for weekday, 1=Monday, 7=Sunday).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, dayofweek([hire_date]) would return 1 when [hire_date] is 2021-03-15, a Monday.
 
@@ -412,9 +480,12 @@ def dayofweek(date_value: PlStringType) -> pl.Expr:
     return weekday(date_value)
 
 
-def quarter(date_value: PlStringType) -> pl.Expr:
+def quarter(date_value: PlDateType) -> pl.Expr:
     """
     Gets the quarter from a date (1-4).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, quarter([hire_date]) would return 1 when [hire_date] is 2021-03-15.
 
@@ -428,9 +499,12 @@ def quarter(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.quarter()
 
 
-def dayofyear(date_value: PlStringType) -> pl.Expr:
+def dayofyear(date_value: PlDateType) -> pl.Expr:
     """
     Gets the day of the year from a date (1-366).
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, dayofyear([hire_date]) would return 74 when [hire_date] is 2021-03-15.
 
@@ -444,9 +518,12 @@ def dayofyear(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.ordinal_day()
 
 
-def format_date(date_value: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
+def format_date(date_value: PlDateType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     """
     Formats a date as text using a specified format.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, format_date([hire_date], "%B %d, %Y") would return "March 15, 2021" when [hire_date] is 2021-03-15.
 
@@ -471,9 +548,12 @@ def format_date(date_value: PlStringType, date_format: str = "%Y-%m-%d") -> pl.E
     return date_value.dt.to_string(date_format)
 
 
-def end_of_month(date_value: PlStringType) -> pl.Expr:
+def end_of_month(date_value: PlDateType) -> pl.Expr:
     """
     Gets the last day of the month for a given date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, end_of_month([hire_date]) would return 2021-03-31 when [hire_date] is 2021-03-15.
 
@@ -487,9 +567,12 @@ def end_of_month(date_value: PlStringType) -> pl.Expr:
     return date_value.dt.month_end()
 
 
-def start_of_month(date_value: PlStringType) -> pl.Expr:
+def start_of_month(date_value: PlDateType) -> pl.Expr:
     """
     Gets the first day of the month for a given date.
+
+    ISO text dates like "2021-03-15" are parsed automatically when the column
+    type is known; for other layouts, convert with to_date first.
 
     For example, start_of_month([hire_date]) would return 2021-03-01 when [hire_date] is 2021-03-15.
 
@@ -501,3 +584,24 @@ def start_of_month(date_value: PlStringType) -> pl.Expr:
     """
     date_value = date_value if is_polars_expr(date_value) else create_fix_date_col(date_value)
     return date_value.dt.month_start()
+
+
+def _parse_date_text(value: PlDateType) -> pl.Expr:
+    """Read date text as a datetime, leaving anything unrecognised null.
+
+    Inserted in front of a date function's argument by
+    ``process/schema_coercion.py`` when that argument is text. Every format in
+    ``DATE_TEXT_FORMATS`` is tried and the first that matches wins; all of them
+    pass ``strict=False``, so text matching none of them becomes null rather
+    than raising, which is how ``to_date`` and ``to_datetime`` already behave.
+
+    Parameters:
+    - value: The text column or value to read as a date
+
+    Returns:
+    - The datetime value, or null where the text was not recognised
+    """
+    value = as_expr(value)
+    return pl.coalesce(
+        [value.str.to_datetime(fmt, strict=False) for fmt in DATE_TEXT_FORMATS]
+    )

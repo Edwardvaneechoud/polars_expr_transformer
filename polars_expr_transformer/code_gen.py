@@ -10,6 +10,7 @@ in the generated code.  Pass ``"ff"`` to emit FlowFrame code instead.
 
 import ast
 
+from polars_expr_transformer.funcs.utils import DATE_TEXT_FORMATS
 from polars_expr_transformer.string_literals import (
     is_string_literal,
     parse_string_literal,
@@ -86,6 +87,23 @@ def _method_chain_with_args(method):
     def gen(args, prefix="pl"):
         receiver = args[0]
         rest = ", ".join(args[1:])
+        m = method.replace("pl.", f"{prefix}.") if prefix != "pl" else method
+        return f"{receiver}.{m}({rest})"
+
+    return gen
+
+
+def _method_chain_with_literal_args(method):
+    """Like ``_method_chain_with_args``, for methods taking plain Python values.
+
+    ``str.to_date``, ``dt.to_string`` and friends take a format as a real
+    ``str``, not an expression, so the ``prefix.lit(...)`` the generator puts
+    round every literal is unwrapped here.
+    """
+
+    def gen(args, prefix="pl"):
+        receiver = args[0]
+        rest = ", ".join(strip_pl_lit(a, prefix) for a in args[1:])
         m = method.replace("pl.", f"{prefix}.") if prefix != "pl" else method
         return f"{receiver}.{m}({rest})"
 
@@ -188,6 +206,19 @@ def _decode(fixed=None):
     return gen
 
 
+def _parse_date_text_gen(args, prefix="pl"):
+    """Render the automatic date-text parse.
+
+    Both this and ``_parse_date_text`` read their formats from
+    ``DATE_TEXT_FORMATS``, so the emitted code cannot drift from what the live
+    expression does.
+    """
+    rungs = ", ".join(
+        f'{args[0]}.str.to_datetime("{fmt}", strict=False)' for fmt in DATE_TEXT_FORMATS
+    )
+    return f"{prefix}.coalesce([{rungs}])"
+
+
 # Maps function names to code generation functions.
 # Each function takes a list of argument code strings and an optional prefix,
 # and returns the generated code string.
@@ -245,6 +276,7 @@ FUNCTION_CODE_GEN = {
     "atan": _method_chain("arctan()"),
     "tanh": _method_chain("tanh()"),
     # Date functions
+    "_parse_date_text": _parse_date_text_gen,
     "year": _method_chain("dt.year()"),
     "month": _method_chain("dt.month()"),
     "day": _method_chain("dt.day()"),
@@ -268,11 +300,11 @@ FUNCTION_CODE_GEN = {
     "date_diff_days": _template("({0} - {1}).dt.total_days()"),
     "datetime_diff_seconds": _template("({0} - {1}).dt.total_seconds()"),
     "datetime_diff_nanoseconds": _template("({0} - {1}).dt.total_nanoseconds()"),
-    "format_date": _template("{0}.dt.to_string({1})"),
+    "format_date": _method_chain_with_literal_args("dt.to_string"),
     "end_of_month": _method_chain("dt.month_end()"),
     "start_of_month": _method_chain("dt.month_start()"),
-    "date_truncate": _template("{0}.dt.truncate({1})"),
-    "date_trim": _template("{0}.dt.truncate({1})"),
+    "date_truncate": _method_chain_with_literal_args("dt.truncate"),
+    "date_trim": _method_chain_with_literal_args("dt.truncate"),
     "now": lambda args, prefix="pl": f"{prefix}.lit(datetime.datetime.now())",
     "today": lambda args, prefix="pl": f"{prefix}.lit(datetime.datetime.today())",
     # Logic functions
@@ -302,8 +334,8 @@ FUNCTION_CODE_GEN = {
     "to_float": _method_chain("cast(pl.Float64)"),
     "to_number": _method_chain("cast(pl.Float64)"),
     "to_boolean": _method_chain("cast(pl.Boolean)"),
-    "to_date": _method_chain_with_args("str.to_date"),
-    "to_datetime": _method_chain_with_args("str.to_datetime"),
+    "to_date": _method_chain_with_literal_args("str.to_date"),
+    "to_datetime": _method_chain_with_literal_args("str.to_datetime"),
     "to_decimal": lambda args, prefix="pl": (
         f"{args[0]}.cast({prefix}.Float64).round({strip_pl_lit(args[1], prefix)})"
         if len(args) > 1
