@@ -183,6 +183,9 @@ def _find_runnable_dataset(expression: str):
 def _clean_annotation(annotation) -> str:
     if annotation is inspect.Parameter.empty:
         return "any"
+    # Annotated[...] carries a marker the parser reads; render the type under it.
+    if hasattr(annotation, "__metadata__"):
+        annotation = annotation.__origin__
     if isinstance(annotation, str):
         raw = annotation
     elif getattr(annotation, "__name__", None):

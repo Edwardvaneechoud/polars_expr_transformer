@@ -147,7 +147,7 @@ class TestSimpleFunctionToExpr(unittest.TestCase):
         result = simple_function_to_expr("test_func")
 
         # Verify the function calls
-        mock_build_func.assert_called_once_with("test_func")
+        mock_build_func.assert_called_once_with("test_func", schema=None)
         mock_func.get_pl_func.assert_called_once()
 
         # We cannot directly compare Polars expressions with assertEqual

@@ -13,7 +13,7 @@ Example:
     >>> df.select(expr.alias('description'))
 """
 
-from typing import List, Union
+from typing import Any, List, Mapping, Optional, Union
 from polars_expr_transformer.process.models import IfFunc, Func, TempFunc, Classifier
 from polars_expr_transformer.process.hierarchy_builder import build_hierarchy
 from polars_expr_transformer.process.tokenize import tokenize
@@ -23,6 +23,7 @@ from polars_expr_transformer.process.post_process import (
     post_process_hierarchical_formula,
 )
 from polars_expr_transformer.process.preprocess import preprocess
+from polars_expr_transformer.process.schema_coercion import coerce_date_arguments
 from polars_expr_transformer.exceptions import PolarsCodeGenError
 import ast
 import polars as pl
@@ -138,7 +139,7 @@ def remove_temp_funcs(hierarchical_formula):
     return hierarchical_formula
 
 
-def build_func(func_str: str = 'concat("1", "2")') -> Func:
+def build_func(func_str: str = 'concat("1", "2")', schema: Optional[Mapping[str, Any]] = None) -> Func:
     """
     Build a Func object from a function string.
 
@@ -151,6 +152,12 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
         func_str: The string expression to parse. Supports column references
             like [column_name], functions like concat(), operators (+, -, *, /),
             and conditional expressions (if/then/else/endif).
+        schema: Optional mapping of column name to Polars dtype, such as
+            ``df.schema``. Supplying it lets a date function read a String
+            column: the text-to-date parse is inserted for it, the same parse a
+            date literal already gets. Without it, columns behave as before,
+            since an expression is built against no frame and cannot know a
+            column's type.
 
     Returns:
         A Func object representing the parsed expression tree.
@@ -172,6 +179,7 @@ def build_func(func_str: str = 'concat("1", "2")') -> Func:
     parse_inline_functions(hierarchical_formula)
 
     finalized_hierarchical_formula = finalize_hierarchy(hierarchical_formula)
+    coerce_date_arguments(finalized_hierarchical_formula, schema)
     hierarchical_formula.get_pl_func()
     return finalized_hierarchical_formula
 
@@ -278,7 +286,11 @@ def _validate_polars_code(func_str: str, code: str) -> None:
         raise PolarsCodeGenError(func_str, code, e) from e
 
 
-def to_polars_code(func_str: str, validate: bool = True) -> str:
+def to_polars_code(
+    func_str: str,
+    validate: bool = True,
+    schema: Optional[Mapping[str, Any]] = None,
+) -> str:
     """
     Convert a string expression to a native Polars Python code string.
 
@@ -293,6 +305,12 @@ def to_polars_code(func_str: str, validate: bool = True) -> str:
         validate: If True (default), eval the generated code to verify it
             is syntactically and semantically valid. Raises PolarsCodeGenError
             on failure.
+        schema: Optional mapping of column name to Polars dtype, such as
+            ``df.schema``. Supplying it lets a date function read a String
+            column: the text-to-date parse is inserted for it, the same parse a
+            date literal already gets. Without it, columns behave as before,
+            since an expression is built against no frame and cannot know a
+            column's type.
 
     Returns:
         A string containing valid Polars Python code.
@@ -310,14 +328,18 @@ def to_polars_code(func_str: str, validate: bool = True) -> str:
         >>> to_polars_code("if [age] > 30 then 'Senior' else 'Junior' endif")
         'pl.when(pl.col("age") > pl.lit(30)).then(pl.lit("Senior")).otherwise(pl.lit("Junior"))'
     """
-    func = build_func(func_str)
+    func = build_func(func_str, schema=schema)
     code = func.to_polars_code()
     if validate:
         _validate_polars_code(func_str, code)
     return code
 
 
-def to_flowframe_code(func_str: str, validate: bool = True) -> str:
+def to_flowframe_code(
+    func_str: str,
+    validate: bool = True,
+    schema: Optional[Mapping[str, Any]] = None,
+) -> str:
     """
     Convert a string expression to a native FlowFrame Python code string.
 
@@ -336,6 +358,12 @@ def to_flowframe_code(func_str: str, validate: bool = True) -> str:
         validate: If True (default), generate the equivalent Polars code and
             eval it to verify the expression is valid. Raises
             PolarsCodeGenError on failure.
+        schema: Optional mapping of column name to Polars dtype, such as
+            ``df.schema``. Supplying it lets a date function read a String
+            column: the text-to-date parse is inserted for it, the same parse a
+            date literal already gets. Without it, columns behave as before,
+            since an expression is built against no frame and cannot know a
+            column's type.
 
     Returns:
         A string containing valid FlowFrame Python code.
@@ -350,14 +378,17 @@ def to_flowframe_code(func_str: str, validate: bool = True) -> str:
         >>> to_flowframe_code("uppercase([name])")
         'ff.col("name").str.to_uppercase()'
     """
-    func = build_func(func_str)
+    func = build_func(func_str, schema=schema)
     if validate:
         pl_code = func.to_polars_code()
         _validate_polars_code(func_str, pl_code)
     return func.to_polars_code(prefix="ff")
 
 
-def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
+def simple_function_to_expr(
+    func_str: str,
+    schema: Optional[Mapping[str, Any]] = None,
+) -> pl.expr.Expr:
     """
     Convert a string expression to a Polars expression.
 
@@ -372,6 +403,12 @@ def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
             - Functions: concat(), uppercase(), round(), etc.
             - Conditionals: if [col] > 0 then "positive" else "negative" endif
             - Comments: // This is a comment
+        schema: Optional mapping of column name to Polars dtype, such as
+            ``df.schema``. Supplying it lets a date function read a String
+            column: the text-to-date parse is inserted for it, the same parse a
+            date literal already gets. Without it, columns behave as before,
+            since an expression is built against no frame and cannot know a
+            column's type.
 
     Returns:
         A Polars expression (pl.Expr) that can be used in DataFrame operations.
@@ -391,11 +428,17 @@ def simple_function_to_expr(func_str: str) -> pl.expr.Expr:
         >>> # Conditional logic
         >>> expr = 'if [price] > 15 then "expensive" else "cheap" endif'
         >>> df.select(simple_function_to_expr(expr).alias('category'))
+        >>>
+        >>> # Date text, with the column types to hand
+        >>> dates = pl.DataFrame({'Join Date': ['2005-01-10']})
+        >>> df.select(simple_function_to_expr(
+        ...     'format_date([Join Date], "%A")', schema=dates.schema
+        ... ))
 
     Raises:
         ExpressionSyntaxError: If the expression syntax is invalid, e.g.
             unbalanced parentheses or misplaced/missing conditional keywords
             (if/then/else/elseif/endif). Subclasses ValueError.
     """
-    func = build_func(func_str)
+    func = build_func(func_str, schema=schema)
     return func.get_pl_func()

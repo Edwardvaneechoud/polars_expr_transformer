@@ -1,7 +1,12 @@
 from polars_expr_transformer.configs.settings import PRECEDENCE
 from polars_expr_transformer.exceptions import ExpressionSyntaxError
 from typing import TypeAlias, Literal, List, Union, Optional, Any, Callable
-from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, PlNumericType
+from polars_expr_transformer.funcs.utils import (
+    PlStringType,
+    PlIntType,
+    PlNumericType,
+    PlDateType,
+)
 from polars_expr_transformer.configs.settings import operators, funcs
 from polars_expr_transformer.configs import logging
 from polars_expr_transformer.code_gen import (
@@ -60,6 +65,7 @@ def allow_expressions(_type):
     return _type in [
         PlStringType,
         PlIntType,
+        PlDateType,
         pl.Expr,
         Any,
         inspect._empty,
@@ -85,6 +91,7 @@ def allow_non_pl_expressions(_type):
         bool,
         PlStringType,
         PlIntType,
+        PlDateType,
         "Any",
         PlNumericType,
     ]
