@@ -160,6 +160,13 @@ null rather than false, and an empty list `()` matches nothing.
 | `count_match(text, pattern)` | Count occurrences | `count_match([text], "a")` |
 | `string_similarity(a, b, method)` | Similarity score (0-1) | `string_similarity([a], [b], "levenshtein")` |
 
+String functions read a non-text column as text rather than failing on it, so
+`contains([order_date], "2026-09")` works on a Date column. A Date reads as
+`2026-09-24`, a Datetime as `2026-09-24 10:00:00` (no fractional seconds, so
+`ends_with([ordered_at], "10:00:00")` matches), and everything else the way
+`cast(pl.String)` renders it. Text columns are untouched. Use `format_date` for
+any other date layout.
+
 ### Math Functions
 
 | Function | Description | Example |
