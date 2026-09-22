@@ -1,5 +1,5 @@
 import polars as pl
-from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col
+from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, as_string_expr
 from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
 from functools import partial
 
@@ -33,9 +33,7 @@ def count_match(text: PlStringType, pattern: str) -> pl.Expr:
     Returns:
     - The number of matches found
     """
-    if isinstance(text, pl.Expr):
-        return text.str.count_matches(pattern)
-    return pl.lit(text).str.count_matches(pattern)
+    return as_string_expr(text).str.count_matches(pattern)
 
 
 def length(text: PlStringType) -> pl.Expr:
@@ -52,8 +50,7 @@ def length(text: PlStringType) -> pl.Expr:
     """
     if isinstance(text, str):
         return pl.lit(len(text))
-    text: pl.Expr
-    return text.str.len_chars()
+    return as_string_expr(text).str.len_chars()
 
 
 def uppercase(text: PlStringType) -> pl.Expr:
@@ -68,9 +65,7 @@ def uppercase(text: PlStringType) -> pl.Expr:
     Returns:
     - The uppercase text
     """
-    if isinstance(text, pl.Expr):
-        return text.str.to_uppercase()
-    return pl.lit(text.__str__().upper())
+    return as_string_expr(text).str.to_uppercase()
 
 
 def titlecase(text: PlStringType) -> pl.Expr:
@@ -85,9 +80,7 @@ def titlecase(text: PlStringType) -> pl.Expr:
     Returns:
     - The title case text
     """
-    if isinstance(text, pl.Expr):
-        return text.str.to_titlecase()
-    return pl.lit(text.__str__().title())
+    return as_string_expr(text).str.to_titlecase()
 
 
 def lowercase(text: PlStringType) -> pl.Expr:
@@ -102,9 +95,7 @@ def lowercase(text: PlStringType) -> pl.Expr:
     Returns:
     - The lowercase text
     """
-    if isinstance(text, pl.Expr):
-        return text.str.to_lowercase()
-    return pl.lit(text.__str__().lower())
+    return as_string_expr(text).str.to_lowercase()
 
 
 def left(text: PlStringType, num_chars: pl.Expr | int) -> pl.Expr:
@@ -120,15 +111,7 @@ def left(text: PlStringType, num_chars: pl.Expr | int) -> pl.Expr:
     Returns:
     - The extracted text
     """
-    if is_polars_expr(text):
-        if is_polars_expr(num_chars):
-            return text.str.slice(0, num_chars)
-        else:
-            return text.str.slice(0, num_chars)
-    elif is_polars_expr(num_chars):
-        return pl.lit(text).str.slice(0, num_chars)
-    else:
-        return pl.lit(text[:num_chars])
+    return as_string_expr(text).str.slice(0, num_chars)
 
 
 def right(text: PlStringType, num_chars: PlIntType) -> pl.Expr:
@@ -144,15 +127,10 @@ def right(text: PlStringType, num_chars: PlIntType) -> pl.Expr:
     Returns:
     - The extracted text
     """
-    if is_polars_expr(text):
-        if is_polars_expr(num_chars):
-            return text.str.slice(pl.Expr.mul(pl.lit(-1), num_chars))
-        else:
-            return text.str.slice(pl.lit(-num_chars))
-    elif is_polars_expr(num_chars):
-        return pl.lit(text).str.slice(pl.Expr.mul(pl.lit(-1), num_chars))
-    else:
-        return pl.lit(text[-num_chars:])
+    s = as_string_expr(text)
+    if is_polars_expr(num_chars):
+        return s.str.slice(pl.Expr.mul(pl.lit(-1), num_chars))
+    return s.str.slice(pl.lit(-num_chars))
 
 
 def __apply_replace(row, replace_by=None):
@@ -177,9 +155,7 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     Returns:
     - The text after replacement
     """
-    if not is_polars_expr(text):
-        text = pl.lit(text)
-    return text.str.replace_many(find_text, replace_with).cast(pl.Utf8)
+    return as_string_expr(text).str.replace_many(find_text, replace_with).cast(pl.Utf8)
 
 
 def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
@@ -195,9 +171,8 @@ def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:
     Returns:
     - The position of the substring, or null if it is not found
     """
-    text = text if is_polars_expr(text) else create_fix_col(text)
     sub = sub if is_polars_expr(sub) else create_fix_col(sub)
-    return text.str.find(sub, literal=True, strict=False)
+    return as_string_expr(text).str.find(sub, literal=True, strict=False)
 
 
 def pad_left(text: PlStringType, length: int, pad_character: str = " ") -> pl.Expr:
@@ -214,8 +189,7 @@ def pad_left(text: PlStringType, length: int, pad_character: str = " ") -> pl.Ex
     Returns:
     - The padded text
     """
-    s = text if is_polars_expr(text) else create_fix_col(text)
-    return s.str.pad_start(length, pad_character)
+    return as_string_expr(text).str.pad_start(length, pad_character)
 
 
 def pad_right(text: PlStringType, length: int, pad_character: str = " ") -> pl.Expr:
@@ -232,8 +206,7 @@ def pad_right(text: PlStringType, length: int, pad_character: str = " ") -> pl.E
     Returns:
     - The padded text
     """
-    s = text if is_polars_expr(text) else create_fix_col(text)
-    return s.str.pad_end(length, pad_character)
+    return as_string_expr(text).str.pad_end(length, pad_character)
 
 
 def trim(text: PlStringType) -> pl.Expr:
@@ -248,8 +221,7 @@ def trim(text: PlStringType) -> pl.Expr:
     Returns:
     - The trimmed text
     """
-    s = text if is_polars_expr(text) else create_fix_col(text)
-    return s.str.strip_chars_end().str.strip_chars_start()
+    return as_string_expr(text).str.strip_chars_end().str.strip_chars_start()
 
 
 def left_trim(text: PlStringType) -> pl.Expr:
@@ -264,8 +236,7 @@ def left_trim(text: PlStringType) -> pl.Expr:
     Returns:
     - The trimmed text
     """
-    s = text if is_polars_expr(text) else create_fix_col(text)
-    return s.str.strip_chars_start()
+    return as_string_expr(text).str.strip_chars_start()
 
 
 def right_trim(text: PlStringType) -> pl.Expr:
@@ -280,8 +251,7 @@ def right_trim(text: PlStringType) -> pl.Expr:
     Returns:
     - The trimmed text
     """
-    s = text if is_polars_expr(text) else create_fix_col(text)
-    return s.str.strip_chars_end()
+    return as_string_expr(text).str.strip_chars_end()
 
 
 def __get_similarity_method(how: str) -> callable:
@@ -359,10 +329,7 @@ def mid(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.Expr:
     Returns:
     - The extracted text
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
-    s = start if is_polars_expr(start) else start
-    n = num_chars if is_polars_expr(num_chars) else num_chars
-    return t.str.slice(s, n)
+    return as_string_expr(text).str.slice(start, num_chars)
 
 
 def substring(text: PlStringType, start: PlIntType, num_chars: PlIntType) -> pl.Expr:
@@ -395,9 +362,7 @@ def starts_with(text: PlStringType, prefix: PlStringType) -> pl.Expr:
     Returns:
     - True if the text starts with the prefix, False otherwise
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
-    p = prefix if is_polars_expr(prefix) else prefix
-    return t.str.starts_with(p)
+    return as_string_expr(text).str.starts_with(prefix)
 
 
 def ends_with(text: PlStringType, suffix: PlStringType) -> pl.Expr:
@@ -413,9 +378,7 @@ def ends_with(text: PlStringType, suffix: PlStringType) -> pl.Expr:
     Returns:
     - True if the text ends with the suffix, False otherwise
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
-    s = suffix if is_polars_expr(suffix) else suffix
-    return t.str.ends_with(s)
+    return as_string_expr(text).str.ends_with(suffix)
 
 
 def reverse(text: PlStringType) -> pl.Expr:
@@ -430,8 +393,7 @@ def reverse(text: PlStringType) -> pl.Expr:
     Returns:
     - The reversed text
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
-    return t.str.reverse()
+    return as_string_expr(text).str.reverse()
 
 
 def repeat(text: PlStringType, count: PlIntType) -> pl.Expr:
@@ -447,7 +409,7 @@ def repeat(text: PlStringType, count: PlIntType) -> pl.Expr:
     Returns:
     - The repeated text
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
+    t = as_string_expr(text)
     # Polars doesn't have a direct repeat method, so we use a workaround
     if is_polars_expr(count):
         # For dynamic count, we need to use concat_str with a list
@@ -469,5 +431,4 @@ def split(text: PlStringType, delimiter: str) -> pl.Expr:
     Returns:
     - A list of text parts
     """
-    t = text if is_polars_expr(text) else pl.lit(text)
-    return t.str.split(delimiter)
+    return as_string_expr(text).str.split(delimiter)

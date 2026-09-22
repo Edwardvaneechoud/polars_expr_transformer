@@ -46,3 +46,42 @@ def as_expr(value: Any) -> pl.Expr:
 
 def create_fix_date_col(s: Any) -> pl.Expr:
     return pl.lit(s).str.to_datetime()
+
+
+STRING_CAST_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+"""How a Datetime is rendered when a string function reads it as text.
+
+``cast(pl.String)`` would render ``2026-09-24 10:00:00.000000``, so a formula
+written against what the value looks like -- ``ends_with([ordered_at],
+"10:00:00")`` -- would never match. Seconds resolution is what the value reads
+as, so that is what the string functions see. ``format_date`` remains the way
+to ask for any other layout, fractional seconds included.
+"""
+
+
+def _series_to_string(s: pl.Series) -> pl.Series:
+    """Render one batch as text, whatever dtype it turns out to hold."""
+    if s.dtype == pl.String:
+        return s
+    if s.dtype == pl.Datetime:
+        return s.dt.to_string(STRING_CAST_DATETIME_FORMAT)
+    return s.cast(pl.String)
+
+
+def as_string_expr(value: Any) -> pl.Expr:
+    """Return the value as a text expression, casting it first if it is not text.
+
+    Every method in the ``.str`` namespace refuses a non-String column outright,
+    so ``contains([order_date], "2026-09")`` used to raise ``expected String
+    type, got: date`` before the function body could do anything useful. Going
+    through here first makes such a formula mean what it reads like.
+
+    The dispatch has to happen on a real Series rather than while the expression
+    is being built, because an expression is built against no frame:
+    ``simple_function_to_expr`` cannot know whether ``[order_date]`` holds a
+    Date, an Int64 or text already. A String input is handed back untouched, so
+    formulas that already worked keep their behaviour exactly.
+    """
+    if isinstance(value, str):
+        return pl.lit(value)
+    return as_expr(value).map_batches(_series_to_string, return_dtype=pl.String)

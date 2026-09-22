@@ -82,6 +82,20 @@ Multi-word operators are deliberately kept out of `all_split_vals` — the token
 splitter picks the first match from that set in arbitrary order, not the longest, so any split
 value containing `in` would be mis-split.
 
+### String functions on non-text columns
+
+Every `.str` method refuses a non-String column, so each string function routes its text
+argument through `as_string_expr` in `funcs/utils.py` first (`contains` lives in
+`logic_functions.py` and does the same; `in`/`not in` lower to it). The cast has to be decided
+per batch, inside `map_batches`, because an expression is built against no frame and cannot
+know whether `[order_date]` is a Date, an Int64 or already text. Datetime is rendered with
+`STRING_CAST_DATETIME_FORMAT` rather than `cast(pl.String)`, which would append `.000000` and
+break `ends_with([ts], "10:00:00")`. String input is returned untouched.
+
+This is the one place the three parallel methods deliberately differ: `to_polars_code` still
+emits the plain `.str` chain, so generated code stays readable Polars and the code-gen tests
+keep asserting it. `to_string` and `format_date` are not routed through the helper.
+
 ### Optional `polars-ds` dependency
 
 `string_similarity()` is the only feature requiring `polars-ds`, exposed as the `similarity` extra. polars-ds ships **no WebAssembly wheel**, so it must stay optional for the browser/Pyodide playground. The import is lazy inside `__get_similarity_method` in `string_functions.py` — never import `polars_ds` at module top level.

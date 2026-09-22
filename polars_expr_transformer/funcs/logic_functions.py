@@ -2,7 +2,12 @@
 
 import polars as pl
 
-from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, as_expr
+from polars_expr_transformer.funcs.utils import (
+    is_polars_expr,
+    create_fix_col,
+    as_expr,
+    as_string_expr,
+)
 from typing import Any
 from polars_expr_transformer.funcs.utils import PlStringType
 
@@ -122,13 +127,9 @@ def contains(text: PlStringType, search_for: Any) -> pl.Expr:
     Returns:
     - true if the pattern is found in the text, otherwise false
     """
-    if isinstance(text, pl.Expr):
-        return text.str.contains(search_for)
-    else:
-        if isinstance(search_for, pl.Expr):
-            return pl.lit(text).str.contains(search_for)
-        else:
-            return pl.lit(search_for in text)
+    if is_polars_expr(text) or is_polars_expr(search_for):
+        return as_string_expr(text).str.contains(search_for)
+    return pl.lit(search_for in text)
 
 
 def _in(value: Any, collection: PlStringType) -> pl.Expr:
