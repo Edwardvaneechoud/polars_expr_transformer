@@ -20,13 +20,27 @@ from polars_expr_transformer.string_literals import parse_literal, parse_number_
 from dataclasses import dataclass, field
 import polars as pl
 from types import NotImplementedType
+import functools
 import inspect
 import warnings
+
+
+@functools.lru_cache(maxsize=None)
+def _param_annotations(func: Callable) -> tuple:
+    """Read a function's parameter annotations once; the function registry is fixed."""
+    return tuple(
+        param.annotation for param in inspect.signature(func).parameters.values()
+    )
 
 
 def get_types_from_func(func: Callable):
     """
     Get the types of the parameters of a function.
+
+    ``pl.col`` is matched by identity. Reading ``pl.col.__name__`` instead does
+    not give ``"col"``: ``pl.col`` is a ``Col`` instance whose ``__getattr__``
+    builds a column expression, and in recent Polars that lookup also walks the
+    call stack, which made every evaluation of a deep tree slower still.
 
     Args:
         func: The function to inspect.
@@ -34,9 +48,9 @@ def get_types_from_func(func: Callable):
     Returns:
         A list of types of the function's parameters.
     """
-    if hasattr(func, "__name__") and str(func.__name__) == str(pl.col.__name__):
+    if func is pl.col:
         return [str]
-    return [param.annotation for param in inspect.signature(func).parameters.values()]
+    return list(_param_annotations(func))
 
 
 def all_numeric_types(numbers: List[any]):
@@ -291,20 +305,18 @@ class Func:
                     "This usually means a function name is misspelled or unknown, "
                     "or an operator is missing between two values."
                 )
-            if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
-                return self.args[0].get_readable_pl_function()
         if self.func_ref == "_list":
             members = [arg.get_readable_pl_function() for arg in self.args]
             return f"[{', '.join(members)}]"
         pl_args = [arg.get_pl_func() for arg in self.args]
+        if self.func_ref == "pl.lit" and isinstance(pl_args[0], pl.expr.Expr):
+            return self.args[0].get_readable_pl_function()
 
         if self._check_if_standardization_of_args_is_needed(pl_args):
-            _ = self._standardize_args(
-                self.args, get_types_from_func(funcs[self.func_ref.val])
+            self._standardize_args(
+                pl_args, get_types_from_func(funcs[self.func_ref.val])
             )
-            standardized_args = [arg.get_readable_pl_function() for arg in self.args]
-        else:
-            standardized_args = [arg.get_readable_pl_function() for arg in self.args]
+        standardized_args = [arg.get_readable_pl_function() for arg in self.args]
         return f"{self.func_ref.val}({', '.join(standardized_args)})"
 
     def to_polars_code(self, prefix: str = "pl") -> str:
@@ -402,41 +414,40 @@ class Func:
         self.args.append(arg)
         arg.parent = self
 
-    def _standardize_args(
-        self, args: List[Union["Func", Classifier, "IfFunc"]], func_types: List[Any]
-    ):
+    def _standardize_args(self, pl_args: List[Any], func_types: List[Any]):
         """
         Standardize the arguments of the function.
 
-        This method ensures that the arguments of the function are standardized
-        by checking for mixed Polars expression types and applying standardization
-        when necessary. It standardizes the arguments based on their types and
-        returns the standardized arguments.
+        ``pl_args`` are the already evaluated values of ``self.args``. Each value
+        that is not a ``pl.Expr`` is wrapped in ``pl.lit`` when its parameter
+        accepts expressions, or always when the parameters cannot be matched up
+        one to one (variadic functions).
+
+        The wrapping happens twice over, and neither half may be dropped. The
+        node in ``self.args`` is replaced by a ``pl.lit`` node, because readable
+        output and code generation read the tree. The value is passed through
+        ``pl.lit`` directly instead of by evaluating that new node, because
+        evaluating it would walk the whole subtree again; done at every level,
+        that re-walk made compile time exponential in the depth of the tree.
 
         Returns:
             A list of standardized arguments for the function.
         """
-        pl_args = [
-            arg.get_pl_func() if isinstance(arg, Func) else arg.get_pl_func()
-            for arg in args
-        ]
-        # if self._check_if_standardization_of_args_is_needed(pl_args):
         if len(func_types) == len(pl_args):
-            for i, (func_type, pl_arg, arg) in enumerate(
-                zip(func_types, pl_args, args)
-            ):
-                if not isinstance(pl_arg, pl.Expr) and allow_expressions(func_type):
-                    tf = Func(Classifier("pl.lit"))
-                    tf.add_arg(arg)
-                    self.args[i] = tf
-
+            needs_lit = [
+                not isinstance(pl_arg, pl.Expr) and allow_expressions(func_type)
+                for func_type, pl_arg in zip(func_types, pl_args)
+            ]
         else:
-            for i, (pl_arg, arg) in enumerate(zip(pl_args, self.args)):
-                if not isinstance(pl_arg, pl.Expr):
-                    tf = Func(Classifier("pl.lit"))
-                    tf.add_arg(arg)
-                    self.args[i] = tf
-        return [a.get_pl_func() for a in self.args]
+            needs_lit = [not isinstance(pl_arg, pl.Expr) for pl_arg in pl_args]
+        standardized_args = list(pl_args)
+        for i, wrap in enumerate(needs_lit):
+            if wrap:
+                tf = Func(Classifier("pl.lit"))
+                tf.add_arg(self.args[i])
+                self.args[i] = tf
+                standardized_args[i] = funcs["pl.lit"](pl_args[i])
+        return standardized_args
 
     def get_pl_func(self):
         """
@@ -470,18 +481,15 @@ class Func:
                     "This usually means a function name is misspelled or unknown, "
                     "or an operator is missing between two values."
                 )
-            if isinstance(self.args[0].get_pl_func(), pl.expr.Expr):
-                return self.args[0].get_pl_func()
-            return funcs[self.func_ref.val](self.args[0].get_pl_func())
+            value = self.args[0].get_pl_func()
+            if isinstance(value, pl.expr.Expr):
+                return value
+            return funcs[self.func_ref.val](value)
         if self.func_ref == "_list":
             return funcs["_list"](*[arg.get_pl_func() for arg in self.args])
         pl_args = [arg.get_pl_func() for arg in self.args]
-        func_types = get_types_from_func(funcs[self.func_ref.val])
-        # if all_numeric_types(pl_args) and all(allow_expressions(func_type) for func_type in func_types):
-        #     pl_args = ensure_all_numeric_types_align(pl_args)
-
         func = funcs[self.func_ref.val]
-        standardized_args = self._standardize_args(self.args, func_types)
+        standardized_args = self._standardize_args(pl_args, get_types_from_func(func))
 
         r = func(*standardized_args)
 
