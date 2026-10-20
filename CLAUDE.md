@@ -58,7 +58,7 @@ Conventions for new functions:
 - Underscore-prefixed names (`_in`, `__negative`) are internal and excluded from the public overview.
 - The **docstring is API**: `function_overview.py` and `generate_docs.py` surface it in the playground/reference. Follow the existing format (one-line summary, a concrete `For example, ...` line, `Parameters:`, `Returns:`).
 - Parameter **type annotations drive literal handling**. Types from `funcs/utils.py` (`PlStringType`, `PlIntType`, `PlNumericType`) and `Func._standardize_args` decide when a raw value is auto-wrapped in `pl.lit()`. Annotate params accordingly.
-- For code generation to emit correct chained Polars (not a generic `func(args)` fallback that warns), add a mapping entry to `FUNCTION_CODE_GEN` / `OPERATOR_SYMBOLS` in `code_gen.py`.
+- For code generation to emit correct chained Polars (not a generic `func(args)` fallback that warns), add a mapping entry to `FUNCTION_CODE_GEN` / `OPERATOR_SYMBOLS` in `code_gen.py`. The entry must compute what the function computes — same defaults, same strictness, same null handling — not the nearest Polars method; constants both sides need belong in `funcs/utils.py` (as `DATE_TEXT_FORMATS` and the `to_boolean` text tables do). `tests/test_code_gen_runtime_parity.py` evals generated code against the live function on awkward data; add the function's edge cases there.
 
 ### Membership operators (`in` / `not in`)
 

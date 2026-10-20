@@ -153,7 +153,7 @@ class TestWhatIsAndIsNotCoerced:
         code = to_polars_code(
             'format_date(to_date([Join Date], "%Y-%m-%d"), "%A")', schema=text_df.schema
         )
-        assert code == 'pl.col("Join Date").str.to_date("%Y-%m-%d").dt.to_string("%A")'
+        assert code == 'pl.col("Join Date").str.to_date("%Y-%m-%d", strict=False).dt.to_string("%A")'
 
     def test_a_non_date_parameter_is_left_alone(self, text_df):
         """date_format is a plain format string, not something to parse."""

@@ -31,6 +31,30 @@ silently produce a wrong date. Text matching none of these becomes null, and
 """
 
 
+DEFAULT_DATE_FORMAT = "%Y-%m-%d"
+"""The format ``to_date`` parses with when the formula gives none."""
+
+DEFAULT_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+"""The format ``to_datetime`` parses with when the formula gives none."""
+
+BOOLEAN_TRUE_TEXT = ("true", "yes", "1", "t", "y")
+"""Lowercased text ``to_boolean`` reads as true."""
+
+BOOLEAN_FALSE_TEXT = ("false", "no", "0", "f", "n")
+"""Lowercased text ``to_boolean`` reads as false."""
+
+NUMERIC_TEXT_PATTERN = r"^-?\d+(\.\d+)?$"
+"""Text ``to_boolean`` reads as a number, true unless it is a zero."""
+
+ZERO_TEXT_PATTERN = r"^-?0(\.0*)?$"
+"""Text ``to_boolean`` reads as a zero, so false.
+
+These conversion constants are read by both the live functions and the code
+generator in ``code_gen.py``, so generated code cannot drift from what the
+formula does.
+"""
+
+
 def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
 
