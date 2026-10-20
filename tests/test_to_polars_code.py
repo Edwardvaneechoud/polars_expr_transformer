@@ -317,25 +317,25 @@ class TestDateFunctions:
         expr_str = "year(to_date([date]))"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("date").str.to_date().dt.year()'
+        assert result == 'pl.col("date").str.to_date("%Y-%m-%d", strict=False).dt.year()'
 
     def test_month_from_date(self, main_df):
         expr_str = "month(to_date([date]))"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("date").str.to_date().dt.month()'
+        assert result == 'pl.col("date").str.to_date("%Y-%m-%d", strict=False).dt.month()'
 
     def test_day_from_date(self, main_df):
         expr_str = "day(to_date([date]))"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("date").str.to_date().dt.day()'
+        assert result == 'pl.col("date").str.to_date("%Y-%m-%d", strict=False).dt.day()'
 
     def test_add_days(self, main_df):
         expr_str = "add_days(to_date([date]), 5)"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("date").str.to_date() + pl.duration(days=pl.lit(5))'
+        assert result == 'pl.col("date").str.to_date("%Y-%m-%d", strict=False) + pl.duration(days=pl.lit(5))'
 
 
 class TestConditionals:

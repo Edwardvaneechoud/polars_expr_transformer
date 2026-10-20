@@ -6,6 +6,26 @@ history and the tags on GitHub.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **`to_polars_code()` / `to_flowframe_code()` now compute what `to_boolean`,
+  `to_date` and `to_datetime` compute.** The generated code used to differ
+  from the live expression:
+
+  | Function | Was emitted as | Now emitted as |
+  | --- | --- | --- |
+  | `to_boolean` | `cast(pl.Boolean)`, which refuses text and keeps null | the `when/then` chain the function builds: `"yes"`/`"no"`, number text and zeros are read, null becomes false |
+  | `to_date` | `str.to_date()`, a strict parse with an inferred format | `str.to_date("%Y-%m-%d", strict=False)`, or the format given |
+  | `to_datetime` | `str.to_datetime()`, a strict parse with an inferred format | `str.to_datetime("%Y-%m-%d %H:%M:%S", strict=False)`, or the format given |
+
+  So text that does not match the format now becomes null in the generated
+  code too, instead of failing the whole column. The default formats and the
+  `to_boolean` text tables are shared between the functions and the code
+  generator, and `tests/test_code_gen_runtime_parity.py` evaluates both on the
+  same frame.
+
 ## [0.6.4]
 
 ### Changed

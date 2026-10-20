@@ -1,6 +1,14 @@
 import polars as pl
 from typing import Any, Optional
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, PlStringType
+from polars_expr_transformer.funcs.utils import (
+    BOOLEAN_FALSE_TEXT,
+    BOOLEAN_TRUE_TEXT,
+    DEFAULT_DATE_FORMAT,
+    DEFAULT_DATETIME_FORMAT,
+    NUMERIC_TEXT_PATTERN,
+    ZERO_TEXT_PATTERN,
+)
 
 
 
@@ -21,7 +29,7 @@ def to_string(value: PlStringType) -> pl.Expr:
     return pl.lit(value.__str__())
 
 
-def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
+def to_date(text: PlStringType, date_format: str = DEFAULT_DATE_FORMAT) -> pl.Expr:
     """
     Parses a text column or value into a date.
 
@@ -44,7 +52,7 @@ def to_date(text: PlStringType, date_format: str = "%Y-%m-%d") -> pl.Expr:
     return text.str.to_date(date_format, strict=False)
 
 
-def to_datetime(s: PlStringType, date_format: str = "%Y-%m-%d %H:%M:%S") -> pl.Expr:
+def to_datetime(s: PlStringType, date_format: str = DEFAULT_DATETIME_FORMAT) -> pl.Expr:
     """
     Parses a text column or value into a datetime.
 
@@ -127,17 +135,13 @@ def to_boolean(value: Any) -> pl.Expr:
 
         str_value = value.cast(pl.Utf8).str.to_lowercase()
 
-        is_numeric_pattern = r"^-?\d+(\.\d+)?$"
-
-        is_zero_pattern = r"^-?0(\.0*)?$"
-
         return (
             # Check for true-like strings
-            pl.when(str_value.is_in(["true", "yes", "1", "t", "y"]))
+            pl.when(str_value.is_in(list(BOOLEAN_TRUE_TEXT)))
             .then(pl.lit(True))
-            .when(str_value.is_in(["false", "no", "0", "f", "n"]) | str_value.str.contains(is_zero_pattern))
+            .when(str_value.is_in(list(BOOLEAN_FALSE_TEXT)) | str_value.str.contains(ZERO_TEXT_PATTERN))
             .then(pl.lit(False))
-            .when(str_value.str.contains(is_numeric_pattern))
+            .when(str_value.str.contains(NUMERIC_TEXT_PATTERN))
             .then(pl.lit(True))
             # Default case
             .otherwise(pl.lit(False))
@@ -146,7 +150,7 @@ def to_boolean(value: Any) -> pl.Expr:
     # Handle literal values
     if isinstance(value, str):
         value_lower = value.lower()
-        return pl.lit(value_lower in ["true", "yes", "1", "t", "y"])
+        return pl.lit(value_lower in BOOLEAN_TRUE_TEXT)
     return pl.lit(bool(value))
 
 

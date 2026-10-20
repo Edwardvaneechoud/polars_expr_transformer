@@ -10,7 +10,15 @@ in the generated code.  Pass ``"ff"`` to emit FlowFrame code instead.
 
 import ast
 
-from polars_expr_transformer.funcs.utils import DATE_TEXT_FORMATS
+from polars_expr_transformer.funcs.utils import (
+    BOOLEAN_FALSE_TEXT,
+    BOOLEAN_TRUE_TEXT,
+    DATE_TEXT_FORMATS,
+    DEFAULT_DATE_FORMAT,
+    DEFAULT_DATETIME_FORMAT,
+    NUMERIC_TEXT_PATTERN,
+    ZERO_TEXT_PATTERN,
+)
 from polars_expr_transformer.string_literals import (
     is_string_literal,
     parse_string_literal,
@@ -219,6 +227,53 @@ def _parse_date_text_gen(args, prefix="pl"):
     return f"{prefix}.coalesce([{rungs}])"
 
 
+def _text_list(values) -> str:
+    """Render a tuple of strings as a Python list literal."""
+    return f"[{', '.join(render_string_literal(v) for v in values)}]"
+
+
+def _regex_literal(pattern: str) -> str:
+    """Render a regex as a raw string literal, the way it reads in the source."""
+    return f'r"{pattern}"'
+
+
+def _to_boolean_gen(args, prefix="pl"):
+    """Render ``to_boolean`` as the conditional chain the function builds.
+
+    A plain ``cast(Boolean)`` would refuse text and keep null as null, where the
+    function reads "yes"/"no" and number text and turns null into false.
+    """
+    text = f"{args[0]}.cast({prefix}.Utf8).str.to_lowercase()"
+    return (
+        f"{prefix}.when({text}.is_in({_text_list(BOOLEAN_TRUE_TEXT)}))"
+        f".then({prefix}.lit(True))"
+        f".when({text}.is_in({_text_list(BOOLEAN_FALSE_TEXT)})"
+        f" | {text}.str.contains({_regex_literal(ZERO_TEXT_PATTERN)}))"
+        f".then({prefix}.lit(False))"
+        f".when({text}.str.contains({_regex_literal(NUMERIC_TEXT_PATTERN)}))"
+        f".then({prefix}.lit(True))"
+        f".otherwise({prefix}.lit(False))"
+    )
+
+
+def _parse_text_gen(method, default_format):
+    """Create a code gen function for ``to_date``/``to_datetime``.
+
+    Like the functions, the parse uses their default format when the formula
+    gives none and is lenient, so text that does not match becomes null
+    instead of failing the whole column.
+    """
+
+    def gen(args, prefix="pl"):
+        if len(args) > 1:
+            date_format = strip_pl_lit(args[1], prefix)
+        else:
+            date_format = render_string_literal(default_format)
+        return f"{args[0]}.str.{method}({date_format}, strict=False)"
+
+    return gen
+
+
 # Maps function names to code generation functions.
 # Each function takes a list of argument code strings and an optional prefix,
 # and returns the generated code string.
@@ -333,9 +388,9 @@ FUNCTION_CODE_GEN = {
     "to_integer": _method_chain("cast(pl.Int64)"),
     "to_float": _method_chain("cast(pl.Float64)"),
     "to_number": _method_chain("cast(pl.Float64)"),
-    "to_boolean": _method_chain("cast(pl.Boolean)"),
-    "to_date": _method_chain_with_literal_args("str.to_date"),
-    "to_datetime": _method_chain_with_literal_args("str.to_datetime"),
+    "to_boolean": _to_boolean_gen,
+    "to_date": _parse_text_gen("to_date", DEFAULT_DATE_FORMAT),
+    "to_datetime": _parse_text_gen("to_datetime", DEFAULT_DATETIME_FORMAT),
     "to_decimal": lambda args, prefix="pl": (
         f"{args[0]}.cast({prefix}.Float64).round({strip_pl_lit(args[1], prefix)})"
         if len(args) > 1
