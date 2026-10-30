@@ -155,7 +155,9 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     Returns:
     - The text after replacement
     """
-    return as_string_expr(text).str.replace_many(find_text, replace_with).cast(pl.Utf8)
+    find_text = find_text if is_polars_expr(find_text) else pl.lit(find_text)
+    replace_with = replace_with if is_polars_expr(replace_with) else pl.lit(replace_with)
+    return as_string_expr(text).str.replace_many(find_text.implode(), replace_with.implode()).cast(pl.Utf8)
 
 
 def find_position(text: PlStringType, sub: PlStringType) -> pl.Expr:

@@ -6,6 +6,22 @@ history and the tags on GitHub.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.6]
+
+### Changed
+
+- **Polars 2 is supported.** The dependency is now `polars>=1.29.0,<3.0.0`. The
+  floor rose from 1.8.2 because `replace()` now relies on list patterns in
+  `str.replace_many`, which Polars accepts from 1.29.0.
+
+### Fixed
+
+- **`replace()` works on Polars 2.** It passed the find and replacement text to
+  `str.replace_many` as flat strings, which Polars 1.x imploded on its behalf
+  (with a deprecation warning) and Polars 2 refuses. Both are now imploded
+  explicitly, in the expression and in the code `to_polars_code()` /
+  `to_flowframe_code()` emit, so results are unchanged on Polars 1.x.
+
 ## [0.6.5]
 
 ### Fixed

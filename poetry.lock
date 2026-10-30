@@ -695,4 +695,4 @@ similarity = ["polars-ds"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "6997322f0f6763a36dc76e10f26b93846a34abbcb0682b4158be83f390e5d7e0"
+content-hash = "24462bd19c0fadb8d422524ae4b2113684d5af93acfa1c8acad9abe3e8304919"

@@ -259,7 +259,7 @@ class TestStringFunctions:
         expr_str = 'replace([name], "bob", "X")'
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("name").str.replace_many(pl.lit("bob"), pl.lit("X"))'
+        assert result == 'pl.col("name").str.replace_many(pl.lit("bob").implode(), pl.lit("X").implode())'
 
     def test_left(self, main_df):
         expr_str = "left([name], 3)"

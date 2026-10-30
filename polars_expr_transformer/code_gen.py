@@ -290,7 +290,7 @@ FUNCTION_CODE_GEN = {
     "right": _template("{0}.str.slice(-{1})"),
     "mid": _template("{0}.str.slice({1}, {2})"),
     "substring": _template("{0}.str.slice({1}, {2})"),
-    "replace": _template("{0}.str.replace_many({1}, {2})"),
+    "replace": _template("{0}.str.replace_many({1}.implode(), {2}.implode())"),
     "concat": _top_level_list("concat_str"),
     "starts_with": _template("{0}.str.starts_with({1})"),
     "ends_with": _template("{0}.str.ends_with({1})"),
