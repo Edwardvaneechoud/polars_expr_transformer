@@ -6,7 +6,7 @@ history and the tags on GitHub.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.6]
+## [0.7.0]
 
 ### Changed
 
@@ -20,7 +20,9 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `str.replace_many` as flat strings, which Polars 1.x imploded on its behalf
   (with a deprecation warning) and Polars 2 refuses. Both are now imploded
   explicitly, in the expression and in the code `to_polars_code()` /
-  `to_flowframe_code()` emit, so results are unchanged on Polars 1.x.
+  `to_flowframe_code()` emit, so results are unchanged on Polars 1.x. On Polars
+  older than 1.29, which the Pyodide playground still runs, `replace()` keeps the
+  old call.
 
 ## [0.6.5]
 

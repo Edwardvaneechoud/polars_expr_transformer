@@ -1,6 +1,6 @@
 import polars as pl
 from polars_expr_transformer.funcs.utils import is_polars_expr, create_fix_col, as_string_expr
-from polars_expr_transformer.funcs.utils import PlStringType, PlIntType
+from polars_expr_transformer.funcs.utils import PlStringType, PlIntType, POLARS_REPLACE_MANY_TAKES_LISTS
 from functools import partial
 
 
@@ -155,6 +155,8 @@ def replace(text: PlStringType, find_text: PlStringType, replace_with: PlStringT
     Returns:
     - The text after replacement
     """
+    if not POLARS_REPLACE_MANY_TAKES_LISTS:
+        return as_string_expr(text).str.replace_many(find_text, replace_with).cast(pl.Utf8)
     find_text = find_text if is_polars_expr(find_text) else pl.lit(find_text)
     replace_with = replace_with if is_polars_expr(replace_with) else pl.lit(replace_with)
     return as_string_expr(text).str.replace_many(find_text.implode(), replace_with.implode()).cast(pl.Utf8)
