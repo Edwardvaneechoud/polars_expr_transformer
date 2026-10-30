@@ -54,6 +54,14 @@ generator in ``code_gen.py``, so generated code cannot drift from what the
 formula does.
 """
 
+POLARS_REPLACE_MANY_TAKES_LISTS = tuple(int(p) for p in pl.__version__.split(".")[:2]) >= (1, 29)
+"""Whether ``str.replace_many`` accepts imploded list patterns (Polars 1.29+).
+
+The supported range starts at 1.29, but the Pyodide playground runs Polars 1.18
+and installs this package with ``deps=False``, so ``replace`` keeps the older
+flat-string call there.
+"""
+
 
 def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
