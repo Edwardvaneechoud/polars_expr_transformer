@@ -52,8 +52,8 @@ def test_eight_term_chain_compiles_under_20ms():
 
 @pytest.mark.parametrize("op", ["&", "|"])
 def test_fifty_term_chain_compiles_under_100ms(op):
-    # Fail in seconds rather than hang for hours if compile time is exponential again.
-    assert _best_compile_ms(_chain(8, op), repeats=1) < 20
+    # Single run, loose bound: catches exponential compile time (seconds), not CI noise.
+    assert _best_compile_ms(_chain(8, op), repeats=1) < 200
     assert _best_compile_ms(_chain(50, op)) < 100
 
 
