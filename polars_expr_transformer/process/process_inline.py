@@ -87,15 +87,30 @@ def _unwrap(arg: Any) -> Any:
     return arg
 
 
+def _fold_negative_number(member: Any) -> Union[Classifier, None]:
+    """Return `negation(<number>)` as one negative number literal, or None for anything else."""
+    if not (isinstance(member, Func) and member.func_ref == 'negation' and len(member.args) == 1):
+        return None
+    inner = _unwrap(member.args[0])
+    if (isinstance(inner, Classifier) and inner.val_type == 'number'
+            and not inner.val.startswith('-')):
+        return Classifier('-' + inner.val)
+    return None
+
+
 def normalize_membership_list(list_func: Func, op_token: Classifier) -> None:
     """
     Check and normalize the members of an `in ( ... )` list, in place.
 
+    A negated number literal, which the hierarchy builder parses as `negation(1)`, is
+    folded into the negative number `-1`, so `(-1, -3)` stays a list of plain numbers
+    rather than a list holding expressions. The unary-minus decision itself stays with
+    the hierarchy builder; `-[b]` or `-abs(1)` remain expressions.
+
     Members that are expressions are left alone, since their type is only known once the
-    expression runs. Literal members must agree on a value class, and whole numbers are
-    rewritten as decimals when the list mixes the two, because Polars builds the list
-    strictly and would otherwise reject it. Normalizing the tree rather than either output
-    path keeps live evaluation and generated code identical.
+    expression runs. Literal members must agree on a value class. Numbers keep their
+    written type: a list mixing whole numbers and decimals is compared member by member
+    (see `_is_in`), so promoting `1` to `1.0` would only cost integer exactness.
 
     Args:
         list_func: The list node holding the members.
@@ -104,6 +119,12 @@ def normalize_membership_list(list_func: Func, op_token: Classifier) -> None:
     Raises:
         ExpressionSyntaxError: If the literal members are not all of one value class.
     """
+    for i, arg in enumerate(list_func.args):
+        folded = _fold_negative_number(_unwrap(arg))
+        if folded is not None:
+            folded.parent = list_func
+            list_func.args[i] = folded
+
     members = [_unwrap(arg) for arg in list_func.args]
     literals = [m for m in members
                 if isinstance(m, Classifier) and m.val_type != 'null']
@@ -117,16 +138,6 @@ def normalize_membership_list(list_func: Func, op_token: Classifier) -> None:
                     f"Mixed value types in '{op_token.val}' list: expected all "
                     f"{expected} values, found {found} {member.val}."
                 )
-
-    numbers = [m for m in literals if m.val_type == 'number']
-    whole = [m for m in numbers if '.' not in m.val]
-    if whole and len(whole) != len(numbers):
-        for i, arg in enumerate(list_func.args):
-            member = _unwrap(arg)
-            if any(member is w for w in whole):
-                promoted = Classifier(str(float(member.val)))
-                promoted.parent = list_func
-                list_func.args[i] = promoted
 
 
 def is_membership_list(op: Classifier, right: Any) -> bool:

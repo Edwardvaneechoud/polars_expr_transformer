@@ -1,5 +1,7 @@
 from polars_expr_transformer.process.polars_expr_transformer import simple_function_to_expr
 import polars as pl
+import pytest
+from decimal import Decimal
 from polars.testing import assert_frame_equal
 
 
@@ -1053,7 +1055,6 @@ def test_in_list_of_integers():
 
 
 def test_in_list_mixing_whole_and_decimal_numbers():
-    """Whole numbers are promoted so polars can build the list strictly."""
     df = pl.DataFrame({'p': [1.0, 2.5, 3.0]})
     result = df.select(simple_function_to_expr("[p] in (1, 2.5)"))
     expected = pl.DataFrame({'p': [True, True, False]})
@@ -1167,3 +1168,144 @@ def test_column_names_containing_logical_operators():
     result = df.select(simple_function_to_expr('[and Flag] > 1 and [or] > 3'))
     expected = pl.DataFrame({'and Flag': [False, True]})
     assert result.equals(expected)
+
+
+IN_LIST_COLUMNS = {
+    'Int64': (pl.Int64, [1, -1, 2, 3, None]),
+    'UInt32': (pl.UInt32, [1, 2, 3, 0, None]),
+    'Float64': (pl.Float64, [1.0, -1.0, 2.5, 3.0, None]),
+    'Decimal': (pl.Decimal(10, 2), [Decimal('1.00'), Decimal('-1.00'), Decimal('2.50'),
+                                    Decimal('3.00'), None]),
+}
+
+IN_LIST_CASES = [
+    ('Int64', '[a] in (1, 2)', [True, False, True, False, None]),
+    ('Int64', '[a] in (-1, -3)', [False, True, False, False, None]),
+    ('Int64', '[a] in (1, 2.5)', [True, False, False, False, None]),
+    ('Int64', '[a] not in (-1, 2.5)', [True, False, True, True, None]),
+    ('Int64', '[a] in (1, null)', [True, False, False, False, None]),
+    ('Int64', '[a] in ()', [False, False, False, False, None]),
+    ('Int64', '[a] not in ()', [True, True, True, True, None]),
+    ('UInt32', '[a] in (1, 2)', [True, True, False, False, None]),
+    ('UInt32', '[a] in (-1, -3)', [False, False, False, False, None]),
+    ('UInt32', '[a] in (1, 2.5)', [True, False, False, False, None]),
+    ('UInt32', '[a] not in (-1, 2.5)', [True, True, True, True, None]),
+    ('UInt32', '[a] in ()', [False, False, False, False, None]),
+    ('Float64', '[a] in (1, 2)', [True, False, False, False, None]),
+    ('Float64', '[a] in (-1, -3)', [False, True, False, False, None]),
+    ('Float64', '[a] in (1, 2.5)', [True, False, True, False, None]),
+    ('Float64', '[a] not in (-1, 2.5)', [True, False, False, True, None]),
+    ('Float64', '[a] in ()', [False, False, False, False, None]),
+    ('Decimal', '[a] in (1, 2)', [True, False, False, False, None]),
+    ('Decimal', '[a] in (-1, -3)', [False, True, False, False, None]),
+    ('Decimal', '[a] in (1, 2.5)', [True, False, True, False, None]),
+    ('Decimal', '[a] not in (-1, 2.5)', [True, False, False, True, None]),
+    ('Decimal', '[a] in (3)', [False, False, False, True, None]),
+    ('Decimal', '[a] in ()', [False, False, False, False, None]),
+]
+
+
+@pytest.mark.parametrize('dtype_name, formula, expected', IN_LIST_CASES)
+def test_in_list_of_numbers_on_numeric_columns(dtype_name, formula, expected):
+    """Polars 2's is_in does not cast across int/float; results must match Polars 1."""
+    dtype, values = IN_LIST_COLUMNS[dtype_name]
+    df = pl.DataFrame({'a': values}, schema={'a': dtype})
+    result = df.select(simple_function_to_expr(formula).alias('r'))
+    assert result['r'].to_list() == expected
+
+
+def test_in_list_keeps_large_integers_exact():
+    """Integers are compared as integers, not as floats that would round them together."""
+    df = pl.DataFrame({'id': [2**53, 2**53 + 1]}, schema={'id': pl.Int64})
+    result = df.select(simple_function_to_expr(f'[id] in ({2**53 + 1}, 0.5)').alias('r'))
+    assert result['r'].to_list() == [False, True]
+
+
+@pytest.mark.parametrize('dtype', [pl.Int64, pl.Float64])
+def test_in_list_with_a_column_and_a_negative_member(dtype):
+    df = pl.DataFrame({'a': [1, -1, 2], 'b': [1, 0, 5]}, schema={'a': dtype, 'b': dtype})
+    result = df.select(simple_function_to_expr('[a] in ([b], -1)').alias('r'))
+    assert result['r'].to_list() == [True, True, False]
+
+
+def test_negative_literals_in_arithmetic_are_unchanged():
+    df = pl.DataFrame({'a': [1, -1, 2]})
+    result = df.select(
+        simple_function_to_expr('[a] - -1').alias('sub'),
+        simple_function_to_expr('[a] * -2').alias('mul'),
+        simple_function_to_expr('-[a]').alias('neg'),
+        simple_function_to_expr('if [a] > -1 then -2 else -3.5 endif').alias('if_'),
+    )
+    assert result.to_dict(as_series=False) == {
+        'sub': [2, 0, 3], 'mul': [-2, 2, -4], 'neg': [-1, 1, -2], 'if_': [-2.0, -3.5, -2.0],
+    }
+
+
+@pytest.mark.parametrize('formula, expected', [
+    ('if [a] > 0 then 1 else 2 endif - 1', [0, 1, 0, 1]),
+    ('if [a] > 0 then 1 else 2 endif-1', [0, 1, 0, 1]),
+    ('if [a] > 0 then 1 else 2 endif - -1', [2, 3, 2, 3]),
+    ('if [a] > 1 then 1 elseif [a] > 0 then 5 else 2 endif - 1', [4, 1, 0, 1]),
+    ('(if [a] > 0 then 1 else 2 endif) - 1', [0, 1, 0, 1]),
+])
+def test_binary_minus_after_endif(formula, expected):
+    """A minus after endif subtracts; it is not the sign of the number after it."""
+    df = pl.DataFrame({'a': [1, -1, 2, 0]})
+    assert df.select(simple_function_to_expr(formula).alias('r'))['r'].to_list() == expected
+
+
+@pytest.mark.parametrize('formula, expected', [
+    ('[i] in ([f], 2.5)', [True, False, False, None]),
+    ('[f] in ([i], -1)', [True, False, True, None]),
+    ('[i] not in ([f], 7)', [False, True, True, None]),
+])
+def test_in_list_with_a_column_member_of_another_numeric_type(formula, expected):
+    """concat_list + is_in raises on Polars 2 when the member and value dtypes differ."""
+    df = pl.DataFrame({'i': [1, 2, 3, None], 'f': [1.0, 2.5, -1.0, None]})
+    assert df.select(simple_function_to_expr(formula).alias('r'))['r'].to_list() == expected
+
+
+def test_in_list_with_a_column_member_treats_nulls_like_is_in():
+    """A null member never matches, and a null value gives null, as with is_in."""
+    df = pl.DataFrame({'a': [1, None, 3, 4], 'b': [None, 2, 3, None]})
+    result = df.select(
+        simple_function_to_expr('[a] in ([b], 1)').alias('in_'),
+        simple_function_to_expr('[a] not in ([b], 1)').alias('not_in'),
+        simple_function_to_expr('[a] in ([b], null)').alias('with_null'),
+    )
+    assert result.to_dict(as_series=False) == {
+        'in_': [True, None, True, False],
+        'not_in': [False, None, False, True],
+        'with_null': [False, None, True, False],
+    }
+
+
+def test_in_list_of_numbers_on_a_boolean_column_matches_equals():
+    """`[flag] in (1, 0)` means `[flag] = 1 or [flag] = 0`, so it follows `=` on Booleans."""
+    df = pl.DataFrame({'flag': [True, False, None]})
+    result = df.select(
+        simple_function_to_expr('[flag] in (1)').alias('in_'),
+        simple_function_to_expr('[flag] = 1').alias('eq'),
+        simple_function_to_expr('[flag] not in (1, 0)').alias('not_in'),
+    )
+    assert result['in_'].to_list() == result['eq'].to_list() == [True, False, None]
+    assert result['not_in'].to_list() == [False, False, None]
+
+
+def test_in_list_of_numbers_on_a_text_column_raises():
+    df = pl.DataFrame({'s': ['1', '2']})
+    with pytest.raises(Exception, match='(?i)string'):
+        df.select(simple_function_to_expr('[s] in (1, 2)'))
+
+
+def test_in_list_with_an_overflowing_number():
+    df = pl.DataFrame({'a': [1.0, float('inf'), 2.0]})
+    result = df.select(simple_function_to_expr('[a] in (1e400, 1)').alias('r'))
+    assert result['r'].to_list() == [True, True, False]
+
+
+def test_in_long_list_of_numbers():
+    members = ', '.join(str(n) for n in range(0, 1000, 2))
+    df = pl.DataFrame({'a': [0, 1, 998, 999, None]})
+    result = df.select(simple_function_to_expr(f'[a] in ({members})').alias('r'))
+    assert result['r'].to_list() == [True, False, True, False, None]

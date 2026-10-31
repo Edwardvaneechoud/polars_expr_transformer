@@ -110,6 +110,36 @@ def test_conversion_inside_other_expressions_matches(df, formula):
     assert_same_result(df, formula)
 
 
+MEMBERSHIP_FORMULAS = [
+    "[int] in (1, -2)",
+    "[int] in (1, 2.5)",
+    "[int] not in (-1, 0.5)",
+    "[float] in (1, -3.25, 100)",
+    "[float] not in (-1, 0)",
+    "[float] in (1.5, null)",
+    "[int] in ()",
+    "[int] in ([int], -1)",
+    "[text] in ('yes', 'No')",
+    "[text] not in ('yes', [date])",
+    "[int] in (1)",
+    "[int] not in (-2)",
+    "[int] in (1e400, 1)",
+    "[float] in (1e400, -1)",
+    "[int] in ([float], 2.5)",
+    "[int] not in ([float], -1)",
+    "[float] in ([int], null)",
+    "[flag] in (1)",
+    "[flag] not in (1, 0)",
+    "if [int] > 0 then 1 else 2 endif - 1",
+    "if [int] > 0 then 1 else 2 endif - -1",
+]
+
+
+@pytest.mark.parametrize("formula", MEMBERSHIP_FORMULAS)
+def test_membership_matches_the_function(df, formula):
+    assert_same_result(df, formula)
+
+
 @pytest.mark.parametrize(
     "formula",
     ["to_date([date])", "year(to_date([date]))", "to_boolean([text])", "to_datetime([datetime])"],

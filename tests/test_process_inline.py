@@ -394,10 +394,10 @@ class TestNormalizeMembershipList(unittest.TestCase):
         normalize_membership_list(list_func, Classifier('in'))
         self.assertEqual([a.val for a in list_func.args], ['"a"', 'null'])
 
-    def test_whole_numbers_are_promoted_when_mixed_with_decimals(self):
+    def test_mixed_numbers_keep_their_written_type(self):
         list_func = self._list_func('1', '2.5')
         normalize_membership_list(list_func, Classifier('in'))
-        self.assertEqual([a.val for a in list_func.args], ['1.0', '2.5'])
+        self.assertEqual([a.val for a in list_func.args], ['1', '2.5'])
 
     def test_whole_numbers_are_left_alone_on_their_own(self):
         list_func = self._list_func('1', '2')

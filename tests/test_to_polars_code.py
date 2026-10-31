@@ -813,24 +813,58 @@ class TestMembershipOperator:
         assert result == 'pl.col("a").is_in(["a", "b"])'
 
     def test_in_list_of_numbers(self, main_df):
+        """Numbers are compared one by one, as Polars 2's is_in will not cast across int/float."""
         expr_str = "[age] in (25, 45)"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("age").is_in([25, 45])'
+        assert result == 'pl.any_horizontal([pl.col("age") == 25, pl.col("age") == 45])'
 
-    def test_in_list_promotes_whole_numbers(self, main_df):
-        """Polars builds the list strictly, so a mixed list is promoted to decimals."""
+    def test_in_list_mixing_whole_and_decimal_numbers(self, main_df):
         expr_str = "[price] in (1, 20.123)"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("price").is_in([1.0, 20.123])'
+        assert result == 'pl.any_horizontal([pl.col("price") == 1, pl.col("price") == 20.123])'
 
-    def test_negative_member_is_imploded(self, main_df):
-        """A negative literal parses as a negation expression, not a literal."""
+    def test_negative_member_is_a_number(self, main_df):
+        """A negative literal is a plain number, so the list needs no concat_list."""
         expr_str = "[val] in (1, -2.5)"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("val").is_in(pl.concat_list([pl.lit(1), pl.lit(2.5).neg()]))'
+        assert result == 'pl.any_horizontal([pl.col("val") == 1, pl.col("val") == -2.5])'
+
+    def test_not_in_list_of_numbers(self, main_df):
+        expr_str = "[age] not in (-1, 25)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.any_horizontal([pl.col("age") == -1, pl.col("age") == 25]).not_()'
+
+    def test_null_number_member_is_dropped(self, main_df):
+        expr_str = "[age] in (25, null)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == 'pl.col("age") == 25'
+
+    def test_single_number_member_is_a_plain_comparison(self, main_df):
+        """One member needs no any_horizontal wrapper."""
+        assert to_polars_code("[age] in (25)") == 'pl.col("age") == 25'
+        assert to_polars_code("[age] not in (-1)") == '(pl.col("age") == -1).not_()'
+
+    def test_overflowing_number_member_keeps_its_source_text(self, main_df):
+        """1e400 parses to inf; re-rendering it would emit the undefined name `inf`."""
+        expr_str = "[age] in (1e400, 25)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str, validate=True)
+        assert result == 'pl.any_horizontal([pl.col("age") == 1e400, pl.col("age") == 25])'
+
+    def test_column_member_with_a_negative_number_is_compared_per_member(self, main_df):
+        expr_str = "[age] in ([age], -1)"
+        validate_func_expr_str(main_df, expr_str)
+        result = to_polars_code(expr_str)
+        assert result == (
+            'pl.when(pl.col("age").is_not_null()).then(pl.any_horizontal(['
+            '(pl.col("age") == pl.col("age")).fill_null(False), '
+            '(pl.col("age") == pl.lit(-1)).fill_null(False)]))'
+        )
 
     def test_not_in_list(self, main_df):
         expr_str = "[a] not in ('a','b')"
@@ -844,12 +878,24 @@ class TestMembershipOperator:
         result = to_polars_code(expr_str)
         assert result == 'pl.col("a").is_in([])'
 
-    def test_list_with_a_column_member_is_imploded(self, main_df):
-        """A plain list cannot hold expressions, so concat_list is used instead."""
+    def test_list_with_a_column_member_is_compared_per_member(self, main_df):
+        """Polars 2's is_in does no supertype casting against concat_list, so == is used."""
         expr_str = "[a] in ('a', [b])"
         validate_func_expr_str(main_df, expr_str)
         result = to_polars_code(expr_str)
-        assert result == 'pl.col("a").is_in(pl.concat_list([pl.lit("a"), pl.col("b")]))'
+        assert result == (
+            'pl.when(pl.col("a").is_not_null()).then(pl.any_horizontal(['
+            '(pl.col("a") == pl.lit("a")).fill_null(False), '
+            '(pl.col("a") == pl.col("b")).fill_null(False)]))'
+        )
+
+    def test_binary_minus_after_endif(self, main_df):
+        """A minus after endif is subtraction, never the sign of the next number."""
+        result = to_polars_code("if [age] > 30 then 1 else 2 endif - 1", validate=True)
+        assert result == (
+            'pl.when(pl.col("age") > pl.lit(30)).then(pl.lit(1))'
+            '.otherwise(pl.lit(2)) - pl.lit(1)'
+        )
 
     def test_membership_inside_if(self, main_df):
         expr_str = "if [a] in ('a') then 'yes' else 'no' endif"
