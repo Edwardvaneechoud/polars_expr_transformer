@@ -22,7 +22,7 @@ poetry run pytest tests/test_tokenize.py::test_name  # one test
 python generate_docs.py              # regenerate docs/ function reference from docstrings
 ```
 
-CI (`.github/workflows/ci-cd.yml`) runs `pytest tests/` on Python 3.10–3.13 and publishes to PyPI on `v*` tags (the tag must match `version` in `pyproject.toml`). flake8 is a dev dependency but has no config file and is not run in CI.
+CI (`.github/workflows/ci-cd.yml`) runs `pytest tests/` on Python 3.10–3.14 against the locked Polars 1.x, plus one Python 3.13 job on Polars 2 (behaviour that differs between the two must be tested in both), and publishes to PyPI on `v*` tags (the tag must match `version` in `pyproject.toml`). flake8 is a dev dependency but has no config file and is not run in CI.
 
 ## Architecture
 
@@ -72,9 +72,25 @@ That `_list` node is built by `hierarchy_builder.handle_opening_bracket` when a 
 follows a membership operator. It has to be a named node rather than the anonymous `pl.lit`
 grouping used elsewhere, because `handle_seperator` attaches commas to `current_func.parent` —
 for a grouping node that is whatever encloses the group, which scatters the members. `_list` is
-special-cased in all three `Func` methods in `models.py`, so its members stay unwrapped: literal
-members render as a Python list, and a list holding an expression is imploded with
-`concat_list`, since Polars rejects a plain list of expressions.
+special-cased in all three `Func` methods in `models.py`, so its members stay unwrapped.
+
+Only a list of text lowers to `is_in`. Polars 2's `is_in` does no supertype casting, so an
+Int column against `[1.0, 2.5]`, a Float column against `[1, 2]`, and an Int column against a
+`concat_list` holding a Float column all raise, and no dtype is known when the expression is
+built. So a list of literal numbers becomes `==` per member under `pl.any_horizontal` (a single
+member is a bare `==`), and a list holding an expression becomes a null-safe `==` per member
+wrapped in `pl.when(v.is_not_null())`, which keeps `is_in`'s nulls: null value gives null, null
+member never matches. `==` finds the supertype and keeps integers exact; the trade-off is that
+`[flag] in (1)` on a Boolean column behaves like `[flag] = 1` rather than raising.
+`funcs/utils.numeric_members` decides the numeric case for both `_is_in` and
+`code_gen.membership_code`. Code gen reads the `_list` node's own members
+(`Func._membership_to_polars_code`), not the rendered list text, and emits each literal from its
+source text, so `1e400` is never re-rendered as `inf`.
+
+Negative members are plain numbers because `process_inline.normalize_membership_list` folds a
+`negation(<number>)` member into a negative literal. The unary-minus decision stays in
+`hierarchy_builder.build_hierarchy`; don't add a second rule at the token level — one that
+treated every `case_when` token as unary broke `if ... endif - 1`.
 
 `not in` is two words, but preprocessing strips every space, so it arrives as `notin` and comes
 apart on the `in` split value; `token_classifier.merge_multiword_operators` merges the pair back.

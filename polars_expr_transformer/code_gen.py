@@ -18,6 +18,7 @@ from polars_expr_transformer.funcs.utils import (
     DEFAULT_DATETIME_FORMAT,
     NUMERIC_TEXT_PATTERN,
     ZERO_TEXT_PATTERN,
+    numeric_members,
 )
 from polars_expr_transformer.string_literals import (
     is_string_literal,
@@ -129,6 +130,38 @@ def _top_level_list(func_name_suffix):
         return f"{prefix}.{func_name_suffix}([{items}])"
 
     return gen
+
+
+def _any_match(checks, prefix="pl"):
+    """Join rendered comparisons with ``any_horizontal``, or return a single one as is."""
+    if len(checks) == 1:
+        return checks[0]
+    return f"{prefix}.any_horizontal([{', '.join(checks)}])"
+
+
+def membership_code(value, members, values=None, negate=False, prefix="pl"):
+    """Generate an ``in ( ... )`` / ``not in ( ... )`` test, mirroring ``_is_in``.
+
+    ``members`` are the rendered members. ``values`` are their parsed Python values
+    when every member is a literal, and None when the list holds an expression.
+    The decision is made on those parsed values with the same ``numeric_members``
+    as ``_is_in``, while each member is emitted from its own source text, so a
+    number like ``1e400`` is never re-rendered as the bare name ``inf``.
+
+    - Literal numbers: one ``==`` per non-null member, joined by ``any_horizontal``.
+    - A list holding an expression: one null-safe ``==`` per member, null when the
+      value is null, which is how ``is_in`` treats nulls.
+    - Anything else (text, booleans, only nulls): ``is_in`` with a plain list.
+    """
+    if values is None:
+        checks = [f"({value} == {m}).fill_null(False)" for m in members]
+        code = f"{prefix}.when({value}.is_not_null()).then({_any_match(checks, prefix)})"
+    elif numeric_members(values) is not None:
+        kept = [m for m, v in zip(members, values) if v is not None]
+        code = _any_match([f"{value} == {m}" for m in kept], prefix)
+    else:
+        code = f"{value}.is_in([{', '.join(members)}])"
+    return f"{parenthesize(code)}.not_()" if negate else code
 
 
 def _template(tmpl):
@@ -377,7 +410,7 @@ FUNCTION_CODE_GEN = {
     "not": _method_chain("not_()"),
     "_in": _template("{1}.str.contains({0})"),
     "_not_in": _template("{1}.str.contains({0}).not_()"),
-    # The _list node renders its own members, as a list or as an imploded concat_list.
+    # Fallback only: Func.to_polars_code renders tests against a _list via membership_code.
     "_is_in": _template("{0}.is_in({1})"),
     "_is_not_in": _template("{0}.is_in({1}).not_()"),
     "is_string": lambda args, prefix="pl": (

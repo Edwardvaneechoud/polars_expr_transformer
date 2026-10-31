@@ -13,6 +13,7 @@ from polars_expr_transformer.code_gen import (
     OPERATOR_SYMBOLS,
     FUNCTION_CODE_GEN,
     format_pl_literal,
+    membership_code,
     parenthesize,
     strip_pl_lit,
 )
@@ -356,6 +357,9 @@ class Func:
         if func_name == "_list":
             return self._members_to_polars_code(prefix=prefix)
 
+        if func_name in ("_is_in", "_is_not_in") and self._tests_a_list():
+            return self._membership_to_polars_code(func_name == "_is_not_in", prefix=prefix)
+
         # Binary operators: render as infix (left op right)
         if func_name in OPERATOR_SYMBOLS:
             symbol = OPERATOR_SYMBOLS[func_name]
@@ -380,6 +384,35 @@ class Func:
             stacklevel=2,
         )
         return f"{func_name}({', '.join(arg_codes)})"
+
+    def _tests_a_list(self) -> bool:
+        """Check whether this membership node tests against a ``_list`` node."""
+        return (len(self.args) == 2 and isinstance(self.args[1], Func)
+                and self.args[1].func_ref == "_list")
+
+    def _membership_to_polars_code(self, negate: bool, prefix: str = "pl") -> str:
+        """Generate a membership test from the ``_list`` node's own members.
+
+        Whether the members are all literals is read off the nodes, the same
+        distinction ``_is_in`` makes on the evaluated members, and literal values
+        come from ``Classifier.get_pl_func``, the same parse ``_list`` receives
+        at run time. Null members of a list holding an expression are dropped,
+        as ``_is_in`` drops them.
+        """
+        value = parenthesize(self.args[0].to_polars_code(prefix=prefix))
+        members = self.args[1].args
+        if all(isinstance(arg, Classifier) for arg in members):
+            codes = [
+                strip_pl_lit(format_pl_literal(arg.val, arg.val_type, prefix=prefix), prefix)
+                for arg in members
+            ]
+            values = [arg.get_pl_func() for arg in members]
+            return membership_code(value, codes, values, negate=negate, prefix=prefix)
+        codes = [
+            parenthesize(arg.to_polars_code(prefix=prefix)) for arg in members
+            if not (isinstance(arg, Classifier) and arg.val_type == "null")
+        ]
+        return membership_code(value, codes, negate=negate, prefix=prefix)
 
     def _members_to_polars_code(self, prefix: str = "pl") -> str:
         """Generate the collection operand of a membership test.

@@ -101,8 +101,9 @@ Besides column references, you can write literal values directly. Five literal t
 
 Membership needs the parentheses: `[x] in ("a", "b")` tests whether `[x]` is one of the
 listed values, while `"a" in [x]` tests whether `[x]` contains the text `"a"`. Members must
-all be of one type, and a member may reference a column. As in Polars, a null input yields
-null rather than false, and an empty list `()` matches nothing.
+all be of one type, and a member may reference a column. Numbers compare by value, so
+`[price] in (1, -2.5)` works on integer and decimal columns alike. As in Polars, a null input
+yields null rather than false, and an empty list `()` matches nothing.
 
 ### Conditional Expressions
 

@@ -6,6 +6,30 @@ history and the tags on GitHub.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1]
+
+### Fixed
+
+- **`in ( ... )` with numbers works on Polars 2.** `[a] in (-1, -3)` and
+  `[a] in (1, 2.5)` raised `InvalidOperationError` on Polars 2, as did a decimal
+  column against whole numbers, such as `[price] in (1, 2)`. They now return the
+  same rows as on Polars 1.x, on integer, unsigned, float and `Decimal` columns, for `in`
+  and `not in` alike.
+  - A negative number in the list is now a plain number literal, not a negation
+    expression. This kept a list such as `(-1, -3)` from being a plain list of values.
+  - A list of numbers is compared member by member with `==`, which finds the
+    common type itself. Integers stay exact, including 64-bit IDs. Whole numbers
+    in a mixed list are no longer turned into decimals. So `[a] in (1, 0)` now
+    means exactly `[a] = 1 or [a] = 0`, including on a Boolean column, where it
+    used to raise.
+  - A list holding a column, such as `[qty] in ([min_qty], 2.5)`, is compared the
+    same way, so the member and value no longer need the same type. Nulls behave
+    as before: a null value gives null and a null member never matches.
+  - `to_polars_code()` / `to_flowframe_code()` emit the same comparison, as
+    `pl.any_horizontal([pl.col("a") == -1, pl.col("a") == -3])`, or a plain
+    `pl.col("a") == 1` for one member. Lists of text still generate `is_in`.
+    Members are emitted as written, so `1e400` no longer generates invalid code.
+
 ## [0.7.0]
 
 ### Changed

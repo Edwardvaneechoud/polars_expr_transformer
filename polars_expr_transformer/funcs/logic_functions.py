@@ -7,6 +7,8 @@ from polars_expr_transformer.funcs.utils import (
     create_fix_col,
     as_expr,
     as_string_expr,
+    numeric_members,
+    any_match,
 )
 from typing import Any
 from polars_expr_transformer.funcs.utils import PlStringType
@@ -188,10 +190,14 @@ def _is_in(value: Any, collection: list) -> pl.Expr:
     Checks if a value is one of the members of a list.
 
     The `collection: list` annotation is load-bearing: it keeps `_standardize_args`
-    from wrapping the list itself in `pl.lit()`. Polars rejects a plain list that
-    holds expressions, so a collection containing one is imploded with `concat_list`
-    instead. An empty collection cannot take that route, as `concat_list` requires
-    at least one expression.
+    from wrapping the list itself in `pl.lit()`. Polars 2's `is_in` does no supertype
+    casting, so an integer column against `2.5`, or against a float column member,
+    raises. Every list that can hold a number is therefore compared member by member
+    with `==`, which finds the common type itself and keeps integers exact; so
+    `[a] in (1, 2)` means exactly `[a] = 1 or [a] = 2`, including on a Boolean
+    column. A list holding an expression compares null-safely and is null when the
+    value is null, as `is_in` is. A list of text keeps `is_in`. A single member
+    skips the `any_horizontal` wrapper.
 
     For example, _is_in([status], ["shipped", "packed"]) would return true when
     [status] is "shipped".
@@ -203,11 +209,17 @@ def _is_in(value: Any, collection: list) -> pl.Expr:
     Returns:
     - true if the value is one of the members, otherwise false
     """
+    value = as_expr(value)
     if not collection:
-        return as_expr(value).is_in([])
+        return value.is_in([])
     if any(is_polars_expr(member) for member in collection):
-        return as_expr(value).is_in(pl.concat_list([as_expr(m) for m in collection]))
-    return as_expr(value).is_in(list(collection))
+        checks = [(value == as_expr(m)).fill_null(False)
+                  for m in collection if m is not None]
+        return pl.when(value.is_not_null()).then(any_match(checks))
+    numbers = numeric_members(collection)
+    if numbers is not None:
+        return any_match([value == m for m in numbers])
+    return value.is_in(list(collection))
 
 
 def _is_not_in(value: Any, collection: list) -> pl.Expr:

@@ -13,12 +13,17 @@ on:
 
 jobs:
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    name: Test (Python ${{ matrix.python-version }}${{ matrix.polars != 'locked' && format(', Polars {0}', matrix.polars) || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        polars: ["locked"]
+        # poetry.lock pins Polars 1.x, so Polars-2-only behaviour needs its own run.
+        include:
+          - python-version: "3.13"
+            polars: "2"
 
     steps:
       - name: Checkout repository
@@ -41,12 +46,18 @@ jobs:
           path: |
             ~/.cache/pypoetry
             .venv
-          key: ${{ runner.os }}-poetry-py${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          key: ${{ runner.os }}-poetry-py${{ matrix.python-version }}-polars${{ matrix.polars }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-py${{ matrix.python-version }}-
+            ${{ runner.os }}-poetry-py${{ matrix.python-version }}-polars${{ matrix.polars }}-
 
       - name: Install dependencies
         run: poetry install --no-interaction
+
+      - name: Install Polars ${{ matrix.polars }}
+        if: matrix.polars != 'locked'
+        run: |
+          poetry run pip install "polars==${{ matrix.polars }}.*"
+          poetry run python -c "import polars; print(polars.__version__)"
 
       - name: Run tests
         run: poetry run pytest tests/ -v
@@ -55,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-py${{ matrix.python-version }}
+          name: test-results-py${{ matrix.python-version }}-polars${{ matrix.polars }}
           path: |
             .pytest_cache/
             test-reports/

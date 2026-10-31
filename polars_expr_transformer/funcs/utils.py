@@ -67,6 +67,29 @@ def is_polars_expr(v: Any) -> bool:
     return isinstance(v, pl.Expr)
 
 
+def numeric_members(collection: list) -> list | None:
+    """Return the non-null members of an `in ( ... )` list when it holds a number.
+
+    Polars 2's ``is_in`` does no supertype casting, so an integer column against
+    ``[1.0, 2.5]`` and a float column against ``[1, 2]`` both raise. A numeric
+    list is therefore compared member by member with ``==``, which does find the
+    supertype and keeps integer comparison exact. Nulls are dropped because
+    ``is_in`` never matches them. ``_is_in`` and the code generator both decide
+    with this, so live evaluation and generated code cannot disagree.
+
+    Returns:
+        The members to compare against, or None when the list holds no number.
+    """
+    if not any(isinstance(m, (int, float)) and not isinstance(m, bool) for m in collection):
+        return None
+    return [m for m in collection if m is not None]
+
+
+def any_match(checks: list) -> pl.Expr:
+    """Join membership comparisons with `any_horizontal`, or return a single one as is."""
+    return checks[0] if len(checks) == 1 else pl.any_horizontal(checks)
+
+
 def create_fix_col(val: Any) -> pl.Expr:
     return pl.lit(val)
 
